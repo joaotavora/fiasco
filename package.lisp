@@ -9,7 +9,7 @@
 (defpackage :sinfol
   (:shadow #:log)
   
-  (:use :cl :metabang-bind :defclass-star :alexandria :iterate :sinfol-system)
+  (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :sinfol-system)
 
   (:export
    #:get-test

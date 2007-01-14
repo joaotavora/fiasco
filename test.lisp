@@ -38,6 +38,15 @@
    (number-of-added-failure-descriptions 0))
   :chain-parents #t)
 
+(defprint-object (self context :identity #f :type #f)
+  (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
+          (name-of (test-of self))
+          (bind ((result (lambda-list-to-funcall-list (lambda-list-of (test-of self)))))
+            (mapcar (lambda (arg-cell)
+                      (setf result (substitute (cdr arg-cell) (car arg-cell) result :test #'eq)))
+                    (test-arguments-of self))
+            result)))
+
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
 
@@ -104,7 +113,7 @@
                                                     (return-from run-it (run-it)))
                                                   (retest-without-debugging ()
                                                     :report (lambda (stream)
-                                                              (format stream "~@<Turn off debugging for the rest of this test run and rerun the current test ~S~@:>" ',name))
+                                                              (format stream "~@<Turn off debugging for the rest of this test run and restart the current test ~S~@:>" ',name))
                                                     (setf *debug-on-unexpected-error* #f)
                                                     (setf *debug-on-assertion-failure* #f)
                                                     (prune-failure-descriptions)

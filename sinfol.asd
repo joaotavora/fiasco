@@ -43,7 +43,8 @@
    (:file "configuration")
    (:file "classes")
    (:file "test")
-   (:file "suite")))
+   (:file "suite")
+   (:file "swank-integration")))
 
 (defsystem :sinfol-test
   :description "Tests for the SINFOL test system."
@@ -57,7 +58,9 @@
   ;; globally enable the syntax in the repl thread
   (eval (read-from-string "(sinfol::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
-  (format t "The result of (sinfol-test::sinfol-self-test) is ~A~%For more details run from the repl and use the Slime inspector"
+  (format t "The result of (sinfol-test::sinfol-self-test) is:~%~%  ~A~%~%~
+             For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
+             For best user experience use Slime from \"darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime\""
           (funcall (read-from-string "sinfol-test::sinfol-self-test")))
   (values))
 

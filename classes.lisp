@@ -130,6 +130,12 @@
 (defclass* failed-assertion (failure-description)
   ((form)))
 
+(defprint-object (self failed-assertion :identity #f :type #f)
+  (format t "failure ~{~A~^/~} ~S"
+          (mapcar (compose #'name-of #'test-of)
+                  (reverse (test-context-backtrace-of self)))
+          (form-of self)))
+
 (defclass* missing-condition (failure-description)
   ((condition)))
 
