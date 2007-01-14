@@ -59,7 +59,12 @@
 
 
 (defun concatenate-symbol (&rest args)
-  "Args are processed as parts of the result symbol with an exception: when a package is encountered then it is stored as the target package at intern."
+  "A DWIM symbol concatenate: Args will be converted to string and be concatenated
+to form the resulting symbol with one exception: when a package is encountered then
+it is stored as the target package to use at intern. If there was no package
+among the args then the symbol-package of the first symbol encountered will be
+used. If there are neither packages nor symbols among the args then the result will
+be interned into the current package at the time of calling."
   (let* ((package nil)
          (symbol-name (string-upcase
                        (with-output-to-string (str)
@@ -77,3 +82,40 @@
         (intern symbol-name package)
         (intern symbol-name))))
 
+
+;; from arnesi
+(defmacro defprint-object ((self class-name &key (identity t) (type t) with-package)
+                           &body body)
+  "Define a print-object method using print-unreadable-object.
+  An example:
+  (defprint-object (self parenscript-dispatcher)
+    (when (cachep self)
+      (princ \"cached\")
+      (princ \" \"))
+    (princ (parenscript-file self)))"
+  (with-unique-names (stream)
+    `(defmethod print-object ((,self ,class-name) ,stream)
+      (print-unreadable-object (,self ,stream :type ,type :identity ,identity)
+        (let ((*standard-output* ,stream)
+              ,@(when with-package `((*package* ,(find-package with-package)))))
+          ,@body)))))
+
+(defun remove-keywords (plist &rest keywords)
+  "Creates a copy of PLIST without the listed KEYWORDS."
+  (declare (optimize (speed 3)))
+  (loop for cell = plist :then (cddr cell)
+        for el = (car cell)
+        while cell
+        unless (member el keywords :test #'eq)
+        collect el
+        and collect (cadr cell)
+        and do (assert (cdr cell) () "Not a proper plist")))
+
+(define-modify-macro remf-keywords (&rest keywords) remove-keywords
+  "Creates a copy of PLIST without the properties identified by KEYWORDS.")
+
+(defmacro rebind (bindings &body body)
+  `(let ,(loop
+            for symbol-name in bindings
+            collect (list symbol-name symbol-name))
+     ,@body))

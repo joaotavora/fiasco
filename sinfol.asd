@@ -32,15 +32,18 @@
   :maintainer ("Attila Lendvai <attila.lendvai@gmail.com>"
                "Tamás Borbély <tomi.borbely@gmail.com>"
 	       "Levente Mészáros <levente.meszaros@gmail.com>")
-  :licence "BSD"
+  :licence "BSD / Public domain"
   :description "Sinfol Is Not FiveAM or Lift"
-  :depends-on (:alexandria :iterate :metabang-bind :defclass-star)
+  :depends-on (:swank :alexandria :iterate :metabang-bind :defclass-star)
   :default-component-class local-cl-source-file
+  :serial t
   :components
   ((:file "package")
-   (:file "duplicates" :depends-on ("package"))
-   (:file "configuration" :depends-on ("duplicates"))
-   (:file "deftest" :depends-on ("configuration"))))
+   (:file "duplicates")
+   (:file "configuration")
+   (:file "classes")
+   (:file "test")
+   (:file "suite")))
 
 (defsystem :sinfol-test
   :description "Tests for the SINFOL test system."
@@ -48,14 +51,14 @@
   :components
   ((:file "self-tests")))
 
-(defmethod perform :after ((op load-op) (system (eql (find-system :sinfol-test))))
-  ;; globally enable the syntax in the repl thread
-  (eval (read-from-string "(sinfol::enable-sharp-boolean-syntax)")))
-
 (defmethod perform ((op test-op) (system (eql (find-system :sinfol))))
   (operate 'load-op :sinfol-test)
   (in-package :sinfol-test)
-  ;;(funcall (read-from-string "5am:run!"))
+  ;; globally enable the syntax in the repl thread
+  (eval (read-from-string "(sinfol::enable-sharp-boolean-syntax)"))
+  (declaim (optimize (debug 3)))
+  (format t "The result of (sinfol-test::sinfol-self-test) is ~A~%For more details run from the repl and use the Slime inspector"
+          (funcall (read-from-string "sinfol-test::sinfol-self-test")))
   (values))
 
 (defmethod operation-done-p ((op test-op) (system (eql (find-system :sinfol))))

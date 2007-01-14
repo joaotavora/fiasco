@@ -12,14 +12,23 @@
   (:use :cl :metabang-bind :defclass-star :alexandria :iterate :sinfol-system)
 
   (:export
+   #:get-test
+   #:rem-test
    #:deftest
    #:is
    #:signals
-   #:finishes)
+   #:finishes
+   #:in-suite
+   #:in-suite*
+   #:defsuite
+   )
 
   ;; stuff exported only for debug purposes
-  (:export))
+  (:export
+   #:*debug-on-unexpected-error*
+   #:*debug-on-assertion-failure*
+   ))
 
 (defpackage :sinfol-test
-  (:use :cl :sinfol :alexandria :iterate))
+  (:use :cl :metabang-bind :defclass-star :alexandria :iterate :sinfol))
 
