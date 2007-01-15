@@ -12,12 +12,14 @@
   (assert (eq *defclass-macro-name-for-dynamic-context* 'defclass*)))
 
 (defvar *print-test-run-progress* #t)
+(defvar *test-progress-print-right-margin* 100)
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
 
 (define-dynamic-context global-context
-  ((failure-descriptions '())
+  ((failure-descriptions (make-array 8 :adjustable #t :fill-pointer 0))
    (assertion-count 0)
+   (progress-char-count 0)
    (print-test-run-progress-p *print-test-run-progress* :type boolean)
    (debug-on-unexpected-error-p *debug-on-unexpected-error* :type boolean)
    (debug-on-assertion-failure-p *debug-on-assertion-failure* :type boolean)
@@ -100,7 +102,7 @@
                                             ;; drop failures recorded by the previous run of this test
                                             (bind ((context (current-context)))
                                               (dotimes (i (number-of-added-failure-descriptions-of context))
-                                                (pop (failure-descriptions-of ,global-context)))
+                                                (vector-pop (failure-descriptions-of ,global-context)))
                                               (setf (number-of-added-failure-descriptions-of context) 0)))
                                           (run-it ()
                                             (handler-bind ((assertion-failed (lambda (c)
@@ -182,7 +184,7 @@
                             (format stream "~@<Record the failure, turn off debugging for this run and continue~@:>"))
                   (setf (debug-on-unexpected-error-p global-context) #f)
                   (setf (debug-on-assertion-failure-p global-context) #f))))
-            (push description (failure-descriptions-of global-context))
+            (vector-push-extend description (failure-descriptions-of global-context))
             (incf (number-of-added-failure-descriptions-of context))
             (write-progress-char (progress-char-of description))))
         (if *debug-on-assertion-failure*      ; we have no global-context
@@ -243,11 +245,20 @@
                          (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args))))))))
 
 (defun write-progress-char (char)
-  (when (or (and (has-global-context)
-                 (print-test-run-progress-p (current-global-context)))
-            (and (not (has-global-context))
-                 *print-test-run-progress*))
-    (write-char char *debug-io*)))
+  (bind ((context (when (has-global-context)
+                    (current-global-context))))
+    (when (and context
+               (print-test-run-progress-p context))
+      (when (and (not (zerop (progress-char-count-of context)))
+                 (zerop (mod (progress-char-count-of context)
+                             *test-progress-print-right-margin*)))
+        (terpri *debug-io*))
+      (incf (progress-char-count-of context)))
+    (when (or (and context
+                   (print-test-run-progress-p context))
+              (and (not context)
+                   *print-test-run-progress*))
+      (write-char char *debug-io*))))
 
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))

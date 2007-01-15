@@ -70,7 +70,7 @@
                (is (not (= 42 42)))))
     (in-global-context context
       (bind ((old-assertion-count (assertion-count-of context))
-             (old-failure-descriptions (failure-descriptions-of context))
+             (old-failure-description-count (length (failure-descriptions-of context)))
              (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))
              (old-debug-on-assertion-failure (debug-on-assertion-failure-p context))
              (old-print-test-run-progress-p (print-test-run-progress-p context)))
@@ -86,8 +86,11 @@
         (is (= (assertion-count-of context)
                (+ old-assertion-count 4))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
-               (+ (length old-failure-descriptions) 2)))
-        (setf (failure-descriptions-of context) old-failure-descriptions))
+               (+ old-failure-description-count 2)))
+        (dotimes (i (- (length (failure-descriptions-of context))
+                       old-failure-description-count))
+          ;; drop failures registered by the test-test
+          (vector-pop (failure-descriptions-of context))))
       (rem-test test-name :otherwise nil)))
   (values))
 

@@ -17,12 +17,9 @@
             "Executed assertions: " ,(princ-to-string (assertion-count-of context)) (:newline)
             "Failures: " (:newline)
             ;; intentionally reverse the order by push'ing
-            ,@(let ((content))
-                (map nil (lambda (description)
-                           (push `(:newline) content)
-                           (push `(:value ,description) content))
-                     (failure-descriptions-of context))
-                content)
+            ,@(iter (for description :in-vector (failure-descriptions-of context))
+                    (collect `(:value ,description))
+                    (collect `(:newline)))
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector context inspector)))))
 
