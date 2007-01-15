@@ -12,6 +12,7 @@
   (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :sinfol-system)
 
   (:export
+   #:*display-all-slots-in-inspector*
    #:get-test
    #:rem-test
    #:deftest
@@ -21,10 +22,6 @@
    #:in-suite
    #:in-suite*
    #:defsuite
-   )
-
-  ;; stuff exported only for debug purposes
-  (:export
    #:*debug-on-unexpected-error*
    #:*debug-on-assertion-failure*
    ))

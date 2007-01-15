@@ -11,6 +11,7 @@
 (defmacro defsuite (name &rest args &key in &allow-other-keys)
   (declare (ignore in))
   `(progn
+    (rem-test ',name :otherwise nil)
     (deftest (,name ,@args) ()
       (bind ((test (get-test ',name)))
         (iter (for (nil subtest) :in-hashtable (children-of test))

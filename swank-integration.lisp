@@ -6,6 +6,10 @@
 
 (in-package :sinfol)
 
+#.(file-header)
+
+(defvar *display-all-slots-in-inspector* #f)
+
 (defmethod inspect-for-emacs ((context global-context) inspector)
   (values "Sinfol test results"
           `("Executed tests: " ,(princ-to-string (test-count-of context)) (:newline)
@@ -18,13 +22,15 @@
                            (push `(:value ,description) content))
                      (failure-descriptions-of context))
                 content)
-            ,@(swank::all-slots-for-inspector context inspector))))
+            ,@(when *display-all-slots-in-inspector*
+                (swank::all-slots-for-inspector context inspector)))))
 
 (defmethod inspect-for-emacs ((context context) inspector)
   (values "Sinfol test context"
           `("Test: " (:value ,(test-of context)) (:newline)
             "Test arguments: " (:value ,(test-arguments-of context)) (:newline)
-            ,@(swank::all-slots-for-inspector context inspector))))
+            ,@(when *display-all-slots-in-inspector*
+                (swank::all-slots-for-inspector context inspector)))))
 
 (defmethod inspect-for-emacs ((failure failed-assertion) inspector)
   (values "Failed assertion"
@@ -35,14 +41,31 @@
                     (collect (format nil "~D: " idx))
                     (collect `(:value ,context))
                     (collect `(:newline)))
-            ,@(swank::all-slots-for-inspector failure inspector))))
+            ,@(when *display-all-slots-in-inspector*
+                (swank::all-slots-for-inspector failure inspector)))))
 
-(defmethod swank::type-for-emacs ((context global-context))
-  nil)
-(defmethod swank::type-for-emacs ((context context))
-  nil)
-(defmethod swank::type-for-emacs ((context failed-assertion))
-  nil)
+(defmethod inspect-for-emacs ((test test) inspector)
+  (values "Test"
+          `("Name: " (:value ,(name-of test)) ,@(when (get-test (name-of test) :otherwise #f)
+                                                  `(" " (:action "[undefine]" ,(lambda () (rem-test (name-of test)))))) (:newline)
+            "Package: " (:value ,(package-of test)) (:newline)
+            "Compile before run?: " ,(if (compile-before-run-p test) "yes" "no") (:newline)
+            "Documentation: " (:value ,(documentation-of test)) (:newline)
+            "Parent: " (:value ,(parent-of test)) (:newline)
+            "Children: " (:newline)
+            ,@(iter (for (nil child) :in-hashtable (children-of test))
+                    (appending `((:value ,child) " "
+                                 (:action "[undefine]" ,(lambda () (rem-test (name-of child))))
+                                 (:newline))))
+            ,@(when *display-all-slots-in-inspector*
+                (swank::all-slots-for-inspector test inspector)))))
+
+(macrolet ((no-type-for (&rest args)
+             `(progn
+               ,@(iter (for type :in args)
+                       (collect `(defmethod swank::type-for-emacs ((thing ,type))
+                                  nil))))))
+  (no-type-for global-context context failed-assertion test))
 
 
 

@@ -41,8 +41,8 @@
                                     (format nil "~S" key)))))
   (setf (gethash key *tests*) value))
 
-(defun rem-test (name)
-  (bind ((test (get-test name))
+(defun rem-test (name &rest args)
+  (bind ((test (apply #'get-test name args))
          (parent (when test
                    (parent-of test))))
     (when test
@@ -128,7 +128,13 @@
   ())
 
 (defclass* failed-assertion (failure-description)
-  ((form)))
+  ((form)
+   (format-control)
+   (format-arguments)))
+
+(defmethod describe-object ((self failed-assertion) stream)
+  (let ((*print-circle* nil))
+    (apply #'format stream (format-control-of self) (format-arguments-of self))))
 
 (defprint-object (self failed-assertion :identity #f :type #f)
   (format t "failure ~{~A~^/~} ~S"
