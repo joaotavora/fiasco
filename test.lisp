@@ -105,23 +105,23 @@
                                                                      (funcall ,test-lambda ,@(lambda-list-to-funcall-list args)))
                                                                    `(progn
                                                                      ,@remaining-forms)))
-                                                            (retest ()
-                                                                    :report (lambda (stream)
-                                                                              (format stream "~@<Rerun the test ~S~@:>" ',name))
-                                                                    (prune-failure-descriptions)
-                                                                    (return-from run-it (run-it)))
-                                                            (retest-without-debugging ()
-                                                                                      :report (lambda (stream)
-                                                                                                (format stream "~@<Turn off debugging for the rest of this test run and restart the current test ~S~@:>" ',name))
-                                                                                      (setf *debug-on-unexpected-error* #f)
-                                                                                      (setf *debug-on-assertion-failure* #f)
-                                                                                      (prune-failure-descriptions)
-                                                                                      (return-from run-it (run-it)))
-                                                            (skip-test ()
-                                                                       :report (lambda (stream)
-                                                                                 (format stream "~@<Abort the test ~S and record that it was skipped~@:>" ',name))
-                                                                       (record-failure* 'skipped-by-restart :signal-assertion-failed #f)
-                                                                       (values))))))
+                                                 (retest ()
+                                                   :report (lambda (stream)
+                                                             (format stream "~@<Rerun the test ~S~@:>" ',name))
+                                                   (prune-failure-descriptions)
+                                                   (return-from run-it (run-it)))
+                                                 (retest-without-debugging ()
+                                                   :report (lambda (stream)
+                                                             (format stream "~@<Turn off debugging for the rest of this test run and restart the current test ~S~@:>" ',name))
+                                                   (setf *debug-on-unexpected-error* #f)
+                                                   (setf *debug-on-assertion-failure* #f)
+                                                   (prune-failure-descriptions)
+                                                   (return-from run-it (run-it)))
+                                                 (skip-test ()
+                                                   :report (lambda (stream)
+                                                             (format stream "~@<Abort the test ~S and record that it was skipped~@:>" ',name))
+                                                   (record-failure* 'skipped-by-restart :signal-assertion-failed #f)
+                                                   (values))))))
                                    (run-it)))))))
               (if ,toplevel-p
                   (with-new-global-context ()
@@ -201,8 +201,8 @@
                            `(not (,predicate ,x ,y))
                            `(,predicate ,x ,y))
                        "Binary predicate ~A failed.~%~
-                     x: ~A evaluated to ~S~%~
-                     y: ~A evaluated to ~S"
+                        x: ~A evaluated to ~S~%~
+                        y: ~A evaluated to ~S"
                        (list (if negatedp
                                  `(quote (not (,predicate x y)))
                                  `(quote (,predicate x y)))

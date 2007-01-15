@@ -23,7 +23,7 @@
         ;; we are not really a test
         (decf (test-count-of context)))
       (values))
-    (get-test ',name)))
+    (values (get-test ',name))))
 
 (setf *suite* (make-suite 'global-suite :documentation "Global Suite"))
 
