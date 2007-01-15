@@ -12,7 +12,8 @@
 
 (defmethod inspect-for-emacs ((context global-context) inspector)
   (values "Stefil test results"
-          `("Executed tests: " ,(princ-to-string (test-count-of context)) (:newline)
+          `("Executed tests: " (:value ,(hash-table-values (run-tests-of context))
+                                       ,(princ-to-string (hash-table-count (run-tests-of context)))) (:newline)
             "Executed assertions: " ,(princ-to-string (assertion-count-of context)) (:newline)
             "Failures: " (:newline)
             ;; intentionally reverse the order by push'ing

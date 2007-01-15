@@ -14,12 +14,25 @@
 (define-dynamic-context global-context
   ((failure-descriptions '())
    (assertion-count 0)
-   (test-count 0)
+   (current-test nil)
+   (run-tests (make-hash-table))
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
   (format t "results :tests ~A :assertions ~A :failures ~A"
-          (test-count-of self) (assertion-count-of self) (length (failure-descriptions-of self))))
+          (hash-table-count (run-tests-of self)) (assertion-count-of self) (length (failure-descriptions-of self))))
+
+(defun test-was-run-p (test)
+  (declare (type testable test))
+  (in-global-context context
+    (and (gethash test (run-tests-of context))
+         (not (eq (current-test-of context) test)))))
+
+(defun register-test-being-run (test)
+  (declare (type testable test))
+  (in-global-context context
+    (setf (gethash test (run-tests-of context)) (current-context))
+    (setf (current-test-of context) test)))
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
@@ -76,7 +89,7 @@
             (assert ,test)
             (flet ((body ()
                      (with-new-context (:test ,test :test-arguments ,(lambda-list-to-value-list-expression args))
-                       (incf (test-count-of ,global-context))
+                       (register-test-being-run ,test)
                        (setf ,result-values
                              (multiple-value-list
                                  (labels ((prune-failure-descriptions ()
@@ -132,7 +145,7 @@
                   (body))
               (if ,toplevel-p
                   (if ,result-values
-                      (values ,global-context ,result-values)
+                      (values-list (append ,result-values (list ,global-context)))
                       ,global-context)
                   (values-list ,result-values)))))))))
     

@@ -11,7 +11,7 @@
             (read-from-string "(enable-sharp-boolean-syntax *suite* test count-tests
                                 remf-keywords rebind parent-of name-of *tests* eval-always
                                 extract-assert-expression-and-message record-failure record-failure*
-                                assertion-count-of test-count-of failure-descriptions-of
+                                assertion-count-of run-tests-of failure-descriptions-of
                                 in-global-context in-context)")))
   (shadow (list 'stefil-test::deftest)))
 
