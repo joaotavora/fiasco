@@ -12,7 +12,8 @@
                                 remf-keywords rebind parent-of name-of *tests* eval-always
                                 extract-assert-expression-and-message record-failure record-failure*
                                 assertion-count-of run-tests-of failure-descriptions-of
-                                in-global-context in-context)")))
+                                in-global-context in-context debug-on-unexpected-error-p
+                                debug-on-assertion-failure-p print-test-run-progress-p)")))
   (shadow (list 'stefil-test::deftest)))
 
 (enable-sharp-boolean-syntax)
@@ -63,21 +64,30 @@
 
 (deftest assertions (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
-       (bind ((*debug-on-unexpected-error* #f)
-              (*debug-on-assertion-failure* #f))
-         (eval `(deftest ,test-name ()
-                 (is (= 42 42))
-                 (is (= 1 42))
-                 (is (not (= 42 42)))))
-         (in-global-context context
-           (bind ((old-assertion-count (assertion-count-of context))
-                  (old-failure-descriptions (failure-descriptions-of context)))
-             (funcall test-name)
-             (is (= (assertion-count-of context)
-                    (+ old-assertion-count 3)))
-             (is (= (length (failure-descriptions-of context))
-                    (+ (length old-failure-descriptions) 2)))
-             (setf (failure-descriptions-of context) old-failure-descriptions))))
-    (rem-test test-name :otherwise nil))
+       (eval `(deftest ,test-name ()
+               (is (= 42 42))
+               (is (= 1 42))
+               (is (not (= 42 42)))))
+    (in-global-context context
+      (bind ((old-assertion-count (assertion-count-of context))
+             (old-failure-descriptions (failure-descriptions-of context))
+             (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))
+             (old-debug-on-assertion-failure (debug-on-assertion-failure-p context))
+             (old-print-test-run-progress-p (print-test-run-progress-p context)))
+        (unwind-protect
+             (progn
+               (setf (debug-on-unexpected-error-p context) #f)
+               (setf (debug-on-assertion-failure-p context) #f)
+               (setf (print-test-run-progress-p context) #f)
+               (funcall test-name))
+          (setf (debug-on-unexpected-error-p context) old-debug-on-unexpected-error)
+          (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
+          (setf (print-test-run-progress-p context) old-print-test-run-progress-p))
+        (is (= (assertion-count-of context)
+               (+ old-assertion-count 4))) ; also includes the current assertion
+        (is (= (length (failure-descriptions-of context))
+               (+ (length old-failure-descriptions) 2)))
+        (setf (failure-descriptions-of context) old-failure-descriptions))
+      (rem-test test-name :otherwise nil)))
   (values))
 

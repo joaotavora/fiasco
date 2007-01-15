@@ -11,9 +11,16 @@
 (eval-always
   (assert (eq *defclass-macro-name-for-dynamic-context* 'defclass*)))
 
+(defvar *print-test-run-progress* #t)
+(defvar *debug-on-unexpected-error* #t)
+(defvar *debug-on-assertion-failure* #t)
+
 (define-dynamic-context global-context
   ((failure-descriptions '())
    (assertion-count 0)
+   (print-test-run-progress-p *print-test-run-progress* :type boolean)
+   (debug-on-unexpected-error-p *debug-on-unexpected-error* :type boolean)
+   (debug-on-assertion-failure-p *debug-on-assertion-failure* :type boolean)
    (current-test nil)
    (run-tests (make-hash-table))
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
@@ -60,9 +67,6 @@
                     (test-arguments-of self))
             result)))
 
-(defvar *debug-on-unexpected-error* #t)
-(defvar *debug-on-assertion-failure* #t)
-
 (defmacro deftest (&whole whole name args &body body)
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
          ((name &rest test-args &key (compile-before-run #t) &allow-other-keys) (ensure-list name)))
@@ -101,15 +105,15 @@
                                           (run-it ()
                                             (handler-bind ((assertion-failed (lambda (c)
                                                                                (declare (ignore c))
-                                                                               (unless *debug-on-assertion-failure*
-                                                                                 (invoke-restart
-                                                                                  (find-restart 'continue-testing)))))
+                                                                               (unless (debug-on-assertion-failure-p ,global-context)
+                                                                                 (continue))))
                                                            (serious-condition (lambda (c)
-                                                                                (unless (or *debug-on-unexpected-error*
-                                                                                            (typep c 'assertion-failed))
+                                                                                (unless (typep c 'assertion-failed)
                                                                                   (record-failure* 'unexpected-error
                                                                                                    :description-initargs (list :condition c)
                                                                                                    :signal-assertion-failed #f)
+                                                                                  (when (debug-on-unexpected-error-p ,global-context)
+                                                                                    (invoke-debugger c))
                                                                                   (return-from run-it)))))
                                               (restart-case (bind ((*package* (package-of ,test))
                                                                    (*readtable* (copy-readtable)))
@@ -118,37 +122,29 @@
                                                                      (funcall ,test-lambda ,@(lambda-list-to-funcall-list args)))
                                                                    `(progn
                                                                      ,@remaining-forms)))
+                                                 (continue ()
+                                                   :report (lambda (stream)
+                                                             (format stream "~@<Skip the rest of the test ~S and continue~@:>" ',name))
+                                                   (values))
                                                  (retest ()
                                                    :report (lambda (stream)
                                                              (format stream "~@<Rerun the test ~S~@:>" ',name))
                                                    (prune-failure-descriptions)
-                                                   (return-from run-it (run-it)))
-                                                 (retest-without-debugging ()
-                                                   :report (lambda (stream)
-                                                             (format stream "~@<Turn off debugging for the rest of this test run and restart the current test ~S~@:>" ',name))
-                                                   (setf *debug-on-unexpected-error* #f)
-                                                   (setf *debug-on-assertion-failure* #f)
-                                                   (prune-failure-descriptions)
-                                                   (return-from run-it (run-it)))
-                                                 (skip-test ()
-                                                   :report (lambda (stream)
-                                                             (format stream "~@<Abort the test ~S and record that it was skipped~@:>" ',name))
-                                                   (record-failure* 'skipped-by-restart :signal-assertion-failed #f)
-                                                   (values))))))
+                                                   (return-from run-it (run-it)))))))
                                    (run-it)))))))
               (if ,toplevel-p
                   (with-new-global-context ()
                     (setf ,global-context (current-global-context))
-                    (rebind (*debug-on-unexpected-error*
-                             *debug-on-assertion-failure*)
-                      (body)))
+                    (body))
                   (body))
               (if ,toplevel-p
-                  (if ,result-values
-                      (values-list (append ,result-values (list ,global-context)))
-                      ,global-context)
+                  (progn
+                    (when (print-test-run-progress-p ,global-context)
+                      (terpri *debug-io*))
+                    (if ,result-values
+                        (values-list (append ,result-values (list ,global-context)))
+                        ,global-context))
                   (values-list ,result-values)))))))))
-    
 
 (defcondition* assertion-failed (test-related-condition simple-error)
   ())
@@ -169,20 +165,27 @@
                                                              (collect context)))
                              description-initargs)))
     (if (has-global-context)
-        (in-global-context (failure-descriptions)
+        (in-global-context global-context
           (in-context context
             (when signal-assertion-failed
-              (with-simple-restart
-                  (continue-testing "Record the failure and continue with the pending tests")
-                (error 'assertion-failed
-                       :test (test-of context)
-                       :format-control (etypecase description
-                                         (failed-assertion "Assertion ~S failed."))
-                       :format-arguments (typecase description
-                                           (failed-assertion (list (form-of description)))))))
-            (push description failure-descriptions)
-            (incf (number-of-added-failure-descriptions-of context))))
-        (if *debug-on-assertion-failure*
+              (restart-case (error 'assertion-failed
+                                   :test (test-of context)
+                                   :format-control (etypecase description
+                                                     (failed-assertion "Assertion ~S failed."))
+                                   :format-arguments (typecase description
+                                                       (failed-assertion (list (form-of description)))))
+                (continue ()
+                  :report (lambda (stream)
+                            (format stream "~@<Record the failure and continue~@:>")))
+                (continue-without-debugging ()
+                  :report (lambda (stream)
+                            (format stream "~@<Record the failure, turn off debugging for this run and continue~@:>"))
+                  (setf (debug-on-unexpected-error-p global-context) #f)
+                  (setf (debug-on-assertion-failure-p global-context) #f))))
+            (push description (failure-descriptions-of global-context))
+            (incf (number-of-added-failure-descriptions-of context))
+            (write-progress-char (progress-char-of description))))
+        (if *debug-on-assertion-failure*      ; we have no global-context
             (error 'assertion-failed-without-context :failure-description description)
             (describe description *debug-io*)))))
 
@@ -239,32 +242,45 @@
                          message
                          (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args))))))))
 
-(defun increment-assert-counter ()
+(defun write-progress-char (char)
+  (when (or (and (has-global-context)
+                 (print-test-run-progress-p (current-global-context)))
+            (and (not (has-global-context))
+                 *print-test-run-progress*))
+    (write-char char *debug-io*)))
+
+(defun register-assertion-was-successful ()
+  (write-progress-char #\.))
+
+(defun register-assertion ()
   (when (has-global-context)
-    (incf (assertion-count-of (current-global-context)))))
+    (in-global-context context
+      (incf (assertion-count-of context)))))
 
 (defmacro is (&whole whole form)
   (bind (((values bindings expression message message-args)
           (extract-assert-expression-and-message form)))
     `(progn
-      (increment-assert-counter)
+      (register-assertion)
       (bind ,bindings
-        (unless ,expression
-          (record-failure 'failed-assertion :form ',whole
-                          :format-control ,message :format-arguments (list ,@message-args))))
+        (if ,expression
+            (register-assertion-was-successful)
+            (record-failure 'failed-assertion :form ',whole
+                            :format-control ,message :format-arguments (list ,@message-args))))
       (values))))
 
 (defmacro signals (what &body body)
   (bind ((condition-type what))
     `(progn
-      (increment-assert-counter)
+      (register-assertion)
       (block test-block
-        (multiple-value-prog1
-            (handler-bind ((,condition-type (lambda (c)
-                                              (declare (ignore c))
-                                              (return-from test-block (values)))))
-              ,@body)
-          (record-failure 'missing-condition :condition ',condition-type))))))
+        (handler-bind ((,condition-type (lambda (c)
+                                          (declare (ignore c))
+                                          (return-from test-block (values)))))
+          ,@body
+          (register-assertion-was-successful))
+        (record-failure 'missing-condition :condition ',condition-type))
+      (values))))
 
 
 

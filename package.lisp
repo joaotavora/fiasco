@@ -12,7 +12,7 @@
   (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :stefil-system)
 
   (:export
-   #:*display-all-slots-in-inspector*
+   #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default
    #:get-test
    #:rem-test
    #:deftest
@@ -22,6 +22,9 @@
    #:in-suite
    #:in-suite*
    #:defsuite
+
+   ;; these are the defaults from which the test context is initialized
+   #:*print-test-run-progress*
    #:*debug-on-unexpected-error*
    #:*debug-on-assertion-failure*
    ))

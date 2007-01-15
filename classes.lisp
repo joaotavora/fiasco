@@ -122,10 +122,8 @@
 ;;; failure descriptions
 
 (defclass* failure-description ()
-  ((test-context-backtrace)))
-
-(defclass* skipped-by-restart (failure-description)
-  ())
+  ((test-context-backtrace)
+   (progress-char #\X :allocation :class)))
 
 (defclass* failed-assertion (failure-description)
   ((form)
@@ -146,7 +144,8 @@
   ((condition)))
 
 (defclass* unexpected-error (failure-description)
-  ((condition)))
+  ((condition)
+   (progress-char #\E :allocation :class)))
 
 
 
