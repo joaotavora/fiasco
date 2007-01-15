@@ -4,14 +4,14 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :sinfol)
+(in-package :stefil)
 
 #.(file-header)
 
 (defvar *display-all-slots-in-inspector* #f)
 
 (defmethod inspect-for-emacs ((context global-context) inspector)
-  (values "Sinfol test results"
+  (values "Stefil test results"
           `("Executed tests: " ,(princ-to-string (test-count-of context)) (:newline)
             "Executed assertions: " ,(princ-to-string (assertion-count-of context)) (:newline)
             "Failures: " (:newline)
@@ -26,14 +26,14 @@
                 (swank::all-slots-for-inspector context inspector)))))
 
 (defmethod inspect-for-emacs ((context context) inspector)
-  (values "Sinfol test context"
+  (values "Stefil test context"
           `("Test: " (:value ,(test-of context)) (:newline)
             "Test arguments: " (:value ,(test-arguments-of context)) (:newline)
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector context inspector)))))
 
 (defmethod inspect-for-emacs ((failure failed-assertion) inspector)
-  (values "Failed assertion"
+  (values "Failed Stefil assertion"
           `("Form: " (:value ,(form-of failure)) (:newline)
             "Test backtrace: " (:newline)
             ,@(iter (for context :in (test-context-backtrace-of failure))
@@ -45,7 +45,7 @@
                 (swank::all-slots-for-inspector failure inspector)))))
 
 (defmethod inspect-for-emacs ((test test) inspector)
-  (values "Test"
+  (values "Stefil test"
           `("Name: " (:value ,(name-of test)) ,@(when (get-test (name-of test) :otherwise #f)
                                                   `(" " (:action "[undefine]" ,(lambda () (rem-test (name-of test)))))) (:newline)
             "Package: " (:value ,(package-of test)) (:newline)

@@ -4,28 +4,28 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :sinfol-test)
+(in-package :stefil-test)
 
-(sinfol::eval-always
-  (import (let ((*package* (find-package :sinfol)))
+(stefil::eval-always
+  (import (let ((*package* (find-package :stefil)))
             (read-from-string "(enable-sharp-boolean-syntax *suite* test count-tests
                                 remf-keywords rebind parent-of name-of *tests* eval-always
                                 extract-assert-expression-and-message record-failure record-failure*
                                 assertion-count-of test-count-of failure-descriptions-of
                                 in-global-context in-context)")))
-  (shadow (list 'sinfol-test::deftest)))
+  (shadow (list 'stefil-test::deftest)))
 
 (enable-sharp-boolean-syntax)
 
-(in-suite* sinfol-self-test :description "Sinfol self tests")
+(in-suite* stefil-self-test :description "Stefil self tests")
 
-(defparameter *temp-suite* (defsuite sinfol-temp-suite :description "Suite used when the tests are running"))
+(defparameter *temp-suite* (defsuite stefil-temp-suite :description "Suite used when the tests are running"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
-  `(sinfol:deftest ,name ,args
+  `(stefil:deftest ,name ,args
     (rebind (*suite*)
-      (in-suite sinfol-temp-suite)
+      (in-suite stefil-temp-suite)
       ,@body)))
 
 (deftest lifecycle (&key (test-name (gensym "TEMP-TEST")) (suite-name (gensym "TEMP-SUITE")))

@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :sinfol)
+(in-package :stefil)
 
 (enable-sharp-boolean-syntax)
 

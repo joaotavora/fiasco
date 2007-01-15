@@ -6,12 +6,12 @@
 
 (in-package :cl-user)
 
-(defpackage #:sinfol-system
+(defpackage #:stefil-system
   (:use :cl :asdf)
   (:export
    #:*load-with-debug-p*))
 
-(in-package #:sinfol-system)
+(in-package #:stefil-system)
 
 (defparameter *load-with-debug-p* nil)
 
@@ -24,7 +24,7 @@
       (pushnew :debug *features*))
     (call-next-method)))
 
-(defsystem :sinfol
+(defsystem :stefil
   :version "0.1"
   :author ("Attila Lendvai <attila.lendvai@gmail.com>"
 	   "Tamás Borbély <tomi.borbely@gmail.com>"
@@ -33,7 +33,7 @@
                "Tamás Borbély <tomi.borbely@gmail.com>"
 	       "Levente Mészáros <levente.meszaros@gmail.com>")
   :licence "BSD / Public domain"
-  :description "Sinfol Is Not FiveAM or Lift"
+  :description "Stefil - Simple Test Framework In Lisp"
   :depends-on (:swank :alexandria :iterate :metabang-bind :defclass-star)
   :default-component-class local-cl-source-file
   :serial t
@@ -46,23 +46,23 @@
    (:file "suite")
    (:file "swank-integration")))
 
-(defsystem :sinfol-test
-  :description "Tests for the SINFOL test system."
-  :depends-on (:sinfol)
+(defsystem :stefil-test
+  :description "Tests for the STEFIL test system."
+  :depends-on (:stefil)
   :components
   ((:file "self-tests")))
 
-(defmethod perform ((op test-op) (system (eql (find-system :sinfol))))
-  (operate 'load-op :sinfol-test)
-  (in-package :sinfol-test)
+(defmethod perform ((op test-op) (system (eql (find-system :stefil))))
+  (operate 'load-op :stefil-test)
+  (in-package :stefil-test)
   ;; globally enable the syntax in the repl thread
-  (eval (read-from-string "(sinfol::enable-sharp-boolean-syntax)"))
+  (eval (read-from-string "(stefil::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
-  (format t "The result of (sinfol-test::sinfol-self-test) is:~%~%  ~A~%~%~
+  (format t "The result of (stefil-test::stefil-self-test) is:~%~%  ~A~%~%~
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
              For best user experience use Slime from \"darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime\""
-          (funcall (read-from-string "sinfol-test::sinfol-self-test")))
+          (funcall (read-from-string "stefil-test::stefil-self-test")))
   (values))
 
-(defmethod operation-done-p ((op test-op) (system (eql (find-system :sinfol))))
+(defmethod operation-done-p ((op test-op) (system (eql (find-system :stefil))))
   nil)

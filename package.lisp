@@ -6,10 +6,10 @@
 
 (in-package :cl-user)
 
-(defpackage :sinfol
+(defpackage :stefil
   (:shadow #:log)
   
-  (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :sinfol-system)
+  (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :stefil-system)
 
   (:export
    #:*display-all-slots-in-inspector*
@@ -26,6 +26,6 @@
    #:*debug-on-assertion-failure*
    ))
 
-(defpackage :sinfol-test
-  (:use :cl :metabang-bind :defclass-star :alexandria :iterate :sinfol))
+(defpackage :stefil-test
+  (:use :cl :metabang-bind :defclass-star :alexandria :iterate :stefil))
 
