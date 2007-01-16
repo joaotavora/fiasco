@@ -17,10 +17,9 @@
         (if (test-was-run-p test)
             (warn "Skipped executing already ran tests suite ~S" (name-of test))
             (iter (for (nil subtest) :in-hashtable (children-of test))
-                  (if (or (zerop (length (lambda-list-of subtest)))
+                  (when (or (zerop (length (lambda-list-of subtest)))
                           (member (first (lambda-list-of subtest)) '(&key &optional)))
-                      (funcall (name-of subtest))
-                      (warn "Skipped test ~S because it has mandatory arguments" subtest)))))
+                    (funcall (name-of subtest))))))
       (values))
     (values (get-test ',name))))
 
