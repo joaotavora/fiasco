@@ -4,19 +4,26 @@
 ;;;
 ;;; See LICENCE for details.
 
+(in-package :stefil)
+
+(defpackage :stefil-test
+    (:use :common-lisp :metabang-bind :defclass-star :alexandria :iterate :stefil)
+  (:shadow #:deftest))
+
+(eval-always
+  (import
+   '(enable-sharp-boolean-syntax *suite* test count-tests
+     remf-keywords rebind parent-of name-of *tests* eval-always
+     extract-assert-expression-and-message record-failure record-failure*
+     assertion-count-of run-tests-of failure-descriptions-of
+     in-global-context in-context debug-on-unexpected-error-p
+     debug-on-assertion-failure-p print-test-run-progress-p
+     file-header)
+   (find-package :stefil-test)))
+
 (in-package :stefil-test)
 
-(stefil::eval-always
-  (import (let ((*package* (find-package :stefil)))
-            (read-from-string "(enable-sharp-boolean-syntax *suite* test count-tests
-                                remf-keywords rebind parent-of name-of *tests* eval-always
-                                extract-assert-expression-and-message record-failure record-failure*
-                                assertion-count-of run-tests-of failure-descriptions-of
-                                in-global-context in-context debug-on-unexpected-error-p
-                                debug-on-assertion-failure-p print-test-run-progress-p)")))
-  (shadow (list 'stefil-test::deftest)))
-
-(enable-sharp-boolean-syntax)
+#.(file-header)
 
 (in-suite* stefil-self-test :description "Stefil self tests")
 

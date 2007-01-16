@@ -31,6 +31,4 @@
    #:*debug-on-assertion-failure*
    ))
 
-(defpackage :stefil-test
-  (:use :cl :metabang-bind :defclass-star :alexandria :iterate :stefil))
 
