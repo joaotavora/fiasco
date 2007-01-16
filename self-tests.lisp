@@ -69,6 +69,8 @@
                (is (= 1 42))
                (is (not (= 42 42)))))
     (in-global-context context
+      ;; this uglyness here is due to testing the test framework which is inherently
+      ;; not nestable, so we need to backup and restore some state
       (bind ((old-assertion-count (assertion-count-of context))
              (old-failure-description-count (length (failure-descriptions-of context)))
              (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))

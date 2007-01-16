@@ -271,14 +271,16 @@
 (defmacro is (&whole whole form)
   (bind (((values bindings expression message message-args)
           (extract-assert-expression-and-message form)))
-    `(progn
-      (register-assertion)
-      (bind ,bindings
-        (if ,expression
-            (register-assertion-was-successful)
-            (record-failure 'failed-assertion :form ',whole
-                            :format-control ,message :format-arguments (list ,@message-args))))
-      (values))))
+    (with-unique-names (result)
+      `(progn
+        (register-assertion)
+        (bind ,bindings
+          (bind ((,result (multiple-value-list ,expression)))
+            (if (first ,result)
+                (register-assertion-was-successful)
+                (record-failure 'failed-assertion :form ',whole
+                                :format-control ,message :format-arguments (list ,@message-args)))
+            (values-list ,result)))))))
 
 (defmacro signals (what &body body)
   (bind ((condition-type what))
