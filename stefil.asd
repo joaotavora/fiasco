@@ -41,7 +41,6 @@
   ((:file "package")
    (:file "duplicates")
    (:file "configuration")
-   (:file "classes")
    (:file "test")
    (:file "suite")
    (:file "swank-integration")))
@@ -61,7 +60,7 @@
   (format t "The result of (stefil-test::stefil-self-test) is:~%~%  ~A~%~%~
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
              May need some extra patches from the Slime repo available from~%~
-             darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime"
+             darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime~%"
           (funcall (read-from-string "stefil-test::stefil-self-test")))
   (values))
 
