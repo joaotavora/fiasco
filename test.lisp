@@ -436,6 +436,14 @@
                         :condition ',condition-type))
       (values))))
 
+(defmacro finishes (&body body)
+  `(progn
+    (register-assertion)
+    (multiple-value-prog1
+        (progn
+          ,@body)
+      (register-assertion-was-successful))))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
