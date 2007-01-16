@@ -269,7 +269,7 @@
                                                                    (*readtable* (copy-readtable)))
                                                               ,(if compile-before-run
                                                                    `(bind ((,test-lambda (get-test-lambda ,test ,global-context)))
-                                                                     (funcall ,test-lambda ,@(lambda-list-to-funcall-list args)))
+                                                                     ,(lambda-list-to-funcall-expression test-lambda args))
                                                                    `(progn
                                                                      ,@remaining-forms)))
                                                  (continue ()
@@ -449,28 +449,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; some utils
 
+(defun lambda-list-to-funcall-expression (function args)
+  (bind (((values arg-list rest-variable) (lambda-list-to-funcall-list args)))
+    (if rest-variable
+        `(apply ,function ,@arg-list ,rest-variable)
+        `(funcall ,function ,@arg-list))))
+
 (defun lambda-list-to-funcall-list (args)
   (iter (with in-keywords = #f)
+        (with rest-variable = nil)
         (for cell :first args :then (cdr cell))
         (while cell)
         (for arg = (first (ensure-list (car cell))))
         (case arg
           (&key (setf in-keywords #t))
           (&allow-other-keys)
-          (&rest (setf cell (cdr cell)))
+          (&rest (setf rest-variable (car (cdr cell)))
+                 (setf cell (cdr cell)))
           (t (if in-keywords
                  (progn
                    (collect (intern (symbol-name (first (ensure-list arg)))
-                                    #.(find-package "KEYWORD")))
-                   (collect arg))
-                 (collect arg))))))
+                                    #.(find-package "KEYWORD")) :into result)
+                   (collect arg :into result))
+                 (collect arg :into result))))
+        (finally (return (values result rest-variable)))))
 
 (defun lambda-list-to-value-list-expression (args)
   `(list ,@(iter (for cell :first args :then (cdr cell))
                  (while cell)
                  (for arg = (first (ensure-list (car cell))))
                  (case arg
-                   (&rest (setf cell (cdr cell)))
+                   (&rest (collect `(cons '&rest ,(car (cdr cell))))
+                          (setf cell (cdr cell)))
                    ((&key &allow-other-keys &optional))
                    (t (collect `(cons ',arg ,arg)))))))
 
