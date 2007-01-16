@@ -54,9 +54,9 @@
 (defmethod perform ((op test-op) (system (eql (find-system :stefil))))
   (operate 'load-op :stefil-test)
   (in-package :stefil-test)
-  ;; globally enable the syntax in the repl thread
   (eval (read-from-string "(stefil::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
+  (warn "Enabled the #t/#f syntax in the repl thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
   (format t "The result of (stefil-test::stefil-self-test) is:~%~%  ~A~%~%~
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
              May need some extra patches from the Slime repo available from~%~
