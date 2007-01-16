@@ -21,6 +21,7 @@
    #:in-suite
    #:in-suite*
    #:defsuite
+   #:runs-without-failure?
 
    #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default
    #:*test-progress-print-right-margin*

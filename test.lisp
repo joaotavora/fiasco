@@ -449,6 +449,13 @@
           ,@body)
       (register-assertion-was-successful))))
 
+(defmacro runs-without-failure? (&body body)
+  (with-unique-names (context old-failure-count)
+    `(in-global-context ,context
+      (bind ((,old-failure-count (length (failure-descriptions-of ,context))))
+        ,@body
+        (= ,old-failure-count (length (failure-descriptions-of ,context)))))))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
