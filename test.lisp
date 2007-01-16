@@ -148,12 +148,10 @@
                         ,global-context))
                   (values-list ,result-values)))))))))
 
-(defcondition* assertion-failed (test-related-condition simple-error)
-  ())
-
-(defcondition* assertion-failed-without-context (error)
+(defcondition* assertion-failed (test-related-condition error)
   ((failure-description))
   (:report (lambda (c stream)
+             (format stream "Test assertion failed:~%~%")
              (describe (failure-description-of c) stream))))
 
 (defun record-failure (description-type &rest args)
@@ -172,10 +170,7 @@
             (when signal-assertion-failed
               (restart-case (error 'assertion-failed
                                    :test (test-of context)
-                                   :format-control (etypecase description
-                                                     (failed-assertion "Assertion ~S failed."))
-                                   :format-arguments (typecase description
-                                                       (failed-assertion (list (form-of description)))))
+                                   :failure-description description)
                 (continue ()
                   :report (lambda (stream)
                             (format stream "~@<Record the failure and continue~@:>")))
@@ -188,7 +183,7 @@
             (incf (number-of-added-failure-descriptions-of context))
             (write-progress-char (progress-char-of description))))
         (if *debug-on-assertion-failure*      ; we have no global-context
-            (error 'assertion-failed-without-context :failure-description description)
+            (error 'assertion-failed :failure-description description)
             (describe description *debug-io*)))))
 
 (defun extract-assert-expression-and-message (input-form)
@@ -292,7 +287,9 @@
                                           (return-from test-block (values)))))
           ,@body
           (register-assertion-was-successful))
-        (record-failure 'missing-condition :condition ',condition-type))
+        (record-failure 'missing-condition
+                        :form (list* 'progn ',body)
+                        :condition ',condition-type))
       (values))))
 
 

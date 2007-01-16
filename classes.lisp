@@ -141,7 +141,12 @@
           (form-of self)))
 
 (defclass* missing-condition (failure-description)
-  ((condition)))
+  ((form)
+   (condition)))
+
+(defmethod describe-object ((self missing-condition) stream)
+  (let ((*print-circle* nil))
+    (format stream "~S failed to signal condition ~S" (form-of self) (condition-of self))))
 
 (defclass* unexpected-error (failure-description)
   ((condition)
