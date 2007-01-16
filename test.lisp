@@ -326,9 +326,14 @@
             (vector-push-extend description (failure-descriptions-of global-context))
             (incf (number-of-added-failure-descriptions-of context))
             (write-progress-char (progress-char-of description))))
-        (if *debug-on-assertion-failure*      ; we have no global-context
-            (error 'assertion-failed :failure-description description)
-            (describe description *debug-io*)))))
+        (progn
+          (describe description *debug-io*)
+          (when *debug-on-assertion-failure* ; we have no global-context
+            (restart-case (error 'assertion-failed
+                                 :failure-description description)
+              (continue ()
+                :report (lambda (stream)
+                          (format stream "~@<Ignore the failure and continue~@:>")))))))))
 
 (defun extract-assert-expression-and-message (input-form)
   (bind ((negatedp #f)
