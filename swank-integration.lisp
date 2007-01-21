@@ -8,6 +8,14 @@
 
 #.(file-header)
 
+(defun stefil-inspector-lookup-hook (form)
+  (when (symbolp form)
+    (let ((test (get-test form :otherwise nil)))
+      (when test
+        (values test t)))))
+
+(pushnew 'stefil-inspector-lookup-hook swank:*inspector-dwim-lookup-hooks*)
+
 (defvar *display-all-slots-in-inspector* #f)
 
 (defmethod inspect-for-emacs ((context global-context) inspector)
@@ -48,7 +56,7 @@
                                                   `(" " (:action "[undefine]" ,(lambda () (rem-test (name-of test)))))) (:newline)
             "Package: " (:value ,(package-of test)) (:newline)
             "Compile before run?: " ,(if (compile-before-run-p test) "yes" "no") (:newline)
-            "Documentation: " (:value ,(documentation-of test)) (:newline)
+            "Documentation: " ,@(when (documentation-of test) `((:value ,(documentation-of test)))) (:newline)
             "Parent: " (:value ,(parent-of test)) (:newline)
             "Children: " (:newline)
             ,@(iter (for (nil child) :in-hashtable (children-of test))
