@@ -35,13 +35,11 @@
 (defmacro %in-suite (suite-name &rest args &key (fail-on-error #t) &allow-other-keys)
   (remf-keywords args :fail-on-error)
   (with-unique-names (suite)
-    `(progn
-      (if-bind ,suite (get-test ',suite-name :otherwise nil)
-        (setf *suite* ,suite)
-        (progn
-          (when ,fail-on-error
-            (cerror "Create a new suite named ~A."
-                    "Unkown suite ~A." ',suite-name))
-          (setf *suite* (eval `(defsuite ,',suite-name ,@',args)))))
-      ',suite-name)))
+    `(if-bind ,suite (get-test ',suite-name :otherwise nil)
+      (setf *suite* ,suite)
+      (progn
+        (when ,fail-on-error
+          (cerror "Create a new suite named ~A."
+                  "Unkown suite ~A." ',suite-name))
+        (setf *suite* (eval `(defsuite ,',suite-name ,@',args)))))))
 
