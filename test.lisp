@@ -36,7 +36,9 @@
 ;;; test repository
 
 (defun get-test (name &key (otherwise :error))
-  (bind (((values test found-p) (gethash name *tests*)))
+  (bind (((values test found-p) (if (typep name 'testable)
+                                    (values name t)
+                                    (gethash name *tests*))))
     (when (and (not found-p)
                otherwise)
       (etypecase otherwise
@@ -219,17 +221,18 @@
 
 (defmacro deftest (&whole whole name args &body body)
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
-         ((name &rest test-args &key (compile-before-run #t) &allow-other-keys) (ensure-list name)))
+         ((name &rest test-args &key (compile-before-run #t) in &allow-other-keys) (ensure-list name)))
+    (remf-keywords test-args :in)
     (with-unique-names (toplevel-p test test-lambda global-context result-values)
       `(progn
         (eval-when (:load-toplevel :execute)
           (make-test ',name
            :package ,*package*
            :lambda-list ',args
-           :compile-before-run ,compile-before-run
            :declarations ',declarations
            :documentation ',documentation
            :body ',remaining-forms
+           ,@(when in `(:in (get-test ',in)))
            ,@test-args))
         (defun ,name ,args
           ,@(when documentation (list documentation))

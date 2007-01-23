@@ -47,7 +47,7 @@
       (rem-test test-name :otherwise nil))
     (is (= (count-tests *suite*) original-test-count))
     (unwind-protect
-         (bind ((temp-suite (eval `(defsuite ,suite-name :in *suite*))))
+         (bind ((temp-suite (eval `(defsuite ,suite-name :in ,*suite*))))
            (is (= (count-tests *suite*) (1+ original-test-count)))
            (is (eq (parent-of temp-suite) *suite*))
            (is (eq (get-test (name-of temp-suite)) temp-suite))

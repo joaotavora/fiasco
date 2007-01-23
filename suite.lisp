@@ -9,7 +9,7 @@
 #.(file-header)
 
 (defmacro defsuite (name &rest args &key in &allow-other-keys)
-  (declare (ignore in))
+  (declare (ignore in)) ; to pop up in the slime minibuffer help
   `(progn
     (rem-test ',name :otherwise nil)
     (deftest (,name ,@args) ()
