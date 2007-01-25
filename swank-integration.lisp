@@ -38,17 +38,28 @@
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector context inspector)))))
 
+(defun test-backtrace-for-emacs (description)
+  (iter (for context :in (test-context-backtrace-of description))
+        (for idx :upfrom 0)
+        (collect (format nil "~D: " idx))
+        (collect `(:value ,context))
+        (collect `(:newline))))
+
 (defmethod inspect-for-emacs ((failure failed-assertion) inspector)
   (values "Failed Stefil assertion"
           `("Form: " (:value ,(form-of failure)) (:newline)
             "Test backtrace: " (:newline)
-            ,@(iter (for context :in (test-context-backtrace-of failure))
-                    (for idx :upfrom 0)
-                    (collect (format nil "~D: " idx))
-                    (collect `(:value ,context))
-                    (collect `(:newline)))
+            ,@(test-backtrace-for-emacs failure)
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector failure inspector)))))
+
+(defmethod inspect-for-emacs ((description unexpected-error) inspector)
+  (values "Unexpected error in a Stefil test"
+          `("Condition: " (:value ,(condition-of description)) (:newline)
+            "Test backtrace: " (:newline)
+            ,@(test-backtrace-for-emacs description)
+            ,@(when *display-all-slots-in-inspector*
+                (swank::all-slots-for-inspector description inspector)))))
 
 (defmethod inspect-for-emacs ((test test) inspector)
   (values "Stefil test"
@@ -71,7 +82,7 @@
                ,@(iter (for type :in args)
                        (collect `(defmethod swank::type-for-emacs ((thing ,type))
                                   nil))))))
-  (no-type-for global-context context failed-assertion test))
+  (no-type-for global-context context failed-assertion unexpected-error test))
 
 
 

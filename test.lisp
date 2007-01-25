@@ -143,7 +143,7 @@
     (apply #'format stream (format-control-of self) (format-arguments-of self))))
 
 (defprint-object (self failed-assertion :identity #f :type #f)
-  (format t "failure ~{~A~^/~} ~S"
+  (format t "failure ~{~A~^,~}: ~S"
           (mapcar (compose #'name-of #'test-of)
                   (reverse (test-context-backtrace-of self)))
           (form-of self)))
@@ -160,7 +160,11 @@
   ((condition)
    (progress-char #\E :allocation :class)))
 
-
+(defprint-object (self unexpected-error :identity #f :type #f)
+  (format t "error ~{~A~^,~}: ~S"
+          (mapcar (compose #'name-of #'test-of)
+                  (reverse (test-context-backtrace-of self)))
+          (condition-of self)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
