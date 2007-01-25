@@ -221,7 +221,8 @@
 
 (defmacro deftest (&whole whole name args &body body)
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
-         ((name &rest test-args &key (compile-before-run #t) in &allow-other-keys) (ensure-list name)))
+         ((name &rest test-args &key (compile-before-run #t) in &allow-other-keys) (ensure-list name))
+         (in-p (get-properties test-args '(:in))))
     (remf-keywords test-args :in)
     (with-unique-names (toplevel-p test test-lambda global-context result-values)
       `(progn
@@ -232,7 +233,10 @@
            :declarations ',declarations
            :documentation ',documentation
            :body ',remaining-forms
-           ,@(when in `(:in (get-test ',in)))
+           ,@(when in-p
+                   (if in
+                       `(:in (get-test ',in))
+                       '(:in nil)))
            ,@test-args))
         (defun ,name ,args
           ,@(when documentation (list documentation))
