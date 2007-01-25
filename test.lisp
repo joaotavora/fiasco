@@ -298,7 +298,12 @@
               (if ,toplevel-p
                   (with-new-global-context ()
                     (setf ,global-context (current-global-context))
-                    (body))
+                    (restart-case (bind ((swank::*sldb-quit-restart* 'abort-testing))
+                                    (body))
+                      (abort-testing ()
+                        :report (lambda (stream)
+                                  (format stream "~@<Abort the entire test run ~S~@:>" ',name))
+                        ,global-context)))
                   (body))
               (if ,toplevel-p
                   (progn
