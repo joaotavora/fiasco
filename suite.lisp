@@ -23,6 +23,11 @@
       (values))
     (values (get-test ',name))))
 
+(defmacro defsuite* (name &rest args)
+  `(progn
+    (defsuite ,name ,@args)
+    (in-suite ,name)))
+
 (setf *suite* (make-suite 'global-suite :documentation "Global Suite"))
 
 (defmacro in-suite (suite-name)
