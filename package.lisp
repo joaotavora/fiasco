@@ -26,6 +26,8 @@
 
    #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default
    #:*test-progress-print-right-margin*
+   #:*test-result-history*
+   #:*last-test-result*
    
    ;; these are the defaults from which the test context is initialized
    #:*print-test-run-progress*

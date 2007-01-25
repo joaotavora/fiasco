@@ -13,6 +13,8 @@
 (defvar *test-progress-print-right-margin* 100)
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
+(defvar *test-result-history* '())
+(defvar *last-test-result* nil)
 
 (defparameter *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -302,6 +304,8 @@
                   (progn
                     (when (print-test-run-progress-p ,global-context)
                       (terpri *debug-io*))
+                    (push ,global-context *test-result-history*)
+                    (setf *last-test-result* ,global-context)
                     (if ,result-values
                         (values-list (append ,result-values (list ,global-context)))
                         ,global-context))
