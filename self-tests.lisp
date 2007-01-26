@@ -118,11 +118,18 @@
   (:setup (push '42 *fixture-test-global*))
   (:teardown (setf *fixture-test-global* (remove '42 *fixture-test-global*))))
 
+(defparameter *fixture-test-counter* 0)
+
+(defixture simple-test-fixture
+  (incf *fixture-test-counter*))
+
 (deftest fixtures ()
-  (with-fixture test-fixture
-    (is (equal *fixture-test-global* '(42)))
-    (nested-fixtures)
-    (is (equal *fixture-test-global* '(42))))
+  (with-fixture simple-test-fixture
+    (is (not (zerop *fixture-test-counter*)))
+    (with-fixture test-fixture
+      (is (equal *fixture-test-global* '(42)))
+      (nested-fixtures)
+      (is (equal *fixture-test-global* '(42)))))
   (is (equal *fixture-test-global* '())))
 
 (deftest (nested-fixtures :auto-call #f) ()
