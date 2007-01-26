@@ -498,9 +498,11 @@
     (in-global-context context
       (incf (assertion-count-of context)))))
 
-(defmacro is (&whole whole form)
+(defmacro is (&whole whole form &optional (message nil message-p) &rest message-args)
   (bind (((values bindings expression message message-args)
-          (extract-assert-expression-and-message form)))
+          (if message-p
+              (values nil form message message-args)
+              (extract-assert-expression-and-message form))))
     (with-unique-names (result)
       `(progn
         (register-assertion)
