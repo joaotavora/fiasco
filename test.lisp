@@ -152,10 +152,10 @@
     (apply #'format stream (format-control-of self) (format-arguments-of self))))
 
 (defprint-object (self failed-assertion :identity #f :type #f)
-  (format t "failure ~{~A~^,~}: ~S"
+  (format t "failure ~S at: ~{~A~^,~}"
+          (form-of self)
           (mapcar (compose #'name-of #'test-of)
-                  (reverse (test-context-backtrace-of self)))
-          (form-of self)))
+                  (test-context-backtrace-of self))))
 
 (defclass* missing-condition (failure-description)
   ((form)
