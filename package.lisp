@@ -22,6 +22,8 @@
    #:in-suite*
    #:defsuite
    #:defsuite*
+   #:defixture
+   #:with-fixture
    #:runs-without-failure?
 
    #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default

@@ -33,6 +33,12 @@
              (format stream "Test assertion failed:~%~%")
              (describe (failure-description-of c) stream))))
 
+(defcondition* error-in-teardown (error)
+  ((condition)
+   (fixture))
+  (:report (lambda (c stream)
+             (format stream "Error while running teardown of fixture ~A:~%~%~A" (fixture-of c) (condition-of c)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; test repository
@@ -181,6 +187,7 @@
    (debug-on-assertion-failure-p *debug-on-assertion-failure* :type boolean)
    (current-test nil)
    (run-tests (make-hash-table))
+   (run-fixtures (make-hash-table))
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
@@ -316,6 +323,62 @@
                         ,global-context))
                   (values-list ,result-values)))))))))
 
+
+(defmacro defixture (name &body body)
+  (with-unique-names (global-context phase)
+    (bind (setup-body
+           teardown-body)
+      (iter (for entry :in body)
+            (if (and (consp body)
+                     (member (first entry) '(:setup :teardown)))
+                (ecase (first entry)
+                  (:setup
+                   (assert (not setup-body) () "Multiple :setup's for fixture ~S" name)
+                   (setf setup-body (rest entry)))
+                  (:teardown
+                   (assert (not teardown-body) () "Multiple :teardown's for fixture ~S" name)
+                   (setf teardown-body (rest entry))))
+                (progn
+                  (assert (and (not setup-body)
+                               (not teardown-body))
+                          () "Error parsing body of fixture ~A" name)
+                  (setf setup-body body)
+                  (leave))))
+      `(defun ,name (&optional (,phase :setup))
+        (declare (optimize (debug 3)))
+        (bind ((,global-context (and (has-global-context)
+                                     (current-global-context))))
+          (ecase ,phase
+            (:setup
+             (if (and ,global-context
+                      (gethash ',name (run-fixtures-of ,global-context)))
+                 #f
+                 (progn
+                   (when ,global-context
+                     (setf (gethash ',name (run-fixtures-of ,global-context)) t))
+                   ,@setup-body
+                   #t)))
+            (:teardown
+             ,@teardown-body
+             (when ,global-context
+               (remhash ',name (run-fixtures-of ,global-context)))
+             (values))))))))
+
+(defmacro with-fixture (name &body body)
+  (with-unique-names (was-run)
+    `(let ((,was-run (,name :setup)))
+      (unwind-protect
+           (progn
+             ,@body)
+        (when ,was-run
+          (block teardown-block
+            (handler-bind
+                ((serious-condition (lambda (c)
+                                      (with-simple-restart (continue ,(let ((*package* (find-package :common-lisp)))
+                                                                        (format nil "Skip teardown ~S and continue" name)))
+                                        (error 'error-in-teardown :condition c :fixture ',name))
+                                      (return-from teardown-block))))
+              (,name :teardown))))))))
 
 
 (defun record-failure (description-type &rest args)

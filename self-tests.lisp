@@ -103,3 +103,19 @@
       (rem-test test-name :otherwise nil)))
   (values))
 
+
+(defparameter *fixture-test-global* '())
+
+(defixture test-fixture
+  (:setup (push '42 *fixture-test-global*))
+  (:teardown (setf *fixture-test-global* (remove '42 *fixture-test-global*))))
+
+(deftest fixtures ()
+  (with-fixture test-fixture
+    (is (equal *fixture-test-global* '(42)))
+    (nested-fixtures))
+  (is (equal *fixture-test-global* '())))
+
+(deftest nested-fixtures ()
+  (with-fixture test-fixture
+    (is (equal *fixture-test-global* '(42)))))
