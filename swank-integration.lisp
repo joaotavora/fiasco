@@ -67,6 +67,7 @@
                                                   `(" " (:action "[undefine]" ,(lambda () (rem-test (name-of test)))))) (:newline)
             "Package: " (:value ,(package-of test)) (:newline)
             "Compile before run?: " ,(if (compile-before-run-p test) "yes" "no") (:newline)
+            "Auto call by its suite?: " ,(if (auto-call-p test) "yes" "no") (:newline)
             "Documentation: " ,@(when (documentation-of test) `((:value ,(documentation-of test)))) (:newline)
             "Parent: " (:value ,(parent-of test)) (:newline)
             "Children: " (:newline)

@@ -88,7 +88,8 @@
 (defclass* testable ()
   ((name :type symbol)
    (parent nil :initarg nil :type (or null testable))
-   (children (make-hash-table) :documentation "A mapping from testable names to testables")))
+   (children (make-hash-table) :documentation "A mapping from testable names to testables")
+   (auto-call #t :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
 (defprint-object (self testable :identity #f :type #f)
   (format t "test ~S" (name-of self))

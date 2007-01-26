@@ -121,9 +121,10 @@
 (deftest fixtures ()
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))
-    (nested-fixtures))
+    (nested-fixtures)
+    (is (equal *fixture-test-global* '(42))))
   (is (equal *fixture-test-global* '())))
 
-(deftest nested-fixtures ()
+(deftest (nested-fixtures :auto-call #f) ()
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))))
