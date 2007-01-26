@@ -69,12 +69,20 @@
     (incf *global-counter-for-lexical-test*)
     (is (= counter *global-counter-for-lexical-test*))))
 
+(defmacro false-macro ()
+  #f)
+
+(defmacro true-macro ()
+  #t)
+
 (deftest assertions (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
                (is (= 42 42))
                (is (= 1 42))
-               (is (not (= 42 42)))))
+               (is (not (= 42 42)))
+               (is (true-macro))
+               (is (not (false-macro)))))
     (in-global-context context
       ;; this uglyness here is due to testing the test framework which is inherently
       ;; not nestable, so we need to backup and restore some state
@@ -93,7 +101,7 @@
           (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
           (setf (print-test-run-progress-p context) old-print-test-run-progress-p))
         (is (= (assertion-count-of context)
-               (+ old-assertion-count 4))) ; also includes the current assertion
+               (+ old-assertion-count 6))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
                (+ old-failure-description-count 2)))
         (dotimes (i (- (length (failure-descriptions-of context))

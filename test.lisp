@@ -433,43 +433,46 @@
                         (setf arguments (rest form))))
                    (setf predicate form))))
       (process input-form)
-      (cond ((= (length arguments) 0)
-             (values nil
-                     input-form
-                     "Expression ~A evaluated to false."
-                     (list `(quote ,input-form))))
-            ((= (length arguments) 2)
-             (with-unique-names (x y)
-               (values `((,x ,(first arguments))
-                         (,y ,(second arguments)))
-                       (if negatedp
-                           `(not (,predicate ,x ,y))
-                           `(,predicate ,x ,y))
-                       "Binary predicate ~A failed.~%~
-                        x: ~A evaluated to ~S~%~
-                        y: ~A evaluated to ~S"
-                       (list (if negatedp
-                                 `(quote (not (,predicate x y)))
-                                 `(quote (,predicate x y)))
-                             `(quote ,(first arguments)) x
-                             `(quote ,(second arguments)) y))))
-            (t (bind ((arg-values (mapcar (lambda (el) (declare (ignore el)) (gensym)) arguments))
-                      (bindings (iter (for arg :in arguments)
-                                      (for arg-value :in arg-values)
-                                      (collect `(,arg-value ,arg))))
-                      (expression (if negatedp
-                                      `(not (,predicate ,@arg-values))
-                                      `(,predicate ,@arg-values)))
-                      ((values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
-                                                           (for arg :in arguments)
-                                                           (for arg-value :in arg-values)
-                                                           (setf message (concatenate 'string message "~%~A evaluated to ~S"))
-                                                           (appending `((quote ,arg) ,arg-value) :into message-args)
-                                                           (finally (return (values message message-args))))))
-                 (values bindings
-                         expression
-                         message
-                         (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args))))))))
+      (if (ignore-errors
+            (fdefinition (first predicate)))
+          (cond ((= (length arguments) 0)
+                 (values '()
+                         input-form
+                         "Expression ~A evaluated to false."
+                         (list `(quote ,input-form))))
+                ((= (length arguments) 2)
+                 (with-unique-names (x y)
+                   (values `((,x ,(first arguments))
+                             (,y ,(second arguments)))
+                           (if negatedp
+                               `(not (,predicate ,x ,y))
+                               `(,predicate ,x ,y))
+                           "Binary predicate ~A failed.~%~
+                            x: ~A evaluated to ~S~%~
+                            y: ~A evaluated to ~S"
+                           (list (if negatedp
+                                     `(quote (not (,predicate x y)))
+                                     `(quote (,predicate x y)))
+                                 `(quote ,(first arguments)) x
+                                 `(quote ,(second arguments)) y))))
+                (t (bind ((arg-values (mapcar (lambda (el) (declare (ignore el)) (gensym)) arguments))
+                          (bindings (iter (for arg :in arguments)
+                                          (for arg-value :in arg-values)
+                                          (collect `(,arg-value ,arg))))
+                          (expression (if negatedp
+                                          `(not (,predicate ,@arg-values))
+                                          `(,predicate ,@arg-values)))
+                          ((values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
+                                                               (for arg :in arguments)
+                                                               (for arg-value :in arg-values)
+                                                               (setf message (concatenate 'string message "~%~A evaluated to ~S"))
+                                                               (appending `((quote ,arg) ,arg-value) :into message-args)
+                                                               (finally (return (values message message-args))))))
+                     (values bindings
+                             expression
+                             message
+                             (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args)))))
+          (values '() input-form "Macro expression ~A evaluated to false." (list `(quote ,input-form)))))))
 
 (defun write-progress-char (char)
   (bind ((context (when (has-global-context)
