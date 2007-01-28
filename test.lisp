@@ -152,7 +152,7 @@
     (apply #'format stream (format-control-of self) (format-arguments-of self))))
 
 (defprint-object (self failed-assertion :identity #f :type #f)
-  (format t "failure ~S at: ~{~A~^,~}"
+  (format t "failure ~S backtrace: ~{~A~^,~}"
           (form-of self)
           (mapcar (compose #'name-of #'test-of)
                   (test-context-backtrace-of self))))
@@ -435,7 +435,10 @@
                    (setf predicate form))))
       (process input-form)
       (cond ((ignore-errors
-               (fdefinition (first predicate)))
+               (macro-function predicate))
+             (values '() input-form "Macro expression ~A evaluated to false." (list `(quote ,input-form))))
+            ((ignore-errors
+               (fdefinition predicate))
              (cond ((= (length arguments) 0)
                     (values '()
                             input-form
@@ -473,9 +476,6 @@
                                 expression
                                 message
                                 (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args))))))
-            ((ignore-errors
-               (macro-function (first predicate)))
-             (values '() input-form "Macro expression ~A evaluated to false." (list `(quote ,input-form))))
             (t
              (values '() input-form "Expression ~A evaluated to false." (list `(quote ,input-form))))))))
 
