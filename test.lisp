@@ -238,6 +238,11 @@
          ((name &rest test-args &key (compile-before-run #t) in &allow-other-keys) (ensure-list name))
          (in-p (get-properties test-args '(:in))))
     (remf-keywords test-args :in)
+    (unless (or (not (symbol-package name))
+                (eq (symbol-package name) *package*))
+      (warn 'test-style-warning :test name
+            :format-control "Defining test on symbol ~S whose home package is not *package* which is ~A"
+            :format-arguments (list name *package*)))
     (with-unique-names (toplevel-p test test-lambda global-context result-values)
       `(progn
         (eval-when (:load-toplevel :execute)
