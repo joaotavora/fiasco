@@ -452,8 +452,8 @@
                                   `(not (,predicate ,x ,y))
                                   `(,predicate ,x ,y))
                               "Binary predicate ~A failed.~%~
-                               x: ~A evaluated to ~S~%~
-                               y: ~A evaluated to ~S"
+                               x: ~S => ~S~%~
+                               y: ~S => ~S"
                               (list (if negatedp
                                         `(quote (not (,predicate x y)))
                                         `(quote (,predicate x y)))
@@ -468,9 +468,10 @@
                                              `(,predicate ,@arg-values)))
                              ((values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
                                                                   (for arg :in arguments)
+                                                                  (for idx :upfrom 0)
                                                                   (for arg-value :in arg-values)
-                                                                  (setf message (concatenate 'string message "~%~A evaluated to ~S"))
-                                                                  (appending `((quote ,arg) ,arg-value) :into message-args)
+                                                                  (setf message (concatenate 'string message "~%~D: ~A => ~S"))
+                                                                  (appending `(,idx (quote ,arg) ,arg-value) :into message-args)
                                                                   (finally (return (values message message-args))))))
                         (values bindings
                                 expression
