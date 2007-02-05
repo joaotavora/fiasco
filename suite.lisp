@@ -24,7 +24,7 @@
               ,@(or body
                     `((if (test-was-run-p ,test)
                           (warn "Skipped executing already ran tests suite ~S" (name-of ,test))
-                          (run-children))))))
+                          (run-child-tests))))))
           (values))
         (values (get-test ',name))))))
 
