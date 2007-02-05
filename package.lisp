@@ -22,6 +22,7 @@
    #:in-suite*
    #:defsuite
    #:defsuite*
+   #:run-child-tests
    #:defixture
    #:with-fixture
    #:runs-without-failure?

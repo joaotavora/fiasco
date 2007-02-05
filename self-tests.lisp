@@ -25,9 +25,9 @@
 
 #.(file-header)
 
-(in-suite* stefil-self-test :description "Stefil self tests")
+(defsuite (stefil-temp-suite :description "Suite active when the Stefil self-tests are being run"))
 
-(defparameter *temp-suite* (defsuite stefil-temp-suite :description "Suite used when the tests are running"))
+(defsuite* (stefil-self-test :description "Stefil self tests"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
@@ -47,7 +47,7 @@
       (rem-test test-name :otherwise nil))
     (is (= (count-tests *suite*) original-test-count))
     (unwind-protect
-         (bind ((temp-suite (eval `(defsuite ,suite-name :in ,*suite*))))
+         (bind ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*)))))
            (is (= (count-tests *suite*) (1+ original-test-count)))
            (is (eq (parent-of temp-suite) *suite*))
            (is (eq (get-test (name-of temp-suite)) temp-suite))
