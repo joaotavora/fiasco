@@ -35,6 +35,9 @@
   (values "Stefil test context"
           `("Test: " (:value ,(test-of context)) (:newline)
             "Test arguments: " (:value ,(test-arguments-of context)) (:newline)
+            "Parent test frames:"
+            ,@(iter (for parent-context :first (parent-context-of context) :then (parent-context-of parent-context))
+                    (collect `(:value ,parent-context))) (:newline)
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector context inspector)))))
 
