@@ -322,7 +322,7 @@
                                       (body)))
                       (abort-testing ()
                         :report (lambda (stream)
-                                  (format stream "~@<Abort the entire test run ~S~@:>" ',name))
+                                  (format stream "~@<Abort the entire test session started with ~S~@:>" ',name))
                         ,global-context)))
                   (body))
               (if ,toplevel-p
@@ -338,6 +338,7 @@
 
 
 (defmacro defixture (name &body body)
+  "Fixtures are defun's that only execute the :setup part of their body once per test session if there is any at the time of calling."
   (with-unique-names (global-context phase)
     (bind (setup-body
            teardown-body)
@@ -416,7 +417,7 @@
                             (format stream "~@<Record the failure and continue~@:>")))
                 (continue-without-debugging ()
                   :report (lambda (stream)
-                            (format stream "~@<Record the failure, turn off debugging for this run and continue~@:>"))
+                            (format stream "~@<Record the failure, turn off debugging for this test session and continue~@:>"))
                   (setf (debug-on-unexpected-error-p global-context) #f)
                   (setf (debug-on-assertion-failure-p global-context) #f))))
             (vector-push-extend description (failure-descriptions-of global-context))
