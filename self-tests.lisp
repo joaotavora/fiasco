@@ -18,7 +18,7 @@
      assertion-count-of run-tests-of failure-descriptions-of
      in-global-context in-context debug-on-unexpected-error-p
      debug-on-assertion-failure-p print-test-run-progress-p
-     file-header)
+     file-header rem-test)
    (find-package :stefil-test)))
 
 (in-package :stefil-test)
@@ -50,13 +50,13 @@
          (bind ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*)))))
            (is (= (count-tests *suite*) (1+ original-test-count)))
            (is (eq (parent-of temp-suite) *suite*))
-           (is (eq (get-test (name-of temp-suite)) temp-suite))
+           (is (eq (find-test (name-of temp-suite)) temp-suite))
            (eval `(in-suite ,(name-of temp-suite)))
-           (is (eq *suite* (get-test suite-name)))
+           (is (eq *suite* (find-test suite-name)))
            (eval `(deftest ,transient-test-name ())))
       (rem-test suite-name))
-    (signals error (get-test transient-test-name))
-    (signals error (get-test suite-name))
+    (signals error (find-test transient-test-name))
+    (signals error (find-test suite-name))
     (is (= (count-tests *suite*) original-test-count))
     (is (eq original-current-suite *suite*))))
 

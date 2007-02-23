@@ -10,7 +10,7 @@
 
 (defun stefil-inspector-lookup-hook (form)
   (when (symbolp form)
-    (let ((test (get-test form :otherwise nil)))
+    (let ((test (find-test form :otherwise nil)))
       (when test
         (values test t)))))
 
@@ -66,7 +66,7 @@
 
 (defmethod inspect-for-emacs ((test test) inspector)
   (values "Stefil test"
-          `("Name: " (:value ,(name-of test)) ,@(when (get-test (name-of test) :otherwise #f)
+          `("Name: " (:value ,(name-of test)) ,@(when (find-test (name-of test) :otherwise #f)
                                                   `(" " (:action "[undefine]" ,(lambda () (rem-test (name-of test)))))) (:newline)
             "Package: " (:value ,(package-of test)) (:newline)
             "Compile before run?: " ,(if (compile-before-run-p test) "yes" "no") (:newline)

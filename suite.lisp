@@ -14,7 +14,7 @@
       `(progn
         (rem-test ',name :otherwise nil)
         (deftest (,name ,@args) ()
-          (bind ((,test (get-test ',name)))
+          (bind ((,test (find-test ',name)))
             (flet ((run-child-tests ()
                      (iter (for (nil subtest) :in-hashtable (children-of ,test))
                            (when (and (auto-call-p subtest)
@@ -26,7 +26,7 @@
                           (warn "Skipped executing already ran tests suite ~S" (name-of ,test))
                           (run-child-tests))))))
           (values))
-        (values (get-test ',name))))))
+        (values (find-test ',name))))))
 
 (defmacro defsuite* (name &body body)
   `(setf *suite* (defsuite ,name ,@body)))
@@ -34,7 +34,7 @@
 (setf *suite* (make-suite 'global-suite :documentation "Default Suite"))
 
 (defmacro in-suite (suite-name)
-  `(setf *suite* (get-test ',suite-name
+  `(setf *suite* (find-test ',suite-name
                   :otherwise (lambda ()
                                (cerror "Create a new suite named ~A."
                                        "Unkown suite ~A." ',suite-name)
@@ -43,7 +43,7 @@
 (defmacro in-suite* (name &body body)
   "Just like in-suite, but silently creates the named suite if it does not exists."
   (with-unique-names (suite)
-    `(let ((,suite (get-test ,name :otherwise (lambda ()
+    `(let ((,suite (find-test ,name :otherwise (lambda ()
                                                 (defsuite ,name ,@body)))))
       (in-suite ,suite))))
 

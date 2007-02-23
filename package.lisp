@@ -12,8 +12,7 @@
   (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :stefil-system)
 
   (:export
-   #:get-test
-   #:rem-test
+   #:find-test
    #:deftest
    #:is
    #:signals

@@ -43,7 +43,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; test repository
 
-(defun get-test (name &key (otherwise :error))
+(defun find-test (name &key (otherwise :error))
   (bind (((values test found-p) (if (typep name 'testable)
                                     (values name t)
                                     (gethash name *tests*))))
@@ -56,16 +56,19 @@
         (t (setf test otherwise))))
     (values test found-p)))
 
-(defun (setf get-test) (value key)
-  (when (gethash key *tests*)
-    (warn 'test-style-warning
-          :format-control "Redefining test ~A"
-          :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
-                                    (format nil "~S" key)))))
-  (setf (gethash key *tests*) value))
+(defun (setf find-test) (new-value key)
+  (if new-value
+      (progn
+        (when (gethash key *tests*)
+          (warn 'test-style-warning
+                :format-control "Redefining test ~A"
+                :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
+                                          (format nil "~S" key)))))
+        (setf (gethash key *tests*) new-value))
+      (rem-test key)))
 
 (defun rem-test (name &rest args)
-  (bind ((test (apply #'get-test name args))
+  (bind ((test (apply #'find-test name args))
          (parent (when test
                    (parent-of test))))
     (when test
@@ -99,7 +102,7 @@
 
 (defmethod shared-initialize :after ((self testable) slot-names &key (in (and (boundp '*suite*) *suite*)) &allow-other-keys)
   (assert (name-of self))
-  (setf (get-test (name-of self)) self)
+  (setf (find-test (name-of self)) self)
   ;; make sure the specialized writer below is triggered
   (setf (parent-of self) (if in
                              (if (typep in 'testable)
@@ -254,14 +257,14 @@
            :body ',remaining-forms
            ,@(when in-p
                    (if in
-                       `(:in (get-test ',in))
+                       `(:in (find-test ',in))
                        '(:in nil)))
            ,@test-args))
         (defun ,name ,args
           ,@(when documentation (list documentation))
           ,@declarations
           (declare (optimize (debug 3)))
-          (bind ((,test (get-test ',name))
+          (bind ((,test (find-test ',name))
                  (,toplevel-p (not (has-global-context)))
                  (,global-context (unless ,toplevel-p
                                     (current-global-context)))
