@@ -76,7 +76,7 @@
 (defmacro true-macro ()
   #t)
 
-(deftest assertions (&key (test-name (gensym "TEMP-TEST")))
+(deftest (assertions :compile-before-run #t) (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
                (is (= 42 42))
