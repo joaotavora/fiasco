@@ -10,6 +10,7 @@
 
 (defvar *suite*)
 (defvar *print-test-run-progress* #t)
+(defvar *compile-before-run* #f)
 (defvar *test-progress-print-right-margin* 100)
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
@@ -238,7 +239,7 @@
 
 (defmacro deftest (&whole whole name args &body body)
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
-         ((name &rest test-args &key (compile-before-run #t) in &allow-other-keys) (ensure-list name))
+         ((name &rest test-args &key (compile-before-run *compile-before-run*) in &allow-other-keys) (ensure-list name))
          (in-p (get-properties test-args '(:in))))
     (remf-keywords test-args :in)
     (unless (or (not (symbol-package name))
