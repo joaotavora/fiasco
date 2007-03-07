@@ -30,10 +30,15 @@
 (defmacro defsuite* (name &body body)
   `(setf *suite* (defsuite ,name ,@body)))
 
-(setf *suite* (make-suite 'global-suite :documentation "Default Suite"))
+(setf *root-suite* (make-suite 'root-suite :documentation "Root Suite"))
+(setf *suite* *root-suite*)
 
-(defmacro in-suite (suite-name)
-  `(setf *suite* (find-test ',suite-name
+(defmacro in-root-suite ()
+  "Used to reset the current suite to protect from other project's last in-suite statement. Unfortunately there's noone for us to rebind *suite* when a file is loaded, so we can't behave exactly like *package* and in-package."
+  `(setf *suite* *root-suite*))
+
+(defmacro in-suite (name)
+  `(setf *suite* (find-test ',name
                   :otherwise (lambda ()
                                (cerror "Create a new suite named ~A."
                                        "Unkown suite ~A." ',name)

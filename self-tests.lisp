@@ -12,7 +12,7 @@
 
 (eval-always
   (import
-   '(enable-sharp-boolean-syntax *suite* test count-tests
+   '(enable-sharp-boolean-syntax *suite* count-tests
      remf-keywords rebind parent-of name-of *tests* eval-always
      extract-assert-expression-and-message record-failure record-failure*
      assertion-count-of run-tests-of failure-descriptions-of
@@ -25,15 +25,16 @@
 
 #.(file-header)
 
-(defsuite (stefil-temp-suite :description "Suite active when the Stefil self-tests are being run"))
+(in-root-suite) ; we need to reset *suite*, otherwise we may end up under another project's last suite. unfortunately noone rebinds *suite* like *package* while loading.
 
-(defsuite* (stefil-self-test :description "Stefil self tests"))
+(defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :description "Suite active when the Stefil self-tests are being run")))
+
+(defsuite* (test :description "Stefil self tests"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
   `(stefil:deftest ,name ,args
-    (rebind (*suite*)
-      (in-suite stefil-temp-suite)
+    (let ((*suite* *stefil-temp-suite*))
       ,@body)))
 
 (deftest lifecycle (&key (test-name (gensym "TEMP-TEST")) (suite-name (gensym "TEMP-SUITE")))

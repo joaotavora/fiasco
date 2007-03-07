@@ -57,11 +57,11 @@
   (eval (read-from-string "(stefil::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
   (warn "Enabled the #t/#f syntax in the repl thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
-  (format t "The result of (stefil-test::stefil-self-test) is:~%~%  ~A~%~%~
+  (format t "The result of (stefil-test::test) is:~%~%  ~A~%~%~
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
              May need some extra patches from the Slime repo available from~%~
              darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime~%"
-          (funcall (read-from-string "stefil-test::stefil-self-test")))
+          (funcall (read-from-string "stefil-test::test")))
   (values))
 
 (defmethod operation-done-p ((op test-op) (system (eql (find-system :stefil))))

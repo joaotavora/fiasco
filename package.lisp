@@ -18,6 +18,7 @@
    #:signals
    #:finishes
    #:in-suite
+   #:in-root-suite
    #:in-suite*
    #:defsuite
    #:defsuite*

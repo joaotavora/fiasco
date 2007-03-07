@@ -12,6 +12,7 @@
 ;; It's smarter to rebind them in an :around method from your .asd or shadow stefil:deftest with your own that sets
 ;; their keyword counterparts.
 (defvar *suite*)
+(defvar *root-suite*)
 (defvar *print-test-run-progress* #t)
 (defvar *compile-before-run* #f)
 (defvar *test-progress-print-right-margin* 100)
