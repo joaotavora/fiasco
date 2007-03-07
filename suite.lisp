@@ -12,7 +12,6 @@
   (bind (((name &rest args) (ensure-list name-or-name-with-args)))
     (with-unique-names (test)
       `(progn
-        (rem-test ',name :otherwise nil)
         (deftest (,name ,@args) ()
           (bind ((,test (find-test ',name)))
             (flet ((run-child-tests ()
@@ -37,8 +36,8 @@
   `(setf *suite* (find-test ',suite-name
                   :otherwise (lambda ()
                                (cerror "Create a new suite named ~A."
-                                       "Unkown suite ~A." ',suite-name)
-                               (defsuite ,suite-name)))))
+                                       "Unkown suite ~A." ',name)
+                               (defsuite ,name)))))
 
 (defmacro in-suite* (name &body body)
   "Just like in-suite, but silently creates the named suite if it does not exists."

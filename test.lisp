@@ -8,6 +8,9 @@
 
 #.(file-header)
 
+;; Warning: setf-ing these variables in not a smart idea because other systems may rely on their default value.
+;; It's smarter to rebind them in an :around method from your .asd or shadow stefil:deftest with your own that sets
+;; their keyword counterparts.
 (defvar *suite*)
 (defvar *print-test-run-progress* #t)
 (defvar *compile-before-run* #f)
@@ -101,15 +104,15 @@
     (unless (zerop children)
       (format t " :tests ~S" children))))
 
-(defmethod shared-initialize :after ((self testable) slot-names &key (in (and (boundp '*suite*) *suite*)) &allow-other-keys)
+(defmethod shared-initialize :after ((self testable) slot-names
+                                     &key (in (or (parent-of self)
+                                                  (and (boundp '*suite*)
+                                                       *suite*)))
+                                     &allow-other-keys)
   (assert (name-of self))
   (setf (find-test (name-of self)) self)
   ;; make sure the specialized writer below is triggered
-  (setf (parent-of self) (if in
-                             (if (typep in 'testable)
-                                 in
-                                 (get-test in))
-                             (parent-of self))))
+  (setf (parent-of self) in))
 
 (defmethod (setf parent-of) :around (new-parent (self testable))
   (assert (typep new-parent '(or null testable)))
@@ -128,12 +131,12 @@
                     (summing (count-tests child))))))
 
 (defclass* test (testable)
-  ((package)
-   (lambda-list)
+  ((package nil)
+   (lambda-list nil)
    (compile-before-run #t :type boolean)
-   (declarations)
-   (documentation)
-   (body)))
+   (declarations nil)
+   (documentation nil)
+   (body nil)))
 
 (defun make-test (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))
