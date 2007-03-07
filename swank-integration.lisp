@@ -81,6 +81,8 @@
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector test inspector)))))
 
+;; this will disable the header in the inspector, but vanilla Slime dies with nil instead of a proper type
+#+branched-slime
 (macrolet ((no-type-for (&rest args)
              `(progn
                ,@(iter (for type :in args)
