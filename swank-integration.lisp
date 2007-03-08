@@ -35,6 +35,7 @@
   (values "Stefil test context"
           `("Test: " (:value ,(test-of context)) (:newline)
             "Test arguments: " (:value ,(test-arguments-of context)) (:newline)
+            "Real time spent in body: " (:value ,(real-time-in-spent-in-seconds context)) " sec" (:newline)
             "Parent test frames:" (:newline)
             ,@(iter (for parent-context :first (parent-context-of context) :then (parent-context-of parent-context))
                     (while parent-context)
