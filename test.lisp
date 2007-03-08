@@ -200,7 +200,7 @@
    (print-test-run-progress-p *print-test-run-progress* :type boolean)
    (debug-on-unexpected-error-p *debug-on-unexpected-error* :type boolean)
    (debug-on-assertion-failure-p *debug-on-assertion-failure* :type boolean)
-   (toplevel-context)
+   (toplevel-context nil)
    (current-test nil)
    (run-tests (make-hash-table) :documentation "test -> context mapping")
    (run-fixtures (make-hash-table))
@@ -209,9 +209,14 @@
 (defprint-object (self global-context :identity #f :type #f)
   (format t "test-run ~A tests, ~A assertions, ~A failures in ~A sec"
           (hash-table-count (run-tests-of self)) (assertion-count-of self) (length (failure-descriptions-of self))
-          (aif (real-time-in-spent-in-seconds (toplevel-context-of self))
-               it
-               "?")))
+          (bind ((toplevel-context (toplevel-context-of self))
+                 (real-time-spent-in-seconds
+                  (when toplevel-context
+                    (real-time-spent-in-seconds toplevel-context))))
+            (if (and toplevel-context
+                     real-time-spent-in-seconds)
+                real-time-spent-in-seconds
+                "?"))))
 
 (defun test-was-run-p (test)
   (declare (type testable test))
@@ -252,7 +257,7 @@
                     (test-arguments-of self))
             result)))
 
-(defgeneric real-time-in-spent-in-seconds (context)
+(defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
            (awhen (internal-realtime-spent-with-test-of self)
              (coerce (/ it
