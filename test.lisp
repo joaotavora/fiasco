@@ -24,6 +24,11 @@
 
 (defparameter *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
+(defmacro without-debugging (&body body)
+  `(bind ((*debug-on-unexpected-error* #f)
+         (*debug-on-assertion-failure* #f))
+    ,@body))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; conditions
 
