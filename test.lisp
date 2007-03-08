@@ -209,7 +209,9 @@
 (defprint-object (self global-context :identity #f :type #f)
   (format t "test-run ~A tests, ~A assertions, ~A failures in ~A sec"
           (hash-table-count (run-tests-of self)) (assertion-count-of self) (length (failure-descriptions-of self))
-          (real-time-in-spent-in-seconds (toplevel-context-of self))))
+          (aif (real-time-in-spent-in-seconds (toplevel-context-of self))
+               it
+               "?")))
 
 (defun test-was-run-p (test)
   (declare (type testable test))
@@ -252,9 +254,10 @@
 
 (defgeneric real-time-in-spent-in-seconds (context)
   (:method ((self context))
-           (coerce (/ (internal-realtime-spent-with-test-of self)
-                      internal-time-units-per-second)
-                   'float)))
+           (awhen (internal-realtime-spent-with-test-of self)
+             (coerce (/ it
+                        internal-time-units-per-second)
+                     'float))))
 
 (defun run-test-body-in-handlers (test function arguments toplevel-p)
   (declare (type test test))
