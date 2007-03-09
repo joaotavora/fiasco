@@ -264,54 +264,57 @@
                         internal-time-units-per-second)
                      'float))))
 
-(defun run-test-body-in-handlers (test function arguments toplevel-p)
+(defun run-test-body-in-handlers (test function)
+  (declare (type test test)
+           (type function function))
+  (in-global-context global-context
+    (in-context context
+      (register-test-being-run test)
+      (labels ((prune-failure-descriptions ()
+                 ;; drop failures recorded by the previous run of this test
+                 (loop repeat (number-of-added-failure-descriptions-of context)
+                   do (vector-pop (failure-descriptions-of global-context)))
+                 (setf (number-of-added-failure-descriptions-of context) 0))
+               (run-test-body ()
+                 (handler-bind ((assertion-failed (lambda (c)
+                                                    (declare (ignore c))
+                                                    (unless (debug-on-assertion-failure-p global-context)
+                                                      (continue))))
+                                (serious-condition (lambda (c)
+                                                     (unless (typep c 'assertion-failed)
+                                                       (record-failure* 'unexpected-error
+                                                                        :description-initargs (list :condition c)
+                                                                        :signal-assertion-failed #f)
+                                                       (when (debug-on-unexpected-error-p global-context)
+                                                         (invoke-debugger c))
+                                                       (return-from run-test-body)))))
+                   (restart-case (bind ((*package* (package-of test))
+                                        (*readtable* (copy-readtable))
+                                        (start-time (get-internal-run-time)))
+                                   (multiple-value-prog1
+                                       (funcall function)
+                                     (setf (internal-realtime-spent-with-test-of context)
+                                           (- (get-internal-run-time) start-time))))
+                                 (continue ()
+                                           :report (lambda (stream)
+                                                     (format stream "~@<Skip the rest of the test ~S and continue~@:>" (name-of test)))
+                                           (values))
+                                 (retest ()
+                                         :report (lambda (stream)
+                                                   (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
+                                         (prune-failure-descriptions)
+                                         (return-from run-test-body (run-test-body)))))))
+        (run-test-body)))))
+
+(defun run-test-body (test function arguments toplevel-p)
   (declare (type test test))
   (in-global-context global-context
     (bind ((result-values '()))
       (flet ((body ()
                (with-new-context (:test test :test-arguments arguments)
-                 (in-context context
-                   (when toplevel-p
-                     (setf (toplevel-context-of global-context) context))
-                   (register-test-being-run test)
-                   (setf result-values
-                         (multiple-value-list
-                             (labels ((prune-failure-descriptions ()
-                                        ;; drop failures recorded by the previous run of this test
-                                        (bind ((context (current-context)))
-                                          (dotimes (i (number-of-added-failure-descriptions-of context))
-                                            (vector-pop (failure-descriptions-of global-context)))
-                                          (setf (number-of-added-failure-descriptions-of context) 0)))
-                                      (run-test-body ()
-                                        (handler-bind ((assertion-failed (lambda (c)
-                                                                           (declare (ignore c))
-                                                                           (unless (debug-on-assertion-failure-p global-context)
-                                                                             (continue))))
-                                                       (serious-condition (lambda (c)
-                                                                            (unless (typep c 'assertion-failed)
-                                                                              (record-failure* 'unexpected-error
-                                                                                               :description-initargs (list :condition c)
-                                                                                               :signal-assertion-failed #f)
-                                                                              (when (debug-on-unexpected-error-p global-context)
-                                                                                (invoke-debugger c))
-                                                                              (return-from run-test-body)))))
-                                          (restart-case (bind ((*package* (package-of test))
-                                                               (*readtable* (copy-readtable))
-                                                               (start-time (get-internal-run-time)))
-                                                          (multiple-value-prog1
-                                                              (funcall function)
-                                                            (setf (internal-realtime-spent-with-test-of context)
-                                                                  (- (get-internal-run-time) start-time))))
-                                            (continue ()
-                                              :report (lambda (stream)
-                                                        (format stream "~@<Skip the rest of the test ~S and continue~@:>" (name-of test)))
-                                              (values))
-                                            (retest ()
-                                              :report (lambda (stream)
-                                                        (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
-                                              (prune-failure-descriptions)
-                                              (return-from run-test-body (run-test-body)))))))
-                               (run-test-body))))))))
+                 (when toplevel-p
+                   (setf (toplevel-context-of global-context) (current-context)))
+                 (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
         (if toplevel-p
             (restart-case (bind ((swank::*sldb-quit-restart* 'abort-testing))
                             (restart-bind
@@ -331,8 +334,6 @@
             (progn
               (when (print-test-run-progress-p global-context)
                 (terpri *debug-io*))
-              (push global-context *test-result-history*)
-              (setf *last-test-result* global-context)
               (if result-values
                   (values-list (append result-values (list global-context)))
                   global-context))
@@ -378,12 +379,12 @@
                        (,body ()
                          ,(if compile-before-run
                               `(bind ((,test-lambda (get-test-lambda ,test ,global-context)))
-                                (run-test-body-in-handlers ,test
+                                (run-test-body ,test
                                  (lambda ()
                                    ,(lambda-list-to-funcall-expression test-lambda args))
                                  ,(lambda-list-to-value-list-expression args)
                                  ,toplevel-p))
-                              `(run-test-body-in-handlers ,test
+                              `(run-test-body ,test
                                 #',name
                                 ,(lambda-list-to-value-list-expression args)
                                 ,toplevel-p))))
@@ -392,6 +393,8 @@
               (if ,toplevel-p
                   (with-new-global-context ()
                     (setf ,global-context (current-global-context))
+                    (push ,global-context *test-result-history*)
+                    (setf *last-test-result* ,global-context)
                     (,body))
                   (,body)))))))))
 
