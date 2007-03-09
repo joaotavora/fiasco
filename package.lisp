@@ -27,6 +27,7 @@
    #:with-fixture
    #:runs-without-failure?
    #:without-debugging
+   #:run-failed-tests
 
    #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default
    #:*test-progress-print-right-margin*

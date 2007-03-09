@@ -264,6 +264,25 @@
                         internal-time-units-per-second)
                      'float))))
 
+(defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
+  (with-unique-names (global-context)
+    `(progn
+      (with-new-global-context ()
+        (in-global-context ,global-context
+          (%run-failed-tests ,test-result-place)
+          (push ,global-context *test-result-history*)
+          (setf *last-test-result* ,global-context)
+          (setf ,test-result-place ,global-context))))))
+
+(defun %run-failed-tests (global-context-to-be-processed)
+  (warn "Re-running failed tests without considering their dynamic environment, which may affect their behaviour!")
+  (in-global-context global-context
+    (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
+          (for context = (elt (test-context-backtrace-of failure) 0))
+          (apply (name-of (test-of context)) (test-arguments-of context)))
+    (when (print-test-run-progress-p global-context)
+      (terpri *debug-io*))))
+
 (defun run-test-body-in-handlers (test function)
   (declare (type test test)
            (type function function))

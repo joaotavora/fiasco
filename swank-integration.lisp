@@ -18,18 +18,25 @@
 
 (defvar *display-all-slots-in-inspector* #f)
 
-(defmethod inspect-for-emacs ((context global-context) inspector)
+(defmethod inspect-for-emacs ((global-context global-context) inspector)
   (values "Stefil test results"
-          `("Executed tests: " (:value ,(hash-table-values (run-tests-of context))
-                                       ,(princ-to-string (hash-table-count (run-tests-of context)))) (:newline)
-            "Executed assertions: " ,(princ-to-string (assertion-count-of context)) (:newline)
-            "Failures: " (:newline)
+          `("Executed tests: " (:value ,(hash-table-values (run-tests-of global-context))
+                                       ,(princ-to-string (hash-table-count (run-tests-of global-context)))) (:newline)
+            "Executed assertions: " ,(princ-to-string (assertion-count-of global-context)) (:newline)
+            "Failures: " ,@(unless (emptyp (failure-descriptions-of global-context))
+                             `((:action "[rerun all failed tests]"
+                                ,(lambda ()
+                                         (swank::inspect-object (run-failed-tests global-context) inspector)))))
+            (:newline)
             ;; intentionally reverse the order by push'ing
-            ,@(iter (for description :in-vector (failure-descriptions-of context))
+            ,@(iter (for description :in-vector (failure-descriptions-of global-context))
+                    (for context = (first (test-context-backtrace-of description)))
+                    (collect `(:action "[rerun]" ,(rerun-action-for-inspector context inspector)))
+                    (collect " ")
                     (collect `(:value ,description))
                     (collect `(:newline)))
             ,@(when *display-all-slots-in-inspector*
-                (swank::all-slots-for-inspector context inspector)))))
+                (swank::all-slots-for-inspector global-context inspector)))))
 
 (defmethod inspect-for-emacs ((context context) inspector)
   (values "Stefil test context"
@@ -44,10 +51,18 @@
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector context inspector)))))
 
-(defun test-backtrace-for-emacs (description)
+(defun rerun-action-for-inspector (context inspector)
+  (lambda ()
+    (apply (name-of (test-of context))
+           (test-arguments-of context))
+    (swank::inspect-object *last-test-result* inspector)))
+
+(defun test-backtrace-for-emacs (description inspector)
   (iter (for context :in (test-context-backtrace-of description))
         (for idx :upfrom 0)
         (collect (format nil "~D: " idx))
+        (collect `(:action "[rerun]" ,(rerun-action-for-inspector context inspector)))
+        (collect " ")
         (collect `(:value ,context))
         (collect `(:newline))))
 
@@ -55,7 +70,7 @@
   (values "Failed Stefil assertion"
           `("Form: " (:value ,(form-of failure)) (:newline)
             "Test backtrace: " (:newline)
-            ,@(test-backtrace-for-emacs failure)
+            ,@(test-backtrace-for-emacs failure inspector)
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector failure inspector)))))
 
@@ -63,7 +78,7 @@
   (values "Unexpected error in a Stefil test"
           `("Condition: " (:value ,(condition-of description)) (:newline)
             "Test backtrace: " (:newline)
-            ,@(test-backtrace-for-emacs description)
+            ,@(test-backtrace-for-emacs description inspector)
             ,@(when *display-all-slots-in-inspector*
                 (swank::all-slots-for-inspector description inspector)))))
 
