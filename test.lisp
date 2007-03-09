@@ -72,7 +72,7 @@
       (progn
         (when (gethash key *tests*)
           (warn 'test-style-warning
-                :format-control "Redefining test ~A"
+                :format-control "redefining test ~A"
                 :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
                                           (format nil "~S" key)))))
         (setf (gethash key *tests*) new-value))
@@ -279,7 +279,7 @@
   (in-global-context global-context
     (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
           (for context = (elt (test-context-backtrace-of failure) 0))
-          (apply (name-of (test-of context)) (test-arguments-of context)))
+          (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
     (when (print-test-run-progress-p global-context)
       (terpri *debug-io*))))
 
