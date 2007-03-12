@@ -570,7 +570,7 @@
                         (values bindings
                                 expression
                                 message
-                                (nconc (list `(quote ,input-form) (if negatedp "true" "false")) message-args))))))
+                                (nconc (list `(quote (,predicate ,@arguments)) (if negatedp "true" "false")) message-args))))))
             (t
              (values '() input-form "Expression ~A evaluated to false." (list `(quote ,input-form))))))))
 
