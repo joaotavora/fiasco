@@ -59,7 +59,7 @@
   (warn "Enabled the #t/#f syntax in the repl thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
   (format t "The result of (stefil-test::test) is:~%~%  ~A~%~%~
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
-             May need some extra patches from the Slime repo available from~%~
+             Some inspector features may be enabled only on the Slime repo available from~%~
              darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime~%"
           (eval (read-from-string "(without-debugging (test))")))
   (values))
