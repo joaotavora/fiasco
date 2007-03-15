@@ -269,10 +269,15 @@
     `(progn
       (with-new-global-context ()
         (in-global-context ,global-context
-          (%run-failed-tests ,test-result-place)
-          (push ,global-context *test-result-history*)
-          (setf *last-test-result* ,global-context)
-          (setf ,test-result-place ,global-context))))))
+          (if (> (length (failure-descriptions-of ,test-result-place)) 0)
+              (progn
+                (%run-failed-tests ,test-result-place)
+                (push ,global-context *test-result-history*)
+                (setf *last-test-result* ,global-context)
+                (setf ,test-result-place ,global-context))
+              (progn
+                (warn "There are no failed tests in ~S" ',test-result-place)
+                (values))))))))
 
 (defun %run-failed-tests (global-context-to-be-processed)
   (warn "Re-running failed tests without considering their dynamic environment, which may affect their behaviour!")
