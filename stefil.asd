@@ -61,7 +61,7 @@
              For more details run from the repl and use the customized Slime inspector to inspect the results.~%~
              May need some extra patches from the Slime repo available from~%~
              darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime~%"
-          (funcall (read-from-string "stefil-test::test")))
+          (eval (read-from-string "(without-debugging (test))")))
   (values))
 
 (defmethod operation-done-p ((op test-op) (system (eql (find-system :stefil))))
