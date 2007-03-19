@@ -321,7 +321,7 @@
                                            (- (get-internal-run-time) start-time))))
                                  (continue ()
                                            :report (lambda (stream)
-                                                     (format stream "~@<Skip the rest of the test ~S and continue~@:>" (name-of test)))
+                                                     (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
                                            (values))
                                  (retest ()
                                          :report (lambda (stream)
@@ -340,19 +340,22 @@
                    (setf (toplevel-context-of global-context) (current-context)))
                  (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
         (if toplevel-p
-            (restart-case (bind ((swank::*sldb-quit-restart* 'abort-testing))
-                            (restart-bind
-                             ((continue-without-debugging
-                               (lambda ()
-                                 (setf (debug-on-unexpected-error-p global-context) #f)
-                                 (setf (debug-on-assertion-failure-p global-context) #f)
-                                 (continue))
-                               :report-function (lambda (stream)
-                                                  (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>"))))
-                             (body)))
-              (abort-testing ()
-                :report (lambda (stream)
-                          (format stream "~@<Abort the entire test session started with ~S~@:>" (name-of test)))))
+            (block restart-wrapper
+              (restart-bind
+                  ((continue-without-debugging
+                       (lambda ()
+                         (setf (debug-on-unexpected-error-p global-context) #f)
+                         (setf (debug-on-assertion-failure-p global-context) #f)
+                         (continue))
+                     :report-function (lambda (stream)
+                                        (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
+                   (abort-testing
+                        (lambda ()
+                          (return-from restart-wrapper))
+                     :report-function (lambda (stream)
+                                        (format stream "~@<Abort the entire test session started with ~S~@:>" (name-of test)))))
+               (bind ((swank::*sldb-quit-restart* 'abort-testing))
+                 (body))))
             (body))
         (if toplevel-p
             (progn
@@ -500,12 +503,7 @@
                                    :failure-description description)
                 (continue ()
                   :report (lambda (stream)
-                            (format stream "~@<Record the failure and continue~@:>")))
-                (continue-without-debugging ()
-                  :report (lambda (stream)
-                            (format stream "~@<Record the failure, turn off debugging for this test session and continue~@:>"))
-                  (setf (debug-on-unexpected-error-p global-context) #f)
-                  (setf (debug-on-assertion-failure-p global-context) #f))))
+                            (format stream "~@<Record the failure and continue~@:>")))))
             (vector-push-extend description (failure-descriptions-of global-context))
             (incf (number-of-added-failure-descriptions-of context))
             (write-progress-char (progress-char-of description))))
