@@ -430,7 +430,7 @@
 
 (defmacro defixture (name &body body)
   "Fixtures are defun's that only execute the :setup part of their body once per test session if there is any at the time of calling."
-  (with-unique-names (global-context phase)
+  (with-unique-names (global-context nesting-count phase)
     (bind (setup-body
            teardown-body)
       (iter (for entry :in body)
@@ -452,38 +452,49 @@
       `(defun ,name (&optional (,phase :setup))
         (declare (optimize (debug 3)))
         (bind ((,global-context (and (has-global-context)
-                                     (current-global-context))))
+                                     (current-global-context)))
+               (,nesting-count (or (and ,global-context
+                                        (gethash ',name (run-fixtures-of ,global-context)))
+                                   0)))
+          (assert (>= ,nesting-count 0))
           (ecase ,phase
             (:setup
-             (if (and ,global-context
-                      (gethash ',name (run-fixtures-of ,global-context)))
-                 #f
-                 (progn
-                   (when ,global-context
-                     (setf (gethash ',name (run-fixtures-of ,global-context)) t))
-                   ,@setup-body
-                   #t)))
+             (incf ,nesting-count)
+             (prog1
+                 (if (and ,global-context
+                          (> ,nesting-count 1))
+                     #f
+                     (progn
+                       ,@setup-body
+                       #t))
+               (when ,global-context
+                 (setf (gethash ',name (run-fixtures-of ,global-context)) ,nesting-count))))
             (:teardown
-             ,@teardown-body
-             (when ,global-context
-               (remhash ',name (run-fixtures-of ,global-context)))
-             (values))))))))
+             (decf ,nesting-count)
+             (prog1
+                 (if (and ,global-context
+                          (> ,nesting-count 0))
+                     #f
+                     (progn
+                       (setf ,nesting-count 0)
+                       ,@teardown-body
+                       #t))
+               (when ,global-context
+                 (setf (gethash ',name (run-fixtures-of ,global-context))
+                       ,nesting-count))))))))))
 
 (defmacro with-fixture (name &body body)
-  (with-unique-names (was-run)
-    `(let ((,was-run (,name :setup)))
-      (unwind-protect
-           (progn
-             ,@body)
-        (when ,was-run
-          (block teardown-block
-            (handler-bind
-                ((serious-condition (lambda (c)
-                                      (with-simple-restart (continue ,(let ((*package* (find-package :common-lisp)))
-                                                                        (format nil "Skip teardown ~S and continue" name)))
-                                        (error 'error-in-teardown :condition c :fixture ',name))
-                                      (return-from teardown-block))))
-              (,name :teardown))))))))
+  `(unwind-protect (progn
+                     (,name :setup)
+                     ,@body)
+    (block teardown-block
+      (handler-bind
+          ((serious-condition (lambda (c)
+                                (with-simple-restart (continue ,(let ((*package* (find-package :common-lisp)))
+                                                                     (format nil "Skip teardown ~S and continue" name)))
+                                  (error 'error-in-teardown :condition c :fixture ',name))
+                                (return-from teardown-block))))
+        (,name :teardown)))))
 
 (defmacro with-fixtures (fixtures &body body)
   (if fixtures

@@ -130,9 +130,10 @@
     (with-fixture test-fixture
       (is (equal *fixture-test-global* '(42)))
       (nested-fixtures1)
+      (is (equal *fixture-test-global* '(42)))
       (nested-fixtures2)
-      (is (equal *fixture-test-global* '(42)))))
-  (is (equal *fixture-test-global* '())))
+      (is (equal *fixture-test-global* '(42))))
+    (is (equal *fixture-test-global* '()))))
 
 (defun nested-fixtures1 ()
   (with-fixture test-fixture
