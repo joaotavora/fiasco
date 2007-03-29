@@ -25,6 +25,7 @@
    #:run-child-tests
    #:defixture
    #:with-fixture
+   #:with-fixtures
    #:runs-without-failure?
    #:without-debugging
    #:run-failed-tests

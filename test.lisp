@@ -485,6 +485,12 @@
                                       (return-from teardown-block))))
               (,name :teardown))))))))
 
+(defmacro with-fixtures (fixtures &body body)
+  (if fixtures
+      `(with-fixture ,(first fixtures)
+        (with-fixtures ,(rest fixtures)
+          ,@body))
+      `(progn ,@body)))
 
 (defun record-failure (description-type &rest args)
   (record-failure* description-type :description-initargs args))
