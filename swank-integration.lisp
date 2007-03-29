@@ -107,7 +107,7 @@
    "Stefil test context"
    `((:label "Test:                    ") (:value ,(test-of context)) " " (:action "[rerun]" ,(rerun-test-action-for-inspector context inspector)) (:newline)
      (:label "Test arguments:          ") ,@(awhen (test-arguments-of context) `((:value ,it))) (:newline)
-     (:label "Real time spent in body: ") (:value ,(real-time-spent-in-seconds context)) " sec"
+     (:label "Real time spent in body: ") ,(princ-to-string (real-time-spent-in-seconds context)) (:label " sec")
      (:newline) (:newline)
      ,@(iter (for parent-context :first (parent-context-of context) :then (parent-context-of parent-context))
              (while parent-context)
