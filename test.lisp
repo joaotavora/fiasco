@@ -123,6 +123,13 @@
 
 (defmethod (setf parent-of) :around (new-parent (self testable))
   (assert (typep new-parent '(or null testable)))
+  (when (and new-parent
+             (not (eq new-parent *root-suite*))
+             (not (eq (symbol-package (name-of new-parent))
+                      (symbol-package (name-of self)))))
+    (warn 'test-style-warning :test self
+          :format-control "Adding test under parent ~S which is in a different package (parent: ~A, child: ~A). Maybe a missing (in-root-suite)?"
+          :format-arguments (list new-parent (symbol-package (name-of new-parent)) (symbol-package (name-of self)))))
   (bind ((old-parent (parent-of self)))
     (when old-parent
       (remhash (name-of self) (children-of old-parent)))
