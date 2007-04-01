@@ -28,6 +28,7 @@
    #:with-fixtures
    #:runs-without-failure?
    #:without-debugging
+   #:funcall-test-with-feedback-message
    #:run-failed-tests
 
    #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default

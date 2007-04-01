@@ -8,7 +8,8 @@
 
 (defpackage :stefil-test
     (:use :common-lisp :metabang-bind :defclass-star :alexandria :iterate :stefil)
-  (:shadow #:deftest))
+  (:shadow #:deftest)
+  (:export #:test))
 
 (eval-always
   (import

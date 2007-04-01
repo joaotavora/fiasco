@@ -715,3 +715,20 @@
           ((&key &allow-other-keys &optional))
           (t (collect arg)))))
 
+(defun funcall-test-with-feedback-message (test-function &rest args)
+  "Run the given test non-interactively and print the results to *standard-output*.
+This function is ideal for ASDF:TEST-OP's."
+  (aprog1
+      (without-debugging (apply test-function args))
+    (let ((*package* (find-package :common-lisp)))
+      (format *standard-output*
+"The result of ~S is:
+
+  ~A
+
+For more details run it from the REPL and use the customized Slime inspector
+to inspect the results (ASDF eats up the return values). Some inspector
+features may be available only on the Slime branch at
+darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime
+but the official Slime should also work fine."
+              test-function it))))
