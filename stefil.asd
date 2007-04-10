@@ -56,7 +56,7 @@
   (in-package :stefil-test)
   (eval (read-from-string "(stefil::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
-  (warn "Enabled the #t/#f syntax in the repl thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
+  (warn "Enabled the #t/#f syntax in the REPL thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
   (eval (read-from-string "(stefil:funcall-test-with-feedback-message 'stefil-test:test)"))
   (values))
 
