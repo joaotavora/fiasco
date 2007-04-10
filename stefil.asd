@@ -41,7 +41,7 @@
   ((:file "package")
    (:file "duplicates")
    (:file "configuration")
-   (:file "test")
+   (:file "stefil")
    (:file "suite")
    (:file "swank-integration")))
 
