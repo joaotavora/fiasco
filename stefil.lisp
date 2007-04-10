@@ -124,6 +124,7 @@
 (defmethod (setf parent-of) :around (new-parent (self testable))
   (assert (typep new-parent '(or null testable)))
   (when (and new-parent
+             (symbol-package (name-of self)) ; leave alone tests named by uninterned symbols
              (not (eq new-parent *root-suite*))
              (not (eq (symbol-package (name-of new-parent))
                       (symbol-package (name-of self)))))
