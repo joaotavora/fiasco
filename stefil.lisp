@@ -201,7 +201,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the real thing
 
-(define-dynamic-context global-context
+(define-dynamic-context* global-context
   ((failure-descriptions (make-array 8 :adjustable #t :fill-pointer 0))
    (assertion-count 0)
    (progress-char-count 0)
@@ -249,7 +249,7 @@
                (setf (gethash test (test-lambdas-of context)) test-lambda))
              test-lambda)))
 
-(define-dynamic-context context
+(define-dynamic-context* context
   ((test)
    (internal-realtime-spent-with-test nil)
    (test-arguments)
