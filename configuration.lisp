@@ -17,11 +17,7 @@
 
 (defun file-header ()
   `(progn
-    (enable-sharp-boolean-syntax)
-    (eval-when (:compile-toplevel)
-      (assert (eq *defclass-macro-name-for-dynamic-context* 'defclass*) ()
-              "Seems like defclass-star is not loaded because *defclass-macro-name-for-dynamic-context* points to ~S."
-              *defclass-macro-name-for-dynamic-context*))))
+    (enable-sharp-boolean-syntax)))
 
 
 
