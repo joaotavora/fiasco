@@ -54,9 +54,8 @@
 (defmethod perform ((op test-op) (system (eql (find-system :stefil))))
   (operate 'load-op :stefil-test)
   (in-package :stefil-test)
-  (eval (read-from-string "(stefil::enable-sharp-boolean-syntax)"))
   (declaim (optimize (debug 3)))
-  (warn "Enabled the #t/#f syntax in the REPL thread and set (declaim (optimize (debug 3))) for easy C-c C-c'ing")
+  (warn "(declaim (optimize (debug 3))) was issued to help later C-c C-c'ing")
   (eval (read-from-string "(stefil:funcall-test-with-feedback-message 'stefil-test:test)"))
   (values))
 

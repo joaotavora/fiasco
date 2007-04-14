@@ -8,6 +8,12 @@
 
 #.(file-header)
 
+(unless (assoc "STEFIL" *readtable-alist* :test #'string=)
+  (bind ((*readtable* (copy-readtable)))
+    (setup-readtable)
+    (push (cons "STEFIL" *readtable*) *readtable-alist*)
+    (push (cons "STEFIL-TEST" *readtable*) *readtable-alist*)))
+
 (defun stefil-inspector-lookup-hook (form)
   (when (symbolp form)
     (let ((test (find-test form :otherwise nil)))
