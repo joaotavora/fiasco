@@ -492,17 +492,25 @@
                        ,nesting-count))))))))))
 
 (defmacro with-fixture (name &body body)
-  `(unwind-protect (progn
-                     (,name :setup)
-                     ,@body)
-    (block teardown-block
-      (handler-bind
-          ((serious-condition (lambda (c)
-                                (with-simple-restart (continue ,(let ((*package* (find-package :common-lisp)))
-                                                                     (format nil "Skip teardown ~S and continue" name)))
-                                  (error 'error-in-teardown :condition c :fixture ',name))
-                                (return-from teardown-block))))
-        (,name :teardown)))))
+  (with-unique-names (whole-fixture-body)
+    `(flet ((,whole-fixture-body ()
+             (,name :setup)
+             (unwind-protect (progn ,@body)
+               (block teardown-block
+                 (handler-bind
+                     ((serious-condition
+                       (lambda (c)
+                         (with-simple-restart
+                             (continue ,(let ((*package* (find-package :common-lisp)))
+                                          (format nil "Skip teardown of ~S and continue" name)))
+                           (error 'error-in-teardown :condition c :fixture ',name))
+                         (return-from teardown-block))))
+                   (,name :teardown))))))
+      (declare (dynamic-extent ,whole-fixture-body))
+      (if (has-global-context)
+          (,whole-fixture-body)
+          (with-new-global-context ()
+            (,whole-fixture-body))))))
 
 (defmacro with-fixtures (fixtures &body body)
   (if fixtures
@@ -521,7 +529,8 @@
                                                              (while context)
                                                              (collect context)))
                              description-initargs)))
-    (if (has-global-context)
+    (if (and (has-global-context)
+             (has-context))
         (in-global-context global-context
           (in-context context
             (when signal-assertion-failed
