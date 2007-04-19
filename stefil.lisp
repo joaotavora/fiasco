@@ -313,14 +313,14 @@
                                           (declare (ignore c))
                                           (unless (debug-on-assertion-failure-p global-context)
                                             (continue))))
-                      (serious-condition (lambda (c)
-                                           (unless (typep c 'assertion-failed)
-                                             (record-failure* 'unexpected-error
-                                                              :description-initargs (list :condition c)
-                                                              :signal-assertion-failed #f)
-                                             (when (debug-on-unexpected-error-p global-context)
-                                               (invoke-debugger c))
-                                             (return-from run-test-body)))))
+                      (error (lambda (c)
+                               (unless (typep c 'assertion-failed)
+                                 (record-failure* 'unexpected-error
+                                                  :description-initargs (list :condition c)
+                                                  :signal-assertion-failed #f)
+                                 (when (debug-on-unexpected-error-p global-context)
+                                   (invoke-debugger c))
+                                 (return-from run-test-body)))))
                    (restart-case
                        (bind ((*package* (package-of test))
                               (*readtable* (copy-readtable))
