@@ -290,11 +290,12 @@
 (defun %run-failed-tests (global-context-to-be-processed)
   (warn "Re-running failed tests without considering their dynamic environment, which may affect their behaviour!")
   (in-global-context global-context
-    (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
-          (for context = (elt (test-context-backtrace-of failure) 0))
-          (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
-    (when (print-test-run-progress-p global-context)
-      (terpri *debug-io*))))
+    (with-toplevel-restarts
+      (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
+            (for context = (elt (test-context-backtrace-of failure) 0))
+            (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
+      (when (print-test-run-progress-p global-context)
+        (terpri *debug-io*)))))
 
 (defun run-test-body-in-handlers (test function)
   (declare (type test test)
@@ -340,6 +341,24 @@
                        (return-from run-test-body (run-test-body)))))))
         (run-test-body)))))
 
+(defmacro with-toplevel-restarts (&body body)
+  `(block restart-wrapper
+     (restart-bind
+         ((continue-without-debugging
+           (lambda ()
+             (setf (debug-on-unexpected-error-p global-context) #f)
+             (setf (debug-on-assertion-failure-p global-context) #f)
+             (continue))
+           :report-function (lambda (stream)
+                              (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
+          (abort-testing
+           (lambda ()
+             (return-from restart-wrapper))
+           :report-function (lambda (stream)
+                              (format stream "~@<Abort the entire test session~@:>"))))
+       (bind ((swank::*sldb-quit-restart* 'abort-testing))
+         ,@body))))
+
 (defun run-test-body (test function arguments toplevel-p)
   (declare (type test test))
   (in-global-context global-context
@@ -350,22 +369,8 @@
                    (setf (toplevel-context-of global-context) (current-context)))
                  (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
         (if toplevel-p
-            (block restart-wrapper
-              (restart-bind
-                  ((continue-without-debugging
-                       (lambda ()
-                         (setf (debug-on-unexpected-error-p global-context) #f)
-                         (setf (debug-on-assertion-failure-p global-context) #f)
-                         (continue))
-                     :report-function (lambda (stream)
-                                        (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
-                   (abort-testing
-                        (lambda ()
-                          (return-from restart-wrapper))
-                     :report-function (lambda (stream)
-                                        (format stream "~@<Abort the entire test session started with ~S~@:>" (name-of test)))))
-               (bind ((swank::*sldb-quit-restart* 'abort-testing))
-                 (body))))
+            (with-toplevel-restarts
+              (body))
             (body))
         (if toplevel-p
             (progn
