@@ -693,49 +693,60 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; some utils
 
+(defmacro with-lambda-parsing ((lambda-form &key finally) &body body)
+  (with-unique-names (cell)
+    `(iter
+      (with -in-keywords- = #f)
+      (with -in-optionals- = #f)
+      (with -rest-variable-name- = nil)
+      (for ,cell :first ,lambda-form :then (cdr ,cell))
+      (while ,cell)
+      (for -variable-name- = (if (or -in-optionals-
+                                     -in-keywords-)
+                                 (first (ensure-list (car ,cell)))
+                                 (car ,cell)))
+      (for -default-value- = (if (or -in-optionals-
+                                     -in-keywords-)
+                                 (second (ensure-list (car ,cell)))
+                                 (car ,cell)))
+      (case -variable-name-
+        (&optional (setf -in-optionals- #t))
+        (&key (setf -in-keywords- #t)
+              (setf -in-optionals- #f))
+        (&allow-other-keys)
+        (&rest (setf -rest-variable-name- (car (cdr ,cell)))
+               (setf ,cell (cdr ,cell)))
+        (t ,@body))
+      (finally ,@finally))))
+
+(defun lambda-list-to-funcall-list (args)
+  (with-lambda-parsing (args :finally ((return (values result -rest-variable-name-))))
+    (if -in-keywords-
+        (progn
+          (collect (intern (symbol-name (first (ensure-list -variable-name-)))
+                           #.(find-package "KEYWORD")) :into result)
+          (collect -variable-name- :into result))
+        (collect -variable-name- :into result))))
+
 (defun lambda-list-to-funcall-expression (function args)
   (bind (((values arg-list rest-variable) (lambda-list-to-funcall-list args)))
     (if rest-variable
         `(apply ,function ,@arg-list ,rest-variable)
         `(funcall ,function ,@arg-list))))
 
-(defun lambda-list-to-funcall-list (args)
-  (iter (with in-keywords = #f)
-        (with rest-variable = nil)
-        (for cell :first args :then (cdr cell))
-        (while cell)
-        (for arg = (first (ensure-list (car cell))))
-        (case arg
-          (&key (setf in-keywords #t))
-          (&allow-other-keys)
-          (&rest (setf rest-variable (car (cdr cell)))
-                 (setf cell (cdr cell)))
-          (t (if in-keywords
-                 (progn
-                   (collect (intern (symbol-name (first (ensure-list arg)))
-                                    #.(find-package "KEYWORD")) :into result)
-                   (collect arg :into result))
-                 (collect arg :into result))))
-        (finally (return (values result rest-variable)))))
-
 (defun lambda-list-to-value-list-expression (args)
-  `(list ,@(iter (for cell :first args :then (cdr cell))
-                 (while cell)
-                 (for arg = (first (ensure-list (car cell))))
-                 (case arg
-                   (&rest (collect `(cons '&rest ,(car (cdr cell))))
-                          (setf cell (cdr cell)))
-                   ((&key &allow-other-keys &optional))
-                   (t (collect `(cons ',arg ,arg)))))))
+  `(list ,@(with-lambda-parsing (args)
+             (collect `(cons ',-variable-name- ,-variable-name-)))))
 
-(defun lambda-list-to-ignore-list (args)
-  (iter (for cell :first args :then (cdr cell))
-        (while cell)
-        (for arg = (first (ensure-list (car cell))))
-        (case arg
-          (&rest (setf cell (cdr cell)))
-          ((&key &allow-other-keys &optional))
-          (t (collect arg)))))
+(defun lambda-list-to-variable-list (args &key (include-defaults #f) (include-&rest #f))
+  (with-lambda-parsing (args :finally ((return (if (and include-&rest
+                                                        -rest-variable-name-)
+                                                   (cons -rest-variable-name- result)
+                                                   result))))
+    (collect (if include-defaults
+                 (list -variable-name- -default-value-)
+                 -variable-name-)
+      :into result)))
 
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
