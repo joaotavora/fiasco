@@ -41,11 +41,11 @@
                             (when actions-first
                               `((:label "[run]")))
                             `((:action "[run]" ,(run-test-action-for-inspector test inspector))))
-                      ,@ (when undefine-action
-                           (if (find-test (name-of test) :otherwise nil)
-                               (when actions-first
-                                 `((:label "[undefine]")))
-                               `((:action "[undefine]" ,(lambda () (rem-test (name-of test)))))))))
+                      ,@(when undefine-action
+                          (if (find-test (name-of test) :otherwise nil)
+                              (when actions-first
+                                `((:label "[undefine]")))
+                              `((:action "[undefine]" ,(lambda () (rem-test (name-of test)))))))))
            (value `((:value ,(if name-only (name-of test) test)))))
       (if actions-first
           (append actions '(" ") value)
@@ -94,7 +94,7 @@
      (:label "Executed assertions: ") ,(princ-to-string (assertion-count-of global-context))
      (:newline) (:newline)
      ,@(unless (emptyp (failure-descriptions-of global-context))
-               `((:label "List of failures: ")
+               `((:label ,(format nil "List of failures (~A): " (length (failure-descriptions-of global-context))))
                  (:action "[rerun all failed tests]"
                   ,(lambda () (swank::inspect-object (run-failed-tests global-context) inspector)))
                  (:newline)))
