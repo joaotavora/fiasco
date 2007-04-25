@@ -31,7 +31,8 @@
 
 (defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :description "Suite active when the Stefil self-tests are being run")))
 
-(defsuite* (test :description "Stefil self tests"))
+(in-suite
+ (defsuite (test :description "Stefil self tests")))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
@@ -114,7 +115,8 @@
       (rem-test test-name :otherwise nil)))
   (values))
 
-(defsuite* (fixtures :in test))
+(in-suite
+ (defsuite (fixtures :in test)))
 
 (defparameter *fixture-test-global* '())
 
@@ -146,7 +148,8 @@
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))))
 
-(defsuite* (lambda-lists :in test))
+(in-suite
+ (defsuite (lambda-lists :in test)))
 
 (deftest lambda-list-processing ()
   (is (equal (lambda-list-to-variable-list '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))

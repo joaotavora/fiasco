@@ -8,11 +8,11 @@
 
 #.(file-header)
 
-(defmacro defsuite (name-or-name-with-args &body body)
-  (bind (((name &rest args) (ensure-list name-or-name-with-args)))
+(defmacro defsuite (name-or-name-with-args &optional args &body body)
+  (bind (((name &rest deftest-args) (ensure-list name-or-name-with-args)))
     (with-unique-names (test)
       `(progn
-        (deftest (,name ,@args) ()
+        (deftest (,name ,@deftest-args) ,args
           (bind ((,test (find-test ',name)))
             (flet ((run-child-tests ()
                      (iter (for (nil subtest) :in-hashtable (children-of ,test))
@@ -22,13 +22,14 @@
                              (funcall (name-of subtest))))))
               ,@(or body
                     `((if (test-was-run-p ,test)
-                          (warn "Skipped executing already ran tests suite ~S" (name-of ,test))
+                          (warn "Skipped executing already run tests suite ~S" (name-of ,test))
                           (run-child-tests))))))
           (values))
         (values (find-test ',name))))))
 
-(defmacro defsuite* (name &body body)
-  `(setf *suite* (defsuite ,name ,@body)))
+(defmacro defsuite* (name-or-name-with-args &optional args &body body)
+  "Equivalent to (in-suite (defsuite ...)) which is the preferred way to define suites."
+  `(in-suite (defsuite ,name-or-name-with-args ,args ,@body)))
 
 (setf *root-suite* (make-suite 'root-suite :documentation "Root Suite"))
 (setf *suite* *root-suite*)
@@ -38,18 +39,10 @@
   `(setf *suite* *root-suite*))
 
 (defmacro in-suite (name)
-  `(setf *suite* (find-test ',name
-                  :otherwise (lambda ()
-                               (cerror "Create a new suite named ~A."
-                                       "Unkown suite ~A." ',name)
-                               (defsuite ,name)))))
-
-(defmacro in-suite* (name &body body)
-  "Just like in-suite, but silently creates the named suite if it does not exists."
-  (with-unique-names (suite)
-    `(let ((,suite (find-test ,name :otherwise (lambda ()
-                                                (defsuite ,name ,@body)))))
-      (in-suite ,suite))))
-
-
+  `(setf *suite* ,(if (symbolp name)
+                      `(find-test ',name :otherwise (lambda ()
+                                                      (cerror "Create a new suite named ~A."
+                                                              "Unkown suite ~A." ',name)
+                                                      (defsuite ,name)))
+                      name)))
 

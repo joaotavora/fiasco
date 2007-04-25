@@ -19,7 +19,6 @@
    #:finishes
    #:in-suite
    #:in-root-suite
-   #:in-suite*
    #:defsuite
    #:defsuite*
    #:run-child-tests
