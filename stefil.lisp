@@ -52,51 +52,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; test repository
-
-(defun find-test (name &key (otherwise :error))
-  (bind (((values test found-p) (if (typep name 'testable)
-                                    (values name t)
-                                    (gethash name *tests*))))
-    (when (and (not found-p)
-               otherwise)
-      (etypecase otherwise
-        (symbol (ecase otherwise
-                  (:error (error "Testable called ~A was not found" name))))
-        (function (funcall otherwise))
-        (t (setf test otherwise))))
-    (values test found-p)))
-
-(defun (setf find-test) (new-value key)
-  (if new-value
-      (progn
-        (when (gethash key *tests*)
-          (warn 'test-style-warning
-                :format-control "redefining test ~A"
-                :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
-                                          (format nil "~S" key)))))
-        (setf (gethash key *tests*) new-value))
-      (rem-test key)))
-
-(defun rem-test (name &rest args)
-  (bind ((test (apply #'find-test name args))
-         (parent (when test
-                   (parent-of test))))
-    (when test
-      (assert (or (not (eq *suite* test))
-                  (parent-of test))
-              () "You can not remove a test which is the current suite and has no parent")
-      (remhash name *tests*)
-      (setf (parent-of test) nil)
-      (fmakunbound (name-of test))
-      (iter (for (nil subtest) :in-hashtable (children-of test))
-            (rem-test (name-of subtest)))
-      (when (eq *suite* test)
-        (setf *suite* parent)))
-    test))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; some classes
 
 (defclass* testable ()
@@ -199,6 +154,51 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; test repository
+
+(defun find-test (name &key (otherwise :error))
+  (bind (((values test found-p) (if (typep name 'testable)
+                                    (values name t)
+                                    (gethash name *tests*))))
+    (when (and (not found-p)
+               otherwise)
+      (etypecase otherwise
+        (symbol (ecase otherwise
+                  (:error (error "Testable called ~A was not found" name))))
+        (function (funcall otherwise))
+        (t (setf test otherwise))))
+    (values test found-p)))
+
+(defun (setf find-test) (new-value key)
+  (if new-value
+      (progn
+        (when (gethash key *tests*)
+          (warn 'test-style-warning
+                :format-control "redefining test ~A"
+                :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
+                                          (format nil "~S" key)))))
+        (setf (gethash key *tests*) new-value))
+      (rem-test key)))
+
+(defun rem-test (name &rest args)
+  (bind ((test (apply #'find-test name args))
+         (parent (when test
+                   (parent-of test))))
+    (when test
+      (assert (or (not (eq *suite* test))
+                  (parent-of test))
+              () "You can not remove a test which is the current suite and has no parent")
+      (remhash name *tests*)
+      (setf (parent-of test) nil)
+      (fmakunbound (name-of test))
+      (iter (for (nil subtest) :in-hashtable (children-of test))
+            (rem-test (name-of subtest)))
+      (when (eq *suite* test)
+        (setf *suite* parent)))
+    test))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the real thing
 
 (define-dynamic-context* global-context
@@ -225,6 +225,24 @@
                      real-time-spent-in-seconds)
                 real-time-spent-in-seconds
                 "?"))))
+
+(defmacro with-toplevel-restarts (&body body)
+  `(block restart-wrapper
+     (restart-bind
+         ((continue-without-debugging
+           (lambda ()
+             (setf (debug-on-unexpected-error-p global-context) #f)
+             (setf (debug-on-assertion-failure-p global-context) #f)
+             (continue))
+           :report-function (lambda (stream)
+                              (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
+          (abort-testing
+           (lambda ()
+             (return-from restart-wrapper))
+           :report-function (lambda (stream)
+                              (format stream "~@<Abort the entire test session~@:>"))))
+       (bind ((swank::*sldb-quit-restart* 'abort-testing))
+         ,@body))))
 
 (defun test-was-run-p (test)
   (declare (type testable test))
@@ -340,24 +358,6 @@
                        (prune-failure-descriptions)
                        (return-from run-test-body (run-test-body)))))))
         (run-test-body)))))
-
-(defmacro with-toplevel-restarts (&body body)
-  `(block restart-wrapper
-     (restart-bind
-         ((continue-without-debugging
-           (lambda ()
-             (setf (debug-on-unexpected-error-p global-context) #f)
-             (setf (debug-on-assertion-failure-p global-context) #f)
-             (continue))
-           :report-function (lambda (stream)
-                              (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
-          (abort-testing
-           (lambda ()
-             (return-from restart-wrapper))
-           :report-function (lambda (stream)
-                              (format stream "~@<Abort the entire test session~@:>"))))
-       (bind ((swank::*sldb-quit-restart* 'abort-testing))
-         ,@body))))
 
 (defun run-test-body (test function arguments toplevel-p)
   (declare (type test test))
