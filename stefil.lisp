@@ -538,16 +538,17 @@
              (has-context))
         (in-global-context global-context
           (in-context context
-            (when signal-assertion-failed
-              (restart-case (error 'assertion-failed
-                                   :test (test-of context)
-                                   :failure-description description)
-                (continue ()
-                  :report (lambda (stream)
-                            (format stream "~@<Record the failure and continue~@:>")))))
-            (vector-push-extend description (failure-descriptions-of global-context))
-            (incf (number-of-added-failure-descriptions-of context))
-            (write-progress-char (progress-char-of description))))
+            (unwind-protect
+                 (when signal-assertion-failed
+                   (restart-case (error 'assertion-failed
+                                        :test (test-of context)
+                                        :failure-description description)
+                                 (continue ()
+                                           :report (lambda (stream)
+                                                     (format stream "~@<Record the failure and continue~@:>")))))
+              (vector-push-extend description (failure-descriptions-of global-context))
+              (incf (number-of-added-failure-descriptions-of context))
+              (write-progress-char (progress-char-of description)))))
         (progn
           (describe description *debug-io*)
           (when *debug-on-assertion-failure* ; we have no global-context
