@@ -355,6 +355,8 @@
                      (retest ()
                        :report (lambda (stream)
                                  (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
+                       ;; TODO: this will only prune the failures that were recorded in the current context.
+                       ;; in case of nesting it will leave alone the failures recorded in deeper levels.
                        (prune-failure-descriptions)
                        (return-from run-test-body (run-test-body)))))))
         (run-test-body)))))
