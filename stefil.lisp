@@ -226,6 +226,15 @@
                 real-time-spent-in-seconds
                 "?"))))
 
+(defmacro without-test-progress-printing (&body body)
+  (with-unique-names (old-state)
+    `(let ((,old-state (print-test-run-progress-p *global-context*)))
+      (unwind-protect
+           (progn
+             (setf (print-test-run-progress-p *global-context*) #f)
+             ,@body)
+        (setf (print-test-run-progress-p *global-context*) ,old-state)))))
+
 (defmacro with-toplevel-restarts (&body body)
   `(block restart-wrapper
      (restart-bind

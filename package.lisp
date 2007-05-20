@@ -27,6 +27,7 @@
    #:with-fixtures
    #:runs-without-failure?
    #:without-debugging
+   #:without-test-progress-printing
    #:funcall-test-with-feedback-message
    #:run-failed-tests
 
