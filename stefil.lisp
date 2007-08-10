@@ -608,19 +608,28 @@
                                         `(quote (,predicate x y)))
                                     `(quote ,(first arguments)) x
                                     `(quote ,(second arguments)) y))))
-                   (t (bind ((arg-values (mapcar (lambda (el) (declare (ignore el)) (gensym)) arguments))
+                   (t (bind ((arg-values (mapcar (lambda (el)
+                                                   (unless (keywordp el)
+                                                     (gensym)))
+                                                 arguments))
                              (bindings (iter (for arg :in arguments)
                                              (for arg-value :in arg-values)
-                                             (collect `(,arg-value ,arg))))
+                                             (when arg-value
+                                               (collect `(,arg-value ,arg)))))
+                             (expression-values (mapcar (lambda (arg-value argument)
+                                                          (or arg-value argument))
+                                                        arg-values
+                                                        arguments))
                              (expression (if negatedp
-                                             `(not (,predicate ,@arg-values))
-                                             `(,predicate ,@arg-values)))
+                                             `(not (,predicate ,@expression-values))
+                                             `(,predicate ,@expression-values)))
                              ((values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
                                                                   (for arg :in arguments)
                                                                   (for idx :upfrom 0)
                                                                   (for arg-value :in arg-values)
-                                                                  (setf message (concatenate 'string message "~%~D: ~A => ~S"))
-                                                                  (appending `(,idx (quote ,arg) ,arg-value) :into message-args)
+                                                                  (when arg-value
+                                                                    (setf message (concatenate 'string message "~%~D: ~A => ~S"))
+                                                                    (appending `(,idx (quote ,arg) ,arg-value) :into message-args))
                                                                   (finally (return (values message message-args))))))
                         (values bindings
                                 expression
