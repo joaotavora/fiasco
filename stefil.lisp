@@ -679,11 +679,12 @@
     `(progn
       (register-assertion)
       (block test-block
-        (handler-bind ((,condition-type (lambda (c)
-                                          (declare (ignore c))
-                                          (return-from test-block (values)))))
-          ,@body
-          (register-assertion-was-successful))
+        (handler-bind ((,condition-type
+                        (lambda (c)
+                          (declare (ignore c))
+                          (register-assertion-was-successful)
+                          (return-from test-block (values)))))
+          ,@body)
         (record-failure 'missing-condition
                         :form (list* 'progn ',body)
                         :condition ',condition-type))
