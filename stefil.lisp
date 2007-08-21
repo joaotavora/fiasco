@@ -15,7 +15,7 @@
 (defvar *root-suite*)
 (defvar *print-test-run-progress* #t)
 (defvar *compile-tests-before-run* #f)
-(defvar *compile-tests-with-debug* #f)
+(defvar *compile-tests-with-debug-level* nil)
 (defvar *test-progress-print-right-margin* 100)
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
@@ -419,8 +419,8 @@
         (defun ,name ,args
           ,@(when documentation (list documentation))
           ,@declarations
-          ,@(when *compile-tests-with-debug*
-                  `((declare (optimize (debug 3)))))
+          ,@(awhen *compile-tests-with-debug-level*
+              `((declare (optimize (debug ,it)))))
           (bind ((,test (find-test ',name))
                  (,toplevel-p (not (has-global-context)))
                  (,global-context (unless ,toplevel-p
@@ -781,7 +781,7 @@ This function is ideal for ASDF:TEST-OP's."
 
 For more details run it from the REPL and use the customized Slime inspector
 to inspect the results (ASDF eats up the return values). Some inspector
-features may be available only on the Slime branch at
+features may only be available when using the Slime branch at
 darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime
 but the official Slime should also work fine."
               test-function it))))
