@@ -43,7 +43,8 @@
    (:file "configuration")
    (:file "stefil")
    (:file "suite")
-   (:file "swank-integration")))
+   (:module "integration"
+            :components ((:file "swank-integration")))))
 
 (defsystem :stefil-test
   :description "Tests for the STEFIL test system."
