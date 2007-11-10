@@ -22,7 +22,7 @@
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
 
-(defparameter *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
+(defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
 (defmacro without-debugging (&body body)
   `(bind ((*debug-on-unexpected-error* #f)
