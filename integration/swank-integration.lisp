@@ -20,7 +20,8 @@
       (when test
         (values test t)))))
 
-(pushnew 'stefil-inspector-lookup-hook swank:*inspector-dwim-lookup-hooks*)
+(when (boundp 'swank::*inspector-dwim-lookup-hooks*)
+  (pushnew 'stefil-inspector-lookup-hook swank::*inspector-dwim-lookup-hooks*))
 
 (defvar *display-all-slots-in-inspector* #f)
 
