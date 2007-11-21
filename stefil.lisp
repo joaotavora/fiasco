@@ -240,8 +240,8 @@
      (restart-bind
          ((continue-without-debugging
            (lambda ()
-             (setf (debug-on-unexpected-error-p global-context) #f)
-             (setf (debug-on-assertion-failure-p global-context) #f)
+             (setf (debug-on-unexpected-error-p *global-context*) #f)
+             (setf (debug-on-assertion-failure-p *global-context*) #f)
              (continue))
            :report-function (lambda (stream)
                               (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
@@ -255,15 +255,13 @@
 
 (defun test-was-run-p (test)
   (declare (type testable test))
-  (in-global-context context
-    (and (gethash test (run-tests-of context))
-         (not (eq (current-test-of context) test)))))
+  (and (gethash test (run-tests-of *global-context*))
+       (not (eq (current-test-of *global-context*) test))))
 
 (defun register-test-being-run (test)
   (declare (type testable test))
-  (in-global-context context
-    (setf (gethash test (run-tests-of context)) (current-context))
-    (setf (current-test-of context) test)))
+  (setf (gethash test (run-tests-of *global-context*)) (current-context))
+  (setf (current-test-of *global-context*) test))
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
@@ -300,97 +298,90 @@
                      'float))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
-  (with-unique-names (global-context)
-    `(progn
-      (with-new-global-context ()
-        (in-global-context ,global-context
-          (if (> (length (failure-descriptions-of ,test-result-place)) 0)
-              (progn
-                (%run-failed-tests ,test-result-place)
-                (push ,global-context *test-result-history*)
-                (setf *last-test-result* ,global-context)
-                (setf ,test-result-place ,global-context))
-              (progn
-                (warn "There are no failed tests in ~S" ',test-result-place)
-                (values))))))))
+  `(with-new-global-context ()
+     (if (> (length (failure-descriptions-of ,test-result-place)) 0)
+         (progn
+           (%run-failed-tests ,test-result-place)
+           (push *global-context* *test-result-history*)
+           (setf *last-test-result* *global-context*)
+           (setf ,test-result-place *global-context*))
+         (progn
+           (warn "There are no failed tests in ~S" ',test-result-place)
+           (values)))))
 
 (defun %run-failed-tests (global-context-to-be-processed)
   (warn "Re-running failed tests without considering their dynamic environment, which may affect their behaviour!")
-  (in-global-context global-context
-    (with-toplevel-restarts
-      (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
-            (for context = (elt (test-context-backtrace-of failure) 0))
-            (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
-      (when (print-test-run-progress-p global-context)
-        (terpri *debug-io*)))))
+  (with-toplevel-restarts
+    (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
+          (for context = (elt (test-context-backtrace-of failure) 0))
+          (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
+    (when (print-test-run-progress-p *global-context*)
+      (terpri *debug-io*))))
 
 (defun run-test-body-in-handlers (test function)
   (declare (type test test)
            (type function function))
-  (in-global-context global-context
-    (in-context context
-      (register-test-being-run test)
-      (labels ((prune-failure-descriptions ()
-                 ;; drop failures recorded by the previous run of this test
-                 (loop repeat (number-of-added-failure-descriptions-of context)
-                   do (vector-pop (failure-descriptions-of global-context)))
-                 (setf (number-of-added-failure-descriptions-of context) 0))
-               (run-test-body ()
-                 (handler-bind
-                     ((assertion-failed (lambda (c)
-                                          (declare (ignore c))
-                                          (unless (debug-on-assertion-failure-p global-context)
-                                            (continue))))
-                      (error (lambda (c)
-                               (unless (typep c 'assertion-failed)
-                                 (record-failure* 'unexpected-error
-                                                  :description-initargs (list :condition c)
-                                                  :signal-assertion-failed #f)
-                                 (when (debug-on-unexpected-error-p global-context)
-                                   (invoke-debugger c))
-                                 (return-from run-test-body)))))
-                   (restart-case
-                       (bind ((*package* (package-of test))
-                              (*readtable* (copy-readtable))
-                              (start-time (get-internal-run-time)))
-                         (multiple-value-prog1
-                             (funcall function)
-                           (setf (internal-realtime-spent-with-test-of context)
-                                 (- (get-internal-run-time) start-time))))
-                     (continue ()
-                       :report (lambda (stream)
-                                 (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
-                       (values))
-                     (retest ()
-                       :report (lambda (stream)
-                                 (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
-                       ;; TODO: this will only prune the failures that were recorded in the current context.
-                       ;; in case of nesting it will leave alone the failures recorded in deeper levels.
-                       (prune-failure-descriptions)
-                       (return-from run-test-body (run-test-body)))))))
-        (run-test-body)))))
+  (register-test-being-run test)
+  (labels ((prune-failure-descriptions ()
+             ;; drop failures recorded by the previous run of this test
+             (loop repeat (number-of-added-failure-descriptions-of *context*)
+                do (vector-pop (failure-descriptions-of *global-context*)))
+             (setf (number-of-added-failure-descriptions-of *context*) 0))
+           (run-test-body ()
+             (handler-bind
+                 ((assertion-failed (lambda (c)
+                                      (declare (ignore c))
+                                      (unless (debug-on-assertion-failure-p *global-context*)
+                                        (continue))))
+                  (error (lambda (c)
+                           (unless (typep c 'assertion-failed)
+                             (record-failure* 'unexpected-error
+                                              :description-initargs (list :condition c)
+                                              :signal-assertion-failed #f)
+                             (when (debug-on-unexpected-error-p *global-context*)
+                               (invoke-debugger c))
+                             (return-from run-test-body)))))
+               (restart-case
+                   (bind ((*package* (package-of test))
+                          (*readtable* (copy-readtable))
+                          (start-time (get-internal-run-time)))
+                     (multiple-value-prog1
+                         (funcall function)
+                       (setf (internal-realtime-spent-with-test-of *context*)
+                             (- (get-internal-run-time) start-time))))
+                 (continue ()
+                   :report (lambda (stream)
+                             (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
+                   (values))
+                 (retest ()
+                   :report (lambda (stream)
+                             (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
+                   ;; TODO: this will only prune the failures that were recorded in the current context.
+                   ;; in case of nesting it will leave alone the failures recorded in deeper levels.
+                   (prune-failure-descriptions)
+                   (return-from run-test-body (run-test-body)))))))
+    (run-test-body)))
 
 (defun run-test-body (test function arguments toplevel-p)
   (declare (type test test))
-  (in-global-context global-context
-    (bind ((result-values '()))
-      (flet ((body ()
-               (with-new-context (:test test :test-arguments arguments)
-                 (when toplevel-p
-                   (setf (toplevel-context-of global-context) (current-context)))
-                 (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
-        (if toplevel-p
-            (with-toplevel-restarts
-              (body))
+  (bind ((result-values '()))
+    (flet ((body ()
+             (with-new-context (:test test :test-arguments arguments)
+               (when toplevel-p
+                 (setf (toplevel-context-of *global-context*) (current-context)))
+               (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
+      (if toplevel-p
+          (with-toplevel-restarts
             (body))
-        (if toplevel-p
-            (progn
-              (when (print-test-run-progress-p global-context)
-                (terpri *debug-io*))
-              (if result-values
-                  (values-list (append result-values (list global-context)))
-                  global-context))
-            (values-list result-values))))))
+          (body))
+      (if toplevel-p
+          (progn
+            (when (print-test-run-progress-p *global-context*)
+              (terpri *debug-io*))
+            (if result-values
+                (values-list (append result-values (list *global-context*)))
+                *global-context*))
+          (values-list result-values)))))
 
 (defmacro deftest (&whole whole name args &body body)
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
@@ -547,21 +538,20 @@
                              description-initargs)))
     (if (and (has-global-context)
              (has-context))
-        (in-global-context global-context
-          (in-context context
-            (vector-push-extend description (failure-descriptions-of global-context))
-            (incf (number-of-added-failure-descriptions-of context))
-            (write-progress-char (progress-char-of description))
-            (when signal-assertion-failed
-              (restart-case (error 'assertion-failed
-                              :test (test-of context)
-                              :failure-description description)
-                (continue ()
-                  :report (lambda (stream)
-                            (format stream "~@<Roger, go on testing...~@:>")))))))
+        (progn
+          (vector-push-extend description (failure-descriptions-of *global-context*))
+          (incf (number-of-added-failure-descriptions-of *context*))
+          (write-progress-char (progress-char-of description))
+          (when signal-assertion-failed
+            (restart-case (error 'assertion-failed
+                                 :test (test-of *context*)
+                                 :failure-description description)
+              (continue ()
+                :report (lambda (stream)
+                          (format stream "~@<Roger, go on testing...~@:>"))))))
         (progn
           (describe description *debug-io*)
-          (when *debug-on-assertion-failure* ; we have no global-context
+          (when *debug-on-assertion-failure* ; we have no *global-context*
             (restart-case (error 'assertion-failed
                                  :failure-description description)
               (continue ()
@@ -639,18 +629,18 @@
              (values '() input-form "Expression ~A evaluated to false." (list `(quote ,input-form))))))))
 
 (defun write-progress-char (char)
-  (bind ((context (when (has-global-context)
-                    (current-global-context))))
-    (when (and context
-               (print-test-run-progress-p context))
-      (when (and (not (zerop (progress-char-count-of context)))
-                 (zerop (mod (progress-char-count-of context)
+  (bind ((global-context (when (boundp '*global-context*)
+                           *global-context*)))
+    (when (and global-context
+               (print-test-run-progress-p global-context))
+      (when (and (not (zerop (progress-char-count-of global-context)))
+                 (zerop (mod (progress-char-count-of global-context)
                              *test-progress-print-right-margin*)))
         (terpri *debug-io*))
-      (incf (progress-char-count-of context)))
-    (when (or (and context
-                   (print-test-run-progress-p context))
-              (and (not context)
+      (incf (progress-char-count-of global-context)))
+    (when (or (and global-context
+                   (print-test-run-progress-p global-context))
+              (and (not global-context)
                    *print-test-run-progress*))
       (write-char char *debug-io*))))
 
@@ -658,9 +648,8 @@
   (write-progress-char #\.))
 
 (defun register-assertion ()
-  (when (has-global-context)
-    (in-global-context context
-      (incf (assertion-count-of context)))))
+  (when (boundp '*global-context*)
+    (incf (assertion-count-of *global-context*))))
 
 (defmacro is (&whole whole form &optional (message nil message-p) &rest message-args)
   (bind (((values bindings expression message message-args)
@@ -702,11 +691,10 @@
       (register-assertion-was-successful))))
 
 (defmacro runs-without-failure? (&body body)
-  (with-unique-names (context old-failure-count)
-    `(in-global-context ,context
-      (bind ((,old-failure-count (length (failure-descriptions-of ,context))))
-        ,@body
-        (= ,old-failure-count (length (failure-descriptions-of ,context)))))))
+  (with-unique-names (old-failure-count)
+    `(bind ((,old-failure-count (length (failure-descriptions-of *global-context*))))
+       ,@body
+       (= ,old-failure-count (length (failure-descriptions-of *global-context*))))))
 
 
 

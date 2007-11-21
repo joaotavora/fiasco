@@ -17,7 +17,7 @@
      remf-keywords rebind parent-of name-of *tests* eval-always
      extract-assert-expression-and-message record-failure record-failure*
      assertion-count-of run-tests-of failure-descriptions-of
-     in-global-context in-context debug-on-unexpected-error-p
+     *global-context* *context* debug-on-unexpected-error-p
      debug-on-assertion-failure-p print-test-run-progress-p
      file-header rem-test lambda-list-to-variable-list
      lambda-list-to-value-list-expression lambda-list-to-funcall-expression)
@@ -87,10 +87,11 @@
                (is (not (= 42 42)))
                (is (true-macro))
                (is (not (false-macro)))))
-    (in-global-context context
+    (progn
       ;; this uglyness here is due to testing the test framework which is inherently
       ;; not nestable, so we need to backup and restore some state
-      (bind ((old-assertion-count (assertion-count-of context))
+      (bind ((context *global-context*)
+             (old-assertion-count (assertion-count-of context))
              (old-failure-description-count (length (failure-descriptions-of context)))
              (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))
              (old-debug-on-assertion-failure (debug-on-assertion-failure-p context))
