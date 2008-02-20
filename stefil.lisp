@@ -21,6 +21,7 @@
 (defvar *debug-on-assertion-failure* #t)
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
+(defvar *failures-are-expected-failures* #f)
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -122,7 +123,8 @@
 (defclass* failed-assertion (failure-description)
   ((form)
    (format-control)
-   (format-arguments)))
+   (format-arguments)
+   (expected *failures-are-expected-failures* :type boolean)))
 
 (defmethod describe-object ((self failed-assertion) stream)
   (let ((*print-circle* nil))
@@ -215,8 +217,13 @@
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
-  (format t "test-run ~A tests, ~A assertions, ~A failures in ~A sec"
-          (hash-table-count (run-tests-of self)) (assertion-count-of self) (length (failure-descriptions-of self))
+  (format t "test-run ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
+          (hash-table-count (run-tests-of self)) (assertion-count-of self)
+          (length (failure-descriptions-of self))
+          (count-if (lambda (el)
+                      (and (typep el 'failed-assertion)
+                           (expected-p el)))
+                    (failure-descriptions-of self))
           (bind ((toplevel-context (toplevel-context-of self))
                  (real-time-spent-in-seconds
                   (when toplevel-context
@@ -695,6 +702,11 @@
     `(bind ((,old-failure-count (length (failure-descriptions-of *global-context*))))
        ,@body
        (= ,old-failure-count (length (failure-descriptions-of *global-context*))))))
+
+(defmacro with-expected-failures (&body body)
+  "Any failure inside the dynamic extent of this block is registered as an expected failure."
+  `(bind ((*failures-are-expected-failures* #t))
+     ,@body))
 
 
 

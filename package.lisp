@@ -8,7 +8,7 @@
 
 (defpackage :stefil
   (:shadow #:log)
-  
+
   (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :stefil-system)
 
   (:export
@@ -17,6 +17,7 @@
    #:is
    #:signals
    #:finishes
+   #:with-expected-failures
    #:in-suite
    #:in-root-suite
    #:defsuite
@@ -35,7 +36,7 @@
    #:*test-progress-print-right-margin*
    #:*test-result-history*
    #:*last-test-result*
-   
+ 
    ;; these are the defaults from which the test context is initialized
    #:*print-test-run-progress*
    #:*debug-on-unexpected-error*
