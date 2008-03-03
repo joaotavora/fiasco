@@ -100,20 +100,6 @@ be interned into the current package at the time of calling."
               ,@(when with-package `((*package* ,(find-package with-package)))))
           ,@body)))))
 
-(defun remove-keywords (plist &rest keywords)
-  "Creates a copy of PLIST without the listed KEYWORDS."
-  (declare (optimize (speed 3)))
-  (loop for cell = plist :then (cddr cell)
-        for el = (car cell)
-        while cell
-        unless (member el keywords :test #'eq)
-        collect el
-        and collect (cadr cell)
-        and do (assert (cdr cell) () "Not a proper plist")))
-
-(define-modify-macro remf-keywords (&rest keywords) remove-keywords
-  "Creates a copy of PLIST without the properties identified by KEYWORDS.")
-
 (defmacro rebind (bindings &body body)
   `(let ,(loop
             for symbol-name in bindings
@@ -239,7 +225,7 @@ be interned into the current package at the time of calling."
 (defmacro define-dynamic-context* (name direct-slots &rest args
                                    &key (defclass-macro-name 'defclass*)
                                    &allow-other-keys)
-  (remf-keywords args :defclass-macro-name)
+  (remove-from-plistf args :defclass-macro-name)
   `(define-dynamic-context ,name ,direct-slots
      :defclass-macro-name ,defclass-macro-name
      ,@args))

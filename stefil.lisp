@@ -394,7 +394,7 @@
   (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
          ((name &rest test-args &key (compile-before-run *compile-tests-before-run*) in &allow-other-keys) (ensure-list name))
          (in-p (get-properties test-args '(:in))))
-    (remf-keywords test-args :in)
+    (remove-from-plistf test-args :in)
     (unless (or (not (symbol-package name))
                 (eq (symbol-package name) *package*))
       (warn 'test-style-warning :test name

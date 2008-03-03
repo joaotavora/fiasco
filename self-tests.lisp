@@ -14,7 +14,7 @@
 (eval-always
   (import
    '(enable-sharp-boolean-syntax *suite* count-tests
-     remf-keywords rebind parent-of name-of *tests* eval-always
+     rebind parent-of name-of *tests* eval-always
      extract-assert-expression-and-message record-failure record-failure*
      assertion-count-of run-tests-of failure-descriptions-of
      *global-context* *context* debug-on-unexpected-error-p
