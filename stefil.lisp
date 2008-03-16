@@ -159,7 +159,7 @@
 ;;; test repository
 
 (defun find-test (name &key (otherwise :error))
-  (bind (((values test found-p) (if (typep name 'testable)
+  (bind (((:values test found-p) (if (typep name 'testable)
                                     (values name t)
                                     (gethash name *tests*))))
     (when (and (not found-p)
@@ -272,7 +272,7 @@
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
-           (bind (((values test-lambda found-p) (gethash test (test-lambdas-of context))))
+           (bind (((:values test-lambda found-p) (gethash test (test-lambdas-of context))))
              (unless found-p
                (setf test-lambda (bind ((*package* (package-of test))
                                         (*readtable* (copy-readtable)))
@@ -391,7 +391,7 @@
           (values-list result-values)))))
 
 (defmacro deftest (&whole whole name args &body body)
-  (bind (((values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
+  (bind (((:values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
          ((name &rest test-args &key (compile-before-run *compile-tests-before-run*) in &allow-other-keys) (ensure-list name))
          (in-p (get-properties test-args '(:in))))
     (remove-from-plistf test-args :in)
@@ -620,7 +620,7 @@
                              (expression (if negatedp
                                              `(not (,predicate ,@expression-values))
                                              `(,predicate ,@expression-values)))
-                             ((values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
+                             ((:values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
                                                                   (for arg :in arguments)
                                                                   (for idx :upfrom 0)
                                                                   (for arg-value :in arg-values)
@@ -659,7 +659,7 @@
     (incf (assertion-count-of *global-context*))))
 
 (defmacro is (&whole whole form &optional (message nil message-p) &rest message-args)
-  (bind (((values bindings expression message message-args)
+  (bind (((:values bindings expression message message-args)
           (if message-p
               (values nil form message message-args)
               (extract-assert-expression-and-message form))))
@@ -749,7 +749,7 @@
         (collect -variable-name- :into result))))
 
 (defun lambda-list-to-funcall-expression (function args)
-  (bind (((values arg-list rest-variable) (lambda-list-to-funcall-list args)))
+  (bind (((:values arg-list rest-variable) (lambda-list-to-funcall-list args)))
     (if rest-variable
         `(apply ,function ,@arg-list ,rest-variable)
         `(funcall ,function ,@arg-list))))
