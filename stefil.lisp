@@ -21,7 +21,7 @@
 (defvar *debug-on-assertion-failure* #t)
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
-(defvar *failures-are-expected-failures* #f)
+(defvar *failures-and-errors-are-expected* #f)
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -118,13 +118,13 @@
 
 (defclass* failure-description ()
   ((test-context-backtrace)
-   (progress-char #\X :allocation :class)))
+   (progress-char #\X :allocation :class)
+   (expected *failures-and-errors-are-expected* :type boolean)))
 
 (defclass* failed-assertion (failure-description)
   ((form)
    (format-control)
-   (format-arguments)
-   (expected *failures-are-expected-failures* :type boolean)))
+   (format-arguments)))
 
 (defmethod describe-object ((self failed-assertion) stream)
   (let ((*print-circle* nil))
@@ -220,10 +220,7 @@
   (format t "test-run ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
           (hash-table-count (run-tests-of self)) (assertion-count-of self)
           (length (failure-descriptions-of self))
-          (count-if (lambda (el)
-                      (and (typep el 'failed-assertion)
-                           (expected-p el)))
-                    (failure-descriptions-of self))
+          (count-if 'expected-p (failure-descriptions-of self))
           (bind ((toplevel-context (toplevel-context-of self))
                  (real-time-spent-in-seconds
                   (when toplevel-context
@@ -705,7 +702,7 @@
 
 (defmacro with-expected-failures (&body body)
   "Any failure inside the dynamic extent of this block is registered as an expected failure."
-  `(bind ((*failures-are-expected-failures* #t))
+  `(bind ((*failures-and-errors-are-expected* #t))
      ,@body))
 
 
