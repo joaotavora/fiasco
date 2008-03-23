@@ -217,7 +217,7 @@
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
-  (format t "test-run ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
+  (format t "test-run: ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
           (hash-table-count (run-tests-of self)) (assertion-count-of self)
           (length (failure-descriptions-of self))
           (count-if 'expected-p (failure-descriptions-of self))
