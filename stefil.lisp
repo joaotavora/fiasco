@@ -710,43 +710,135 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; some utils
 
-(defmacro with-lambda-parsing ((lambda-form &key finally) &body body)
-  (with-unique-names (cell)
-    `(let ((-in-keywords- nil)
-           (-in-optionals- nil)
-           (-rest-variable-name- nil))
-       (loop
-          for ,cell = ,lambda-form :then (cdr ,cell)
-          while ,cell
-          for -variable-name- = (if (or -in-optionals-
-                                        -in-keywords-)
-                                    (first (ensure-list (car ,cell)))
-                                    (car ,cell))
-          for -default-value- = (if (or -in-optionals-
-                                        -in-keywords-)
-                                    (second (ensure-list (car ,cell)))
-                                    (car ,cell))
-          do (case -variable-name-
-               (&optional (setf -in-optionals- t))
-               (&key (setf -in-keywords- t)
-                     (setf -in-optionals- nil))
-               (&allow-other-keys)
-               (&rest (setf -rest-variable-name- (car (cdr ,cell)))
-                      (setf ,cell (cdr ,cell)))
-               (t ,@body))
-          ,@(when finally
-             `(finally ,finally))))))
+(define-condition illegal-lambda-list (error)
+  ((lambda-list :accessor lambda-list-of :initarg :lambda-list)))
+
+(defun illegal-lambda-list (lambda-list)
+  (error 'illegal-lambda-list :lambda-list lambda-list))
+
+(defun parse-lambda-list (lambda-list visitor &key macro)
+  ;; TODO finish macro lambda list parsing
+  (declare (optimize (speed 3))
+           (type list lambda-list)
+           (type (or symbol function) visitor))
+  (let ((args lambda-list))
+    (labels
+        ((fail ()
+           (illegal-lambda-list lambda-list))
+         (ensure-list (list)
+           (if (listp list)
+               list
+               (list list)))
+         (process-&whole ()
+           (assert (eq (first args) '&whole))
+           (pop args)
+           (unless macro
+             (fail))
+           (let ((whole (pop args)))
+             (unless whole
+               (fail))
+             (funcall visitor '&whole whole whole))
+           (case (first args)
+             (&key          (entering-&key))
+             (&rest         (process-&rest))
+             (&optional     (entering-&optional))
+             ((&whole &aux &allow-other-keys) (fail))
+             (t             (process-required))))
+         (process-required ()
+           (unless args
+             (done))
+           (case (first args)
+             (&key          (entering-&key))
+             (&rest         (process-&rest))
+             (&optional     (entering-&optional))
+             ((&whole &allow-other-keys) (fail))
+             (&aux          (entering-&aux))
+             (t
+              (let ((arg (pop args)))
+                (funcall visitor nil arg arg))
+              (process-required))))
+         (process-&rest ()
+           (assert (eq (first args) '&rest))
+           (pop args)
+           (let ((rest (pop args)))
+             (unless rest
+               (fail))
+             (funcall visitor '&rest rest rest))
+           (unless args
+             (done))
+           (case (first args)
+             (&key               (entering-&key))
+             ((&whole &optional &rest &allow-other-keys) (fail))
+             (&aux               (entering-&aux))
+             (t                  (fail))))
+         (entering-&optional ()
+           (assert (eq (first args) '&optional))
+           (pop args)
+           (process-&optional))
+         (process-&optional ()
+           (unless args
+             (done))
+           (case (first args)
+             (&key               (entering-&key))
+             (&rest              (process-&rest))
+             ((&whole &optional &allow-other-keys) (fail))
+             (&aux               (entering-&aux))
+             (t
+              (let ((arg (ensure-list (pop args))))
+                (funcall visitor '&optional (first arg) arg))
+              (process-&optional))))
+         (entering-&key ()
+           (assert (eq (first args) '&key))
+           (pop args)
+           (process-&key))
+         (process-&key ()
+           (unless args
+             (done))
+           (case (first args)
+             (&allow-other-keys       (funcall visitor '&allow-other-keys nil nil))
+             ((&key &optional &whole) (fail))
+             (&aux                    (entering-&aux))
+             (t
+              (let ((arg (ensure-list (pop args))))
+                (funcall visitor '&key (first arg) arg))
+              (process-&key))))
+         (entering-&aux ()
+           (assert (eq (first args) '&aux))
+           (pop args)
+           (process-&aux))
+         (process-&aux ()
+           (unless args
+             (done))
+           (case (first args)
+             ((&whole &optional &key &allow-other-keys &aux) (fail))
+             (t
+              (let ((arg (ensure-list (pop args))))
+                (funcall visitor '&aux (first arg) arg))
+              (process-&aux))))
+         (done ()
+           (return-from parse-lambda-list (values))))
+      (when args
+        (case (first args)
+          (&whole (process-&whole))
+          (t      (process-required)))))))
 
 (defun lambda-list-to-funcall-list (args)
-  (let ((result (list)))
-    (with-lambda-parsing (args :finally (return (values (nreverse result)
-                                                        -rest-variable-name-)))
-      (if -in-keywords-
-          (progn
-            (push (intern (symbol-name (first (ensure-list -variable-name-)))
-                          #.(find-package "KEYWORD")) result)
-            (push -variable-name- result))
-          (push -variable-name- result)))))
+  (let ((result (list))
+        (rest-variable-name nil))
+    (parse-lambda-list args
+                       (lambda (kind name entry)
+                         (declare (ignore entry))
+                         (case kind
+                           (&key
+                            (push (intern (symbol-name (first (ensure-list name)))
+                                          #.(find-package "KEYWORD")) result)
+                            (push name result))
+                           (&allow-other-keys)
+                           (&rest (setf rest-variable-name name))
+                           (t
+                            (push name result)))))
+    (values (nreverse result)
+            rest-variable-name)))
 
 (defun lambda-list-to-funcall-expression (function args)
   (multiple-value-bind (arg-list rest-variable)
@@ -757,22 +849,13 @@
 
 (defun lambda-list-to-value-list-expression (args)
   `(list ,@(let ((result (list)))
-             (with-lambda-parsing (args)
-               (push `(cons ',-variable-name- ,-variable-name-) result))
+             (parse-lambda-list args
+                                (lambda (kind name entry)
+                                  (declare (ignore entry))
+                                  (case kind
+                                    (&allow-other-keys)
+                                    (t (push `(cons ',name ,name) result)))))
              (nreverse result))))
-
-(defun lambda-list-to-variable-list (args &key (include-defaults nil) (include-&rest nil))
-  (let ((result (list)))
-    (with-lambda-parsing (args :finally (progn
-                                          (setf result (nreverse result))
-                                          (return (if (and include-&rest
-                                                           -rest-variable-name-)
-                                                      (cons -rest-variable-name- result)
-                                                      result))))
-      (push (if include-defaults
-                   (list -variable-name- -default-value-)
-                   -variable-name-)
-            result))))
 
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
