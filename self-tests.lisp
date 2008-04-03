@@ -20,7 +20,9 @@
      *global-context* *context* debug-on-unexpected-error-p
      debug-on-assertion-failure-p print-test-run-progress-p
      file-header rem-test lambda-list-to-variable-list
-     lambda-list-to-value-list-expression lambda-list-to-funcall-expression)
+     lambda-list-to-value-list-expression lambda-list-to-funcall-expression
+     illegal-lambda-list
+     )
    (find-package :stefil-test)))
 
 (in-package :stefil-test)
@@ -153,13 +155,21 @@
  (defsuite (lambda-lists :in test)))
 
 (deftest lambda-list-processing ()
-  (is (equal (lambda-list-to-variable-list '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
-             '(p1 p2 o1 o2 k1 k2)))
   (is (equal (lambda-list-to-value-list-expression '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
              '(list (cons 'p1 p1) (cons 'p2 p2) (cons 'o1 o1) (cons 'o2 o2) (cons 'k1 k1)
                (cons 'k2 k2))))
   (is (equal (lambda-list-to-funcall-expression 'foo '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
              '(FUNCALL FOO P1 P2 O1 O2 :K1 K1 :K2 K2)))
+  (is (equal (lambda-list-to-funcall-expression 'foo '(&optional &key &allow-other-keys))
+             '(FUNCALL FOO)))
+  (is (equal (lambda-list-to-funcall-expression 'foo '(&optional &rest args &key &allow-other-keys))
+             '(APPLY FOO args)))
   (is (equal (lambda-list-to-funcall-expression 'foo '(p1 p2 &optional o1 (o2 "o2") &rest args &key k1 (k2 "k2") &allow-other-keys))
-             '(APPLY FOO P1 P2 O1 O2 :K1 K1 :K2 K2 ARGS))))
+             '(APPLY FOO P1 P2 O1 O2 :K1 K1 :K2 K2 ARGS)))
+  (dolist (entry '((p1 &whole)
+                   (&allow-other-keys)
+                   (&key k1 &optional o1)
+                   (&aux x1 &key k1)))
+    (signals illegal-lambda-list
+      (lambda-list-to-value-list-expression entry))))
 
