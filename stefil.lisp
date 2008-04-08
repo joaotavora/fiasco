@@ -742,7 +742,37 @@
              (&key          (entering-&key))
              (&rest         (process-&rest))
              (&optional     (entering-&optional))
+             (&body         (process-&body))
+             (&environment  (process-&environment))
              ((&whole &aux &allow-other-keys) (fail))
+             (t             (process-required))))
+         (process-&body ()
+           (assert (eq (first args) '&body))
+           (pop args)
+           (unless macro
+             (fail))
+           (let ((body (pop args)))
+             (unless (null args)
+               (fail))
+             (unless body
+               (fail))
+             (funcall visitor '&body body body)))
+         (process-&environment ()
+           (assert (eq (first args) '&environment))
+           (pop args)
+           (unless macro
+             (fail))
+           (let ((env (pop args)))
+             (unless env
+               (fail))
+             (funcall visitor '&environment env env))
+           (case (first args)
+             (&key          (entering-&key))
+             (&rest         (process-&rest))
+             (&optional     (entering-&optional))
+             (&body         (process-&body))
+             (&aux          (process-&aux))
+             ((&whole &environment &allow-other-keys) (fail))
              (t             (process-required))))
          (process-required ()
            (unless args
@@ -751,6 +781,8 @@
              (&key          (entering-&key))
              (&rest         (process-&rest))
              (&optional     (entering-&optional))
+             (&body         (process-&body))
+             (&environment  (process-&environment))
              ((&whole &allow-other-keys) (fail))
              (&aux          (entering-&aux))
              (t
@@ -768,7 +800,8 @@
              (done))
            (case (first args)
              (&key               (entering-&key))
-             ((&whole &optional &rest &allow-other-keys) (fail))
+             (&environment       (process-&environment))
+             ((&whole &optional &rest &body &allow-other-keys) (fail))
              (&aux               (entering-&aux))
              (t                  (fail))))
          (entering-&optional ()
@@ -781,7 +814,8 @@
            (case (first args)
              (&key               (entering-&key))
              (&rest              (process-&rest))
-             ((&whole &optional &allow-other-keys) (fail))
+             (&body              (process-&body))
+             ((&whole &optional &environment &allow-other-keys) (fail))
              (&aux               (entering-&aux))
              (t
               (let ((arg (ensure-list (pop args))))
@@ -796,7 +830,7 @@
              (done))
            (case (first args)
              (&allow-other-keys       (funcall visitor '&allow-other-keys nil nil))
-             ((&key &optional &whole) (fail))
+             ((&key &optional &whole &environment &body) (fail))
              (&aux                    (entering-&aux))
              (t
               (let ((arg (ensure-list (pop args))))
@@ -810,7 +844,7 @@
            (unless args
              (done))
            (case (first args)
-             ((&whole &optional &key &allow-other-keys &aux) (fail))
+             ((&whole &optional &key &environment &allow-other-keys &aux &body) (fail))
              (t
               (let ((arg (ensure-list (pop args))))
                 (funcall visitor '&aux (first arg) arg))
@@ -856,6 +890,32 @@
                                     (&allow-other-keys)
                                     (t (push `(cons ',name ,name) result)))))
              (nreverse result))))
+
+(defun lambda-list-to-variable-name-list (args &key macro include-specials)
+  (let ((result (list))
+        (rest-variable-name nil)
+        (whole-variable-name nil)
+        (env-variable-name nil))
+    (parse-lambda-list args
+                       (lambda (kind name entry)
+                         (declare (ignore entry))
+                         (case kind
+                           (&allow-other-keys )
+                           (&environment      (setf env-variable-name name)
+                                              (when include-specials
+                                                (push name result)))
+                           (&whole            (setf whole-variable-name name)
+                                              (when include-specials
+                                                (push name result)))
+                           ((&rest &body)     (setf rest-variable-name name)
+                                              (when include-specials
+                                                (push name result)))
+                           (t                 (push name result))))
+                       :macro macro)
+    (values (nreverse result)
+            rest-variable-name
+            whole-variable-name
+            env-variable-name)))
 
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
