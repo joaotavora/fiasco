@@ -429,6 +429,7 @@
                               `(bind ((,test-lambda (get-test-lambda ,test ,global-context)))
                                 (run-test-body ,test
                                  (lambda ()
+                                   ;; TODO install a labels entry with the test name? to avoid compile at each recursion...
                                    ,(lambda-list-to-funcall-expression test-lambda args))
                                  ,(lambda-list-to-value-list-expression args)
                                  ,toplevel-p))
