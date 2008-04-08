@@ -21,7 +21,7 @@
      debug-on-assertion-failure-p print-test-run-progress-p
      file-header rem-test lambda-list-to-variable-list
      lambda-list-to-value-list-expression lambda-list-to-funcall-expression
-     illegal-lambda-list
+     lambda-list-to-variable-list illegal-lambda-list
      )
    (find-package :stefil-test)))
 
@@ -166,10 +166,22 @@
              '(APPLY FOO args)))
   (is (equal (lambda-list-to-funcall-expression 'foo '(p1 p2 &optional o1 (o2 "o2") &rest args &key k1 (k2 "k2") &allow-other-keys))
              '(APPLY FOO P1 P2 O1 O2 :K1 K1 :K2 K2 ARGS)))
+  (is (equal (lambda-list-to-variable-list '(&whole whole p1 p2 &optional o1 (o2 "o2") &body body) :macro t)
+             '(WHOLE P1 P2 O1 O2 BODY)))
+  (is (equal (lambda-list-to-variable-list '(&whole whole &environment env p1 p2 &optional o1 (o2 "o2") &body body) :macro t)
+             '(WHOLE ENV P1 P2 O1 O2 BODY)))
   (dolist (entry '((p1 &whole)
                    (&allow-other-keys)
                    (&key k1 &optional o1)
                    (&aux x1 &key k1)))
     (signals illegal-lambda-list
-      (lambda-list-to-value-list-expression entry))))
+      (lambda-list-to-variable-list entry)))
+  (dolist (entry '((p1 &whole)
+                   (&allow-other-keys)
+                   (&key k1 &optional o1)
+                   (&aux x1 &key k1)
+                   (a &rest rest &body body)
+                   (&aux a &body body)))
+    (signals illegal-lambda-list
+      (lambda-list-to-variable-list entry :macro t))))
 
