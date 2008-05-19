@@ -674,6 +674,8 @@
 
 (defmacro signals (what &body body)
   (bind ((condition-type what))
+    (unless (symbolp condition-type)
+      (error "SIGNALS expects a symbol as condition-type! (Is there a superfulous quote at ~S?)" condition-type))
     `(progn
       (register-assertion)
       (block test-block
