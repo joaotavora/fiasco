@@ -821,8 +821,10 @@
              ((&whole &optional &environment &allow-other-keys) (fail))
              (&aux               (entering-&aux))
              (t
-              (let ((arg (ensure-list (pop args))))
-                (funcall visitor '&optional (first arg) arg))
+              (let* ((arg (ensure-list (pop args)))
+                     (name (first arg))
+                     (default (second arg)))
+                (funcall visitor '&optional name arg nil default))
               (process-&optional))))
          (entering-&key ()
            (assert (eq (first args) '&key))
@@ -836,8 +838,19 @@
              ((&key &optional &whole &environment &body) (fail))
              (&aux                    (entering-&aux))
              (t
-              (let ((arg (ensure-list (pop args))))
-                (funcall visitor '&key (first arg) arg))
+              (let* ((arg (ensure-list (pop args)))
+                     (name-part (first arg))
+                     (default (second arg))
+                     (external-name (if (consp name-part)
+                                        (progn
+                                          (unless (= (length name-part) 2)
+                                            (illegal-lambda-list lambda-list))
+                                          (first name-part))
+                                        (intern (symbol-name name-part) #.(find-package "KEYWORD"))))
+                     (local-name (if (consp name-part)
+                                     (second name-part)
+                                     name-part)))
+                (funcall visitor '&key local-name arg external-name default))
               (process-&key))))
          (entering-&aux ()
            (assert (eq (first args) '&aux))
@@ -863,18 +876,39 @@
   (let ((result (list))
         (rest-variable-name nil))
     (parse-lambda-list args
-                       (lambda (kind name entry)
-                         (declare (ignore entry))
+                       (lambda (kind name entry &optional external-name default)
+                         (declare (ignore entry default))
                          (case kind
                            (&key
-                            (push (intern (symbol-name (first (ensure-list name)))
-                                          #.(find-package "KEYWORD")) result)
+                            (push external-name result)
                             (push name result))
                            (&allow-other-keys)
                            (&rest (setf rest-variable-name name))
-                           (t
-                            (push name result)))))
+                           (t (push name result)))))
     (values (nreverse result)
+            rest-variable-name)))
+
+(defun lambda-list-to-lambda-list-with-quoted-defaults (args)
+  (let ((primaries (list))
+        (keywords (list))
+        (optionals (list))
+        (rest-variable-name nil)
+        (allow-other-keys? nil))
+    (parse-lambda-list args
+                       (lambda (kind name entry &optional external-name default)
+                         (declare (ignore entry))
+                         (ecase kind
+                           (&key
+                            (push `((,external-name ,name) (quote ,default)) keywords))
+                           (&optional
+                            (push `(,name ,default) optionals))
+                           (&allow-other-keys (setf allow-other-keys? t))
+                           (&rest (setf rest-variable-name name))
+                           ((nil) (push name primaries)))))
+    (values `(,@(nreverse primaries)
+              ,@(when optionals (cons '&optional (nreverse optionals)))
+              ,@(when keywords (cons '&key (nreverse keywords)))
+              ,@(when allow-other-keys? (list '&allow-other-keys)))
             rest-variable-name)))
 
 (defun lambda-list-to-funcall-expression (function args)
@@ -887,8 +921,8 @@
 (defun lambda-list-to-value-list-expression (args)
   `(list ,@(let ((result (list)))
              (parse-lambda-list args
-                                (lambda (kind name entry)
-                                  (declare (ignore entry))
+                                (lambda (kind name entry &optional external-name default)
+                                  (declare (ignore entry external-name default))
                                   (case kind
                                     (&allow-other-keys)
                                     (t (push `(cons ',name ,name) result)))))
@@ -900,8 +934,8 @@
         (whole-variable-name nil)
         (env-variable-name nil))
     (parse-lambda-list args
-                       (lambda (kind name entry)
-                         (declare (ignore entry))
+                       (lambda (kind name entry &optional external-name default)
+                         (declare (ignore entry external-name default))
                          (case kind
                            (&allow-other-keys )
                            (&environment      (setf env-variable-name name)
