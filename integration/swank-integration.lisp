@@ -73,7 +73,7 @@
       `((:newline)
         (:action "[show all slots]" ,(lambda () (setf *display-all-slots-in-inspector* #t))))))
 
-#-slime-wdim-branch
+#-slime-dwim-branch
 (defun drop-labels (content)
   (iter (for el :in content)
         (if (and (consp el)
@@ -82,9 +82,9 @@
             (collect el))))
 
 (defmacro inspector-result (title content)
-  #+slime-wdim-branch
+  #+slime-dwim-branch
   `(list :title ,title :type nil :content ,content)
-  #-slime-wdim-branch
+  #-slime-dwim-branch
   `(values ,title (drop-labels ,content)))
 
 (defmethod inspect-for-emacs ((global-context global-context) inspector)

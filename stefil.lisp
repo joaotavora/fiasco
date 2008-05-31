@@ -969,6 +969,6 @@ This function is ideal for ASDF:TEST-OP's."
 For more details run it from the REPL and use the customized Slime inspector
 to inspect the results (ASDF eats up the return values). Some inspector
 features may only be available when using the Slime branch at
-darcs get --partial http://common-lisp.net/project/cl-wdim/darcs/slime
+darcs get --lazy http://common-lisp.net/project/cl-dwim/darcs/slime
 but the official Slime should also work fine.~%"
               test-function it))))
