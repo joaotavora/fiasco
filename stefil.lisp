@@ -683,12 +683,12 @@
                         (lambda (c)
                           (declare (ignore c))
                           (register-assertion-was-successful)
-                          (return-from test-block (values)))))
+                          (return-from test-block c))))
           ,@body)
         (record-failure 'missing-condition
                         :form (list* 'progn ',body)
-                        :condition ',condition-type))
-      (values))))
+                        :condition ',condition-type)
+        (values)))))
 
 (defmacro finishes (&body body)
   `(progn
