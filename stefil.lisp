@@ -681,7 +681,6 @@
       (block test-block
         (handler-bind ((,condition-type
                         (lambda (c)
-                          (declare (ignore c))
                           (register-assertion-was-successful)
                           (return-from test-block c))))
           ,@body)
