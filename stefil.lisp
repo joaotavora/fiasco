@@ -70,8 +70,7 @@
 (defmethod shared-initialize :after ((self testable) slot-names
                                      &key (in (or (parent-of self)
                                                   (and (boundp '*suite*)
-                                                       *suite*)))
-                                     &allow-other-keys)
+                                                       *suite*))))
   (assert (name-of self))
   (setf (find-test (name-of self)) self)
   ;; make sure the specialized writer below is triggered
