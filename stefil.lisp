@@ -16,7 +16,7 @@
 (defvar *print-test-run-progress* #t)
 (defvar *compile-tests-before-run* #f)
 (defvar *compile-tests-with-debug-level* nil)
-(defvar *test-progress-print-right-margin* 100)
+(defvar *test-progress-print-right-margin* 80)
 (defvar *debug-on-unexpected-error* #t)
 (defvar *debug-on-assertion-failure* #t)
 (defvar *test-result-history* '())
