@@ -31,10 +31,10 @@
 
 (in-root-suite) ; we need to reset *suite*, otherwise we may end up under another project's last suite. unfortunately noone rebinds *suite* like *package* while loading.
 
-(defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :description "Suite active when the Stefil self-tests are being run")))
+(defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :documentation "Suite active when the Stefil self-tests are being run")))
 
 (in-suite
- (defsuite (test :description "Stefil self tests")))
+ (defsuite (test :documentation "Stefil self tests")))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
