@@ -269,14 +269,14 @@
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
-           (bind (((:values test-lambda found-p) (gethash test (test-lambdas-of context))))
-             (unless found-p
-               (setf test-lambda (bind ((*package* (package-of test))
-                                        (*readtable* (copy-readtable)))
-                                   (compile nil `(lambda ,(lambda-list-of test)
-                                                  ,@(body-of test)))))
-               (setf (gethash test (test-lambdas-of context)) test-lambda))
-             test-lambda)))
+    (bind (((:values test-lambda found-p) (gethash test (test-lambdas-of context))))
+      (unless found-p
+        (setf test-lambda (bind ((*package* (package-of test))
+                                 (*readtable* (copy-readtable)))
+                            (compile nil `(lambda ,(lambda-list-of test)
+                                            ,@(body-of test)))))
+        (setf (gethash test (test-lambdas-of context)) test-lambda))
+      test-lambda)))
 
 (define-dynamic-context* context
   ((test)
