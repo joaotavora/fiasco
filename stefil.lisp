@@ -295,10 +295,10 @@
 
 (defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
-           (awhen (internal-realtime-spent-with-test-of self)
-             (coerce (/ it
-                        internal-time-units-per-second)
-                     'float))))
+    (awhen (internal-realtime-spent-with-test-of self)
+      (coerce (/ it
+                 internal-time-units-per-second)
+              'float))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
   `(with-new-global-context ()
