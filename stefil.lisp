@@ -27,7 +27,7 @@
 
 (defmacro without-debugging (&body body)
   `(bind ((*debug-on-unexpected-error* #f)
-         (*debug-on-assertion-failure* #f))
+          (*debug-on-assertion-failure* #f))
     ,@body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
