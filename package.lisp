@@ -19,6 +19,7 @@
    #:finishes
    #:with-expected-failures
    #:in-suite
+   #:root-suite
    #:in-root-suite
    #:defsuite
    #:defsuite*
