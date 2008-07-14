@@ -7,7 +7,13 @@
 (in-package :stefil)
 
 (defpackage :stefil-test
-    (:use :common-lisp :metabang-bind :defclass-star :alexandria :iterate :stefil)
+  (:use
+   :common-lisp
+   :metabang-bind
+   :alexandria
+   :iterate
+   :stefil
+   )
   (:shadow #:deftest)
   (:export #:test))
 

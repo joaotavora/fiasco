@@ -9,7 +9,14 @@
 (defpackage :stefil
   (:shadow #:log)
 
-  (:use :cl :swank :metabang-bind :defclass-star :alexandria :iterate :stefil-system)
+  (:use
+   :common-lisp
+   :swank
+   :metabang-bind
+   :alexandria
+   :iterate
+   :stefil-system
+   )
 
   (:export
    #:find-test

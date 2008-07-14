@@ -34,7 +34,7 @@
 	       "Levente Mészáros <levente.meszaros@gmail.com>")
   :licence "BSD / Public domain"
   :description "Stefil - Simple Test Framework In Lisp"
-  :depends-on (:swank :alexandria :iterate :metabang-bind :defclass-star)
+  :depends-on (:swank :alexandria :iterate :metabang-bind)
   :default-component-class local-cl-source-file
   :serial t
   :components

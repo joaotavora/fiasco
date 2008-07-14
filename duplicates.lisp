@@ -172,7 +172,7 @@ be interned into the current package at the time of calling."
         ,(when create-class
            `(,defclass-macro-name ,class-name ,direct-superclasses
              ,(if chain-parents
-                  (append `((parent-context nil :accessor parent-context-of)) direct-slots) ; accessor is explicitly given to force it to be interned in this package
+                  (append `((parent-context :initform nil :accessor parent-context-of)) direct-slots) ; accessor is explicitly given to force it to be interned in this package
                   direct-slots)))
         ,(when create-struct
            `(defstruct (,name ,@struct-options)
@@ -222,6 +222,7 @@ be interned into the current package at the time of calling."
         (defun (setf ,extractor-name) (value)
           (setf ,special-var-name value))))))
 
+#+nil
 (defmacro define-dynamic-context* (name direct-slots &rest args
                                    &key (defclass-macro-name 'defclass*)
                                    &allow-other-keys)

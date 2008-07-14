@@ -33,21 +33,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; conditions
 
-(defcondition* test-related-condition ()
-  ((test nil)))
+(define-condition test-related-condition ()
+  ((test :initform nil :accessor test-of :initarg :test)))
 
-(defcondition* test-style-warning (style-warning test-related-condition simple-warning)
+(define-condition test-style-warning (style-warning test-related-condition simple-warning)
   ())
 
-(defcondition* assertion-failed (test-related-condition error)
-  ((failure-description))
+(define-condition assertion-failed (test-related-condition error)
+  ((failure-description :accessor failure-description-of :initarg :failure-description))
   (:report (lambda (c stream)
              (format stream "Test assertion failed:~%~%")
              (describe (failure-description-of c) stream))))
 
-(defcondition* error-in-teardown (error)
-  ((condition)
-   (fixture))
+(define-condition error-in-teardown (error)
+  ((condition :accessor condition-of :initarg :condition)
+   (fixture :accessor fixture-of :initarg :fixture))
   (:report (lambda (c stream)
              (format stream "Error while running teardown of fixture ~A:~%~%~A" (fixture-of c) (condition-of c)))))
 
@@ -55,11 +55,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; some classes
 
-(defclass* testable ()
+#+nil
+(defclass-star:defclass* testable ()
   ((name :type symbol)
    (parent nil :initarg nil :type (or null testable))
    (children (make-hash-table) :documentation "A mapping from testable names to testables")
    (auto-call #t :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
+
+(defclass testable ()
+  ((name :accessor name-of :initarg :name :type symbol)
+   (parent :initform nil :accessor parent-of :type (or null testable))
+   (children :initform (make-hash-table) :accessor children-of :initarg :children :documentation "A mapping from testable names to testables")
+   (auto-call :initform t :accessor auto-call-p :initarg :auto-call :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
 (defprint-object (self testable :identity #f :type #f)
   (format t "test ~S" (name-of self))
@@ -100,7 +107,7 @@
               (iter (for (nil child) :in-hashtable (children-of self))
                     (summing (count-tests child))))))
 
-(defclass* test (testable)
+#+nil(defclass-star:defclass* test (testable)
   ((package nil)
    (lambda-list nil)
    (compile-before-run #t :type boolean)
@@ -108,22 +115,41 @@
    (documentation nil)
    (body nil)))
 
+(defclass test (testable)
+  ((package :initform nil :accessor package-of :initarg :package)
+   (lambda-list :initform nil :accessor lambda-list-of :initarg :lambda-list)
+   (compile-before-run :initform t :accessor compile-before-run-p :initarg :compile-before-run :type boolean)
+   (declarations :initform nil :accessor declarations-of :initarg :declarations)
+   (documentation :initform nil :accessor documentation-of :initarg :documentation)
+   (body :initform nil :accessor body-of :initarg :body)))
+
 (defun make-test (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))
 
 (defun make-suite (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))
 
-
-(defclass* failure-description ()
+#+nil
+(defclass-star:defclass* failure-description ()
   ((test-context-backtrace)
    (progress-char #\X :allocation :class)
    (expected *failures-and-errors-are-expected* :type boolean)))
 
-(defclass* failed-assertion (failure-description)
+(defclass failure-description ()
+  ((test-context-backtrace :accessor test-context-backtrace-of :initarg :test-context-backtrace)
+   (progress-char :initform #\X :accessor progress-char-of :initarg :progress-char :allocation :class)
+   (expected :initform *failures-and-errors-are-expected* :accessor expected-p :initarg :expected :type boolean)))
+
+#+nil
+(defclass-star:defclass* failed-assertion (failure-description)
   ((form)
    (format-control)
    (format-arguments)))
+
+(defclass failed-assertion (failure-description)
+  ((form :accessor form-of :initarg :form)
+   (format-control :accessor format-control-of :initarg :format-control)
+   (format-arguments :accessor format-arguments-of :initarg :format-arguments)))
 
 (defmethod describe-object ((self failed-assertion) stream)
   (let ((*print-circle* nil))
@@ -135,17 +161,27 @@
           (mapcar (compose #'name-of #'test-of)
                   (test-context-backtrace-of self))))
 
-(defclass* missing-condition (failure-description)
+#+nil
+(defclass-star:defclass* missing-condition (failure-description)
   ((form)
    (condition)))
+
+(defclass missing-condition (failure-description)
+  ((form :accessor form-of :initarg :form)
+   (condition :accessor condition-of :initarg :condition)))
 
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
     (format stream "~S failed to signal condition ~S" (form-of self) (condition-of self))))
 
-(defclass* unexpected-error (failure-description)
+#+nil
+(defclass-star:defclass* unexpected-error (failure-description)
   ((condition)
    (progress-char #\E :allocation :class)))
+
+(defclass unexpected-error (failure-description)
+  ((condition :accessor condition-of :initarg :condition)
+   (progress-char :initform #\E :accessor progress-char-of :initarg :progress-char :allocation :class)))
 
 (defprint-object (self unexpected-error :identity #f :type #f)
   (format t "error ~{~A~^,~}: ~S"
@@ -202,6 +238,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the real thing
 
+#+nil
 (define-dynamic-context* global-context
   ((failure-descriptions (make-array 8 :adjustable #t :fill-pointer 0))
    (assertion-count 0)
@@ -214,6 +251,19 @@
    (run-tests (make-hash-table) :documentation "test -> context mapping")
    (run-fixtures (make-hash-table))
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
+
+(define-dynamic-context global-context
+  ((failure-descriptions :initform (make-array 8 :adjustable t :fill-pointer 0) :accessor failure-descriptions-of :initarg :failure-descriptions)
+   (assertion-count :initform 0 :accessor assertion-count-of :initarg :assertion-count)
+   (progress-char-count :initform 0 :accessor progress-char-count-of :initarg :progress-char-count)
+   (print-test-run-progress-p :initform *print-test-run-progress* :accessor print-test-run-progress-p :initarg :print-test-run-progress-p :type boolean)
+   (debug-on-unexpected-error-p :initform *debug-on-unexpected-error* :accessor debug-on-unexpected-error-p :initarg :debug-on-unexpected-error-p :type boolean)
+   (debug-on-assertion-failure-p :initform *debug-on-assertion-failure* :accessor debug-on-assertion-failure-p :initarg :debug-on-assertion-failure-p :type boolean)
+   (toplevel-context :initform nil :accessor toplevel-context-of :initarg :toplevel-context)
+   (current-test :initform nil :accessor current-test-of :initarg :current-test)
+   (run-tests :initform (make-hash-table) :accessor run-tests-of :initarg :run-tests :documentation "test -> context mapping")
+   (run-fixtures :initform (make-hash-table) :accessor run-fixtures-of :initarg :run-fixtures)
+   (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
   (format t "test-run: ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
@@ -277,11 +327,19 @@
         (setf (gethash test (test-lambdas-of context)) test-lambda))
       test-lambda)))
 
+#+nil
 (define-dynamic-context* context
   ((test)
    (internal-realtime-spent-with-test nil)
    (test-arguments)
    (number-of-added-failure-descriptions 0))
+  :chain-parents #t)
+
+(define-dynamic-context context
+  ((test :accessor test-of :initarg :test)
+   (internal-realtime-spent-with-test :initform nil :accessor internal-realtime-spent-with-test-of :initarg :internal-realtime-spent-with-test)
+   (test-arguments :accessor test-arguments-of :initarg :test-arguments)
+   (number-of-added-failure-descriptions :initform 0 :accessor number-of-added-failure-descriptions-of :initarg :number-of-added-failure-descriptions))
   :chain-parents #t)
 
 (defprint-object (self context :identity #f :type #f)
