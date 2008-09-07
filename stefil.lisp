@@ -39,7 +39,7 @@
 (define-condition test-style-warning (style-warning test-related-condition simple-warning)
   ())
 
-(define-condition assertion-failed (test-related-condition error)
+(define-condition assertion-failed (test-related-condition serious-condition)
   ((failure-description :accessor failure-description-of :initarg :failure-description))
   (:report (lambda (c stream)
              (format stream "Test assertion failed:~%~%")
