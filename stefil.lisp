@@ -575,7 +575,7 @@
                            (error 'error-in-teardown :condition c :fixture ',name))
                          (return-from teardown-block))))
                    (,name :teardown))))))
-      (declare (dynamic-extent ,whole-fixture-body))
+      (declare (dynamic-extent #',whole-fixture-body))
       (if (has-global-context)
           (,whole-fixture-body)
           (with-new-global-context ()
