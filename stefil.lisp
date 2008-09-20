@@ -266,18 +266,30 @@
    (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defprint-object (self global-context :identity #f :type #f)
-  (format t "test-run: ~A tests, ~A assertions, ~A failures (~A expected) in ~A sec"
-          (hash-table-count (run-tests-of self)) (assertion-count-of self)
-          (length (failure-descriptions-of self))
-          (count-if 'expected-p (failure-descriptions-of self))
-          (bind ((toplevel-context (toplevel-context-of self))
-                 (real-time-spent-in-seconds
-                  (when toplevel-context
-                    (real-time-spent-in-seconds toplevel-context))))
-            (if (and toplevel-context
-                     real-time-spent-in-seconds)
-                real-time-spent-in-seconds
-                "?"))))
+  (let* ((failure-descriptions (failure-descriptions-of self))
+         (total-failure-count (length failure-descriptions))
+         (failed-assertion-count (count-if (rcurry #'typep 'failed-assertion) failure-descriptions))
+         (unexpected-error-count (count-if (rcurry #'typep 'unexpected-error) failure-descriptions))
+         (expected-count (count-if 'expected-p (failure-descriptions-of self))))
+    (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec (~A failed assertions, ~A errors, ~A expected)"
+            (hash-table-count (run-tests-of self))
+            (assertion-count-of self)
+            total-failure-count
+            (bind ((toplevel-context (toplevel-context-of self))
+                   (real-time-spent-in-seconds
+                    (when toplevel-context
+                      (real-time-spent-in-seconds toplevel-context))))
+              (if (and toplevel-context
+                       real-time-spent-in-seconds)
+                  real-time-spent-in-seconds
+                  "?"))
+            failed-assertion-count
+            unexpected-error-count
+            (cond ((= expected-count total-failure-count)
+                   "all")
+                  ((zerop expected-count)
+                   "none")
+                  (t expected-count)))))
 
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
