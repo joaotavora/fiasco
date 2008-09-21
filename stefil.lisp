@@ -271,7 +271,7 @@
          (failed-assertion-count (count-if (rcurry #'typep 'failed-assertion) failure-descriptions))
          (unexpected-error-count (count-if (rcurry #'typep 'unexpected-error) failure-descriptions))
          (expected-count (count-if 'expected-p (failure-descriptions-of self))))
-    (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec (~A failed assertions, ~A errors, ~A expected)"
+    (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec~[~:; (~A failed assertions, ~A errors, ~A expected)~]"
             (hash-table-count (run-tests-of self))
             (assertion-count-of self)
             total-failure-count
@@ -283,6 +283,7 @@
                        real-time-spent-in-seconds)
                   real-time-spent-in-seconds
                   "?"))
+            total-failure-count ; index in the ~[] conditional
             failed-assertion-count
             unexpected-error-count
             (cond ((= expected-count total-failure-count)
