@@ -35,12 +35,9 @@
 
 #.(file-header)
 
-(in-root-suite) ; we need to reset *suite*, otherwise we may end up under another project's last suite. unfortunately noone rebinds *suite* like *package* while loading.
-
 (defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :documentation "Suite active when the Stefil self-tests are being run")))
 
-(in-suite
- (defsuite (test :documentation "Stefil self tests")))
+(defsuite* (test :in root-suite :documentation "Stefil self tests"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
@@ -124,8 +121,7 @@
       (rem-test test-name :otherwise nil)))
   (values))
 
-(in-suite
- (defsuite (fixtures :in test)))
+(defsuite* (fixtures :in test))
 
 (defparameter *fixture-test-global* '())
 
@@ -157,8 +153,7 @@
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))))
 
-(in-suite
- (defsuite (lambda-lists :in test)))
+(defsuite* (lambda-lists :in test))
 
 (deftest lambda-list-processing ()
   (is (equal (lambda-list-to-value-list-expression '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
