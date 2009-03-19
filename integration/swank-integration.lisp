@@ -14,6 +14,9 @@
     (push (cons "STEFIL" *readtable*) *readtable-alist*)
     (push (cons "STEFIL-TEST" *readtable*) *readtable-alist*)))
 
+#+slime-dwim-branch
+(progn
+
 (defun stefil-inspector-lookup-hook (form)
   (when (symbolp form)
     (let ((test (find-test form :otherwise nil)))
@@ -157,5 +160,4 @@
              (collect `(:newline)))
      ,@(present-all-slots-for-emacs test inspector))))
 
-
-
+) ; slime head changed too much, turn off the customizations on it
