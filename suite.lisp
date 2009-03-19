@@ -29,7 +29,7 @@
 
 (defmacro defsuite* (name-or-name-with-args &optional args &body body)
   "Equivalent to (in-suite (defsuite ...)) which is the preferred way to define suites."
-  `(in-suite (defsuite ,name-or-name-with-args ,args ,@body)))
+  `(setf *suite* (%in-suite (defsuite ,name-or-name-with-args ,args ,@body))))
 
 (setf *root-suite* (make-suite 'root-suite :documentation "Root Suite"))
 (setf *suite* *root-suite*)
@@ -38,11 +38,14 @@
   "Used to reset the current suite to protect from other project's last in-suite statement. Unfortunately there's noone for us to rebind *suite* when a file is loaded, so we can't behave exactly like *package* and in-package."
   `(setf *suite* *root-suite*))
 
+(defun %in-suite (name)
+  (assert (typep name '(or symbol test)) () "Suite names should be symbols or literal TEST instances instead of ~S" name)
+  (etypecase name
+    (symbol (find-test name :otherwise (lambda ()
+                                         (cerror "Create a new suite named ~A." "Unkown suite ~A." name)
+                                         (eval `(defsuite ',name)))))
+    (test name)))
+
 (defmacro in-suite (name)
-  `(setf *suite* ,(if (symbolp name)
-                      `(find-test ',name :otherwise (lambda ()
-                                                      (cerror "Create a new suite named ~A."
-                                                              "Unkown suite ~A." ',name)
-                                                      (defsuite ,name)))
-                      name)))
+  `(setf *suite* (%in-suite ',name)))
 
