@@ -328,7 +328,7 @@
              (return-from restart-wrapper))
             :report-function (lambda (stream)
                                (format stream "~@<Abort the entire test session~@:>"))))
-       (bind ((swank::*sldb-quit-restart* 'abort-testing))
+       (bind ((swank::*sldb-quit-restart* (find-restart 'abort-testing)))
          ,@body))))
 
 (defun test-was-run-p (test)
