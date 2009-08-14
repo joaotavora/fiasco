@@ -4,9 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
-
-#.(file-header)
+(in-package :hu.dwim.stefil)
 
 (defmacro defsuite (name-or-name-with-args &optional args &body body)
   (bind (((name &rest deftest-args) (ensure-list name-or-name-with-args)))
@@ -48,4 +46,3 @@
 
 (defmacro in-suite (name)
   `(setf *suite* (%in-suite ',name)))
-

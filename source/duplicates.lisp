@@ -4,27 +4,9 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
+(in-package :hu.dwim.stefil)
 
 ;;; THE CONTENT OF THIS FILE IS COPIED OVER FROM SOME OTHER LIBRARIES TO DECREASE DEPENDENCIES
-
-(defmacro enable-sharp-boolean-syntax ()
-  "Copies *readtable* and enables #t and #f readers for t and nil in the copy."
-  '(eval-when (:compile-toplevel :execute)
-    (setf *readtable* (copy-readtable *readtable*))
-    (%enable-sharp-boolean-syntax)))
-
-(defun %enable-sharp-boolean-syntax ()
-  (set-dispatch-macro-character
-   #\# #\t
-   (lambda (s c n)
-     (declare (ignore s c n))
-     t))
-  (set-dispatch-macro-character
-   #\# #\f
-   (lambda (s c n)
-     (declare (ignore s c n))
-     nil)))
 
 (defmacro if-bind (var test &body then/else)
   (assert (first then/else)

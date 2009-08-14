@@ -4,36 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
-
-(defpackage :stefil-test
-  (:use
-   :common-lisp
-   :metabang-bind
-   :alexandria
-   :iterate
-   :stefil
-   )
-  (:shadow #:deftest)
-  (:export #:test))
-
-(eval-always
-  (import
-   '(enable-sharp-boolean-syntax *suite* count-tests
-     rebind parent-of name-of *tests* eval-always
-     extract-assert-expression-and-message record-failure record-failure*
-     assertion-count-of run-tests-of failure-descriptions-of
-     *global-context* *context* debug-on-unexpected-error-p
-     debug-on-assertion-failure-p print-test-run-progress-p
-     file-header rem-test lambda-list-to-variable-name-list
-     lambda-list-to-value-list-expression lambda-list-to-funcall-expression
-     illegal-lambda-list
-     )
-   (find-package :stefil-test)))
-
-(in-package :stefil-test)
-
-#.(file-header)
+(in-package :hu.dwim.stefil.test)
 
 (defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :documentation "Suite active when the Stefil self-tests are being run")))
 
@@ -41,7 +12,7 @@
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
-  `(stefil:deftest ,name ,args
+  `(hu.dwim.stefil:deftest ,name ,args
     (let ((*suite* *stefil-temp-suite*))
       ,@body)))
 
@@ -191,4 +162,3 @@
                    (&aux a &body body)))
     (signals illegal-lambda-list
       (lambda-list-to-variable-name-list entry :macro t))))
-

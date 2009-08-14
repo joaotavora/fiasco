@@ -4,9 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
-
-#.(file-header)
+(in-package :hu.dwim.stefil)
 
 ;; Warning: setf-ing these variables in not a smart idea because other systems may rely on their default value.
 ;; It's smarter to rebind them in an :around method from your .asd or shadow stefil:deftest with your own that sets
@@ -30,7 +28,7 @@
           (*debug-on-assertion-failure* #f))
     ,@body))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;
 ;;; conditions
 
 (define-condition test-related-condition ()
@@ -52,11 +50,11 @@
              (format stream "Error while running teardown of fixture ~A:~%~%~A" (fixture-of c) (condition-of c)))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;
 ;;; some classes
 
 #+nil
-(defclass-star:defclass* testable ()
+(hu.dwim.defclass-star:defclass* testable ()
   ((name :type symbol)
    (parent nil :initarg nil :type (or null testable))
    (children (make-hash-table) :documentation "A mapping from testable names to testables")
@@ -107,7 +105,7 @@
               (iter (for (nil child) :in-hashtable (children-of self))
                     (summing (count-tests child))))))
 
-#+nil(defclass-star:defclass* test (testable)
+#+nil(hu.dwim.defclass-star:defclass* test (testable)
   ((package nil)
    (lambda-list nil)
    (compile-before-run #t :type boolean)
@@ -130,7 +128,7 @@
   (apply #'make-instance 'test :name name args))
 
 #+nil
-(defclass-star:defclass* failure-description ()
+(hu.dwim.defclass-star:defclass* failure-description ()
   ((test-context-backtrace)
    (progress-char #\X :allocation :class)
    (expected *failures-and-errors-are-expected* :type boolean)))
@@ -141,7 +139,7 @@
    (expected :initform *failures-and-errors-are-expected* :accessor expected-p :initarg :expected :type boolean)))
 
 #+nil
-(defclass-star:defclass* failed-assertion (failure-description)
+(hu.dwim.defclass-star:defclass* failed-assertion (failure-description)
   ((form)
    (format-control)
    (format-arguments)))
@@ -162,7 +160,7 @@
                   (test-context-backtrace-of self))))
 
 #+nil
-(defclass-star:defclass* missing-condition (failure-description)
+(hu.dwim.defclass-star:defclass* missing-condition (failure-description)
   ((form)
    (condition)))
 
@@ -175,7 +173,7 @@
     (format stream "~S failed to signal condition ~S" (form-of self) (condition-of self))))
 
 #+nil
-(defclass-star:defclass* unexpected-error (failure-description)
+(hu.dwim.defclass-star:defclass* unexpected-error (failure-description)
   ((condition)
    (progress-char #\E :allocation :class)))
 
@@ -190,7 +188,7 @@
           (condition-of self)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;
 ;;; test repository
 
 (defun find-test (name &key (otherwise :error))
@@ -235,7 +233,7 @@
     test))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;
 ;;; the real thing
 
 #+nil
@@ -792,7 +790,7 @@
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;
 ;;; some utils
 
 (define-condition illegal-lambda-list (error)
@@ -801,158 +799,159 @@
 (defun illegal-lambda-list (lambda-list)
   (error 'illegal-lambda-list :lambda-list lambda-list))
 
-(defun parse-lambda-list (lambda-list visitor &key macro)
-  ;; TODO finish macro lambda list parsing
-  (declare (optimize (speed 3))
-           (type list lambda-list)
-           (type (or symbol function) visitor))
-  (let ((args lambda-list))
-    (labels
-        ((fail ()
-           (illegal-lambda-list lambda-list))
-         (ensure-list (list)
-           (if (listp list)
-               list
-               (list list)))
-         (process-&whole ()
-           (assert (eq (first args) '&whole))
-           (pop args)
-           (unless macro
-             (fail))
-           (let ((whole (pop args)))
-             (unless whole
+(locally #+sbcl(declare (sb-ext:muffle-conditions style-warning sb-ext:compiler-note))
+  (defun parse-lambda-list (lambda-list visitor &key macro)
+    ;; TODO finish macro lambda list parsing
+    (declare (optimize (speed 3))
+             (type list lambda-list)
+             (type (or symbol function) visitor))
+    (let ((args lambda-list))
+      (labels
+          ((fail ()
+             (illegal-lambda-list lambda-list))
+           (ensure-list (list)
+             (if (listp list)
+                 list
+                 (list list)))
+           (process-&whole ()
+             (assert (eq (first args) '&whole))
+             (pop args)
+             (unless macro
                (fail))
-             (funcall visitor '&whole whole whole))
-           (case (first args)
-             (&key          (entering-&key))
-             (&rest         (process-&rest))
-             (&optional     (entering-&optional))
-             (&body         (process-&body))
-             (&environment  (process-&environment))
-             ((&whole &aux &allow-other-keys) (fail))
-             (t             (process-required))))
-         (process-&body ()
-           (assert (eq (first args) '&body))
-           (pop args)
-           (unless macro
-             (fail))
-           (let ((body (pop args)))
-             (unless (null args)
+             (let ((whole (pop args)))
+               (unless whole
+                 (fail))
+               (funcall visitor '&whole whole whole))
+             (case (first args)
+               (&key          (entering-&key))
+               (&rest         (process-&rest))
+               (&optional     (entering-&optional))
+               (&body         (process-&body))
+               (&environment  (process-&environment))
+               ((&whole &aux &allow-other-keys) (fail))
+               (t             (process-required))))
+           (process-&body ()
+             (assert (eq (first args) '&body))
+             (pop args)
+             (unless macro
                (fail))
-             (unless body
+             (let ((body (pop args)))
+               (unless (null args)
+                 (fail))
+               (unless body
+                 (fail))
+               (funcall visitor '&body body body)))
+           (process-&environment ()
+             (assert (eq (first args) '&environment))
+             (pop args)
+             (unless macro
                (fail))
-             (funcall visitor '&body body body)))
-         (process-&environment ()
-           (assert (eq (first args) '&environment))
-           (pop args)
-           (unless macro
-             (fail))
-           (let ((env (pop args)))
-             (unless env
-               (fail))
-             (funcall visitor '&environment env env))
-           (case (first args)
-             (&key          (entering-&key))
-             (&rest         (process-&rest))
-             (&optional     (entering-&optional))
-             (&body         (process-&body))
-             (&aux          (process-&aux))
-             ((&whole &environment &allow-other-keys) (fail))
-             (t             (process-required))))
-         (process-required ()
-           (unless args
-             (done))
-           (case (first args)
-             (&key          (entering-&key))
-             (&rest         (process-&rest))
-             (&optional     (entering-&optional))
-             (&body         (process-&body))
-             (&environment  (process-&environment))
-             ((&whole &allow-other-keys) (fail))
-             (&aux          (entering-&aux))
-             (t
-              (let ((arg (pop args)))
-                (funcall visitor nil arg arg))
-              (process-required))))
-         (process-&rest ()
-           (assert (eq (first args) '&rest))
-           (pop args)
-           (let ((rest (pop args)))
-             (unless rest
-               (fail))
-             (funcall visitor '&rest rest rest))
-           (unless args
-             (done))
-           (case (first args)
-             (&key               (entering-&key))
-             (&environment       (process-&environment))
-             ((&whole &optional &rest &body &allow-other-keys) (fail))
-             (&aux               (entering-&aux))
-             (t                  (fail))))
-         (entering-&optional ()
-           (assert (eq (first args) '&optional))
-           (pop args)
-           (process-&optional))
-         (process-&optional ()
-           (unless args
-             (done))
-           (case (first args)
-             (&key               (entering-&key))
-             (&rest              (process-&rest))
-             (&body              (process-&body))
-             ((&whole &optional &environment &allow-other-keys) (fail))
-             (&aux               (entering-&aux))
-             (t
-              (let* ((arg (ensure-list (pop args)))
-                     (name (first arg))
-                     (default (second arg)))
-                (funcall visitor '&optional name arg nil default))
-              (process-&optional))))
-         (entering-&key ()
-           (assert (eq (first args) '&key))
-           (pop args)
-           (process-&key))
-         (process-&key ()
-           (unless args
-             (done))
-           (case (first args)
-             (&allow-other-keys       (funcall visitor '&allow-other-keys nil nil))
-             ((&key &optional &whole &environment &body) (fail))
-             (&aux                    (entering-&aux))
-             (t
-              (let* ((arg (ensure-list (pop args)))
-                     (name-part (first arg))
-                     (default (second arg))
-                     (external-name (if (consp name-part)
-                                        (progn
-                                          (unless (= (length name-part) 2)
-                                            (illegal-lambda-list lambda-list))
-                                          (first name-part))
-                                        (intern (symbol-name name-part) #.(find-package "KEYWORD"))))
-                     (local-name (if (consp name-part)
-                                     (second name-part)
-                                     name-part)))
-                (funcall visitor '&key local-name arg external-name default))
-              (process-&key))))
-         (entering-&aux ()
-           (assert (eq (first args) '&aux))
-           (pop args)
-           (process-&aux))
-         (process-&aux ()
-           (unless args
-             (done))
-           (case (first args)
-             ((&whole &optional &key &environment &allow-other-keys &aux &body) (fail))
-             (t
-              (let ((arg (ensure-list (pop args))))
-                (funcall visitor '&aux (first arg) arg))
-              (process-&aux))))
-         (done ()
-           (return-from parse-lambda-list (values))))
-      (when args
-        (case (first args)
-          (&whole (process-&whole))
-          (t      (process-required)))))))
+             (let ((env (pop args)))
+               (unless env
+                 (fail))
+               (funcall visitor '&environment env env))
+             (case (first args)
+               (&key          (entering-&key))
+               (&rest         (process-&rest))
+               (&optional     (entering-&optional))
+               (&body         (process-&body))
+               (&aux          (process-&aux))
+               ((&whole &environment &allow-other-keys) (fail))
+               (t             (process-required))))
+           (process-required ()
+             (unless args
+               (done))
+             (case (first args)
+               (&key          (entering-&key))
+               (&rest         (process-&rest))
+               (&optional     (entering-&optional))
+               (&body         (process-&body))
+               (&environment  (process-&environment))
+               ((&whole &allow-other-keys) (fail))
+               (&aux          (entering-&aux))
+               (t
+                (let ((arg (pop args)))
+                  (funcall visitor nil arg arg))
+                (process-required))))
+           (process-&rest ()
+             (assert (eq (first args) '&rest))
+             (pop args)
+             (let ((rest (pop args)))
+               (unless rest
+                 (fail))
+               (funcall visitor '&rest rest rest))
+             (unless args
+               (done))
+             (case (first args)
+               (&key               (entering-&key))
+               (&environment       (process-&environment))
+               ((&whole &optional &rest &body &allow-other-keys) (fail))
+               (&aux               (entering-&aux))
+               (t                  (fail))))
+           (entering-&optional ()
+             (assert (eq (first args) '&optional))
+             (pop args)
+             (process-&optional))
+           (process-&optional ()
+             (unless args
+               (done))
+             (case (first args)
+               (&key               (entering-&key))
+               (&rest              (process-&rest))
+               (&body              (process-&body))
+               ((&whole &optional &environment &allow-other-keys) (fail))
+               (&aux               (entering-&aux))
+               (t
+                (let* ((arg (ensure-list (pop args)))
+                       (name (first arg))
+                       (default (second arg)))
+                  (funcall visitor '&optional name arg nil default))
+                (process-&optional))))
+           (entering-&key ()
+             (assert (eq (first args) '&key))
+             (pop args)
+             (process-&key))
+           (process-&key ()
+             (unless args
+               (done))
+             (case (first args)
+               (&allow-other-keys       (funcall visitor '&allow-other-keys nil nil))
+               ((&key &optional &whole &environment &body) (fail))
+               (&aux                    (entering-&aux))
+               (t
+                (let* ((arg (ensure-list (pop args)))
+                       (name-part (first arg))
+                       (default (second arg))
+                       (external-name (if (consp name-part)
+                                          (progn
+                                            (unless (= (length name-part) 2)
+                                              (illegal-lambda-list lambda-list))
+                                            (first name-part))
+                                          (intern (symbol-name name-part) #.(find-package "KEYWORD"))))
+                       (local-name (if (consp name-part)
+                                       (second name-part)
+                                       name-part)))
+                  (funcall visitor '&key local-name arg external-name default))
+                (process-&key))))
+           (entering-&aux ()
+             (assert (eq (first args) '&aux))
+             (pop args)
+             (process-&aux))
+           (process-&aux ()
+             (unless args
+               (done))
+             (case (first args)
+               ((&whole &optional &key &environment &allow-other-keys &aux &body) (fail))
+               (t
+                (let ((arg (ensure-list (pop args))))
+                  (funcall visitor '&aux (first arg) arg))
+                (process-&aux))))
+           (done ()
+             (return-from parse-lambda-list (values))))
+        (when args
+          (case (first args)
+            (&whole (process-&whole))
+            (t      (process-required))))))))
 
 (defun lambda-list-to-funcall-list (args)
   (let ((result (list))
@@ -1050,6 +1049,6 @@ This function is ideal for ASDF:TEST-OP's."
 For more details run it from the REPL and use the customized Slime inspector
 to inspect the results (ASDF eats up the return values). Some inspector
 features may only be available when using the Slime branch at
-darcs get --lazy http://common-lisp.net/project/cl-dwim/darcs/slime
+darcs get --lazy http://dwim.hu/darcs/hu.dwim.slime
 but the official Slime should also work fine.~%"
               test-function it))))

@@ -4,9 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
-
-#.(file-header)
+(in-package :hu.dwim.stefil)
 
 (unless (assoc "STEFIL" *readtable-alist* :test #'string=)
   (bind ((*readtable* (copy-readtable)))
