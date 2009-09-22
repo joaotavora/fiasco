@@ -17,28 +17,17 @@
     `(let ((,var ,test))
        (if ,var ,then ,else))))
 
-(defmacro aif (test then &optional else)
-  `(if-bind it ,test ,then ,else))
-
 (defmacro when-bind (var test &body body)
   `(if-bind ,var ,test (progn ,@body)))
-
-(defmacro awhen (test &body body)
-  `(when-bind it ,test ,@body))
 
 (defmacro prog1-bind (var ret &body body)
   `(let ((,var ,ret))
     ,@body
     ,var))
 
-(defmacro aprog1 (ret &body body)
-  `(prog1-bind it ,ret ,@body))
-
-
 (defmacro eval-always (&body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     ,@body))
-
 
 (defun concatenate-symbol (&rest args)
   "A DWIM symbol concatenate: Args will be converted to string and be concatenated
@@ -63,7 +52,6 @@ be interned into the current package at the time of calling."
     (if package
         (intern symbol-name package)
         (intern symbol-name))))
-
 
 ;; from arnesi
 (defmacro defprint-object ((self class-name &key (identity t) (type t) with-package)
