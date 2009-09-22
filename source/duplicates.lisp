@@ -8,51 +8,6 @@
 
 ;;; THE CONTENT OF THIS FILE IS COPIED OVER FROM SOME OTHER LIBRARIES TO DECREASE DEPENDENCIES
 
-(defmacro if-bind (var test &body then/else)
-  (assert (first then/else)
-          (then/else)
-          "IF-BIND missing THEN clause.")
-  (destructuring-bind (then &optional else)
-      then/else
-    `(let ((,var ,test))
-       (if ,var ,then ,else))))
-
-(defmacro when-bind (var test &body body)
-  `(if-bind ,var ,test (progn ,@body)))
-
-(defmacro prog1-bind (var ret &body body)
-  `(let ((,var ,ret))
-    ,@body
-    ,var))
-
-(defmacro eval-always (&body body)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-    ,@body))
-
-(defun concatenate-symbol (&rest args)
-  "A DWIM symbol concatenate: Args will be converted to string and be concatenated
-to form the resulting symbol with one exception: when a package is encountered then
-it is stored as the target package to use at intern. If there was no package
-among the args then the symbol-package of the first symbol encountered will be
-used. If there are neither packages nor symbols among the args then the result will
-be interned into the current package at the time of calling."
-  (let* ((package nil)
-         (symbol-name (string-upcase
-                       (with-output-to-string (str)
-                         (dolist (arg args)
-                           (typecase arg
-                             (string (write-string arg str))
-                             (package (setf package arg))
-                             (symbol (unless package
-                                       (setf package (symbol-package arg)))
-                                     (write-string (symbol-name arg) str))
-                             (integer (write-string (princ-to-string arg) str))
-                             (character (write-char arg) str)
-                             (t (error "Cannot convert argument ~S to symbol" arg))))))))
-    (if package
-        (intern symbol-name package)
-        (intern symbol-name))))
-
 ;; from arnesi
 (defmacro defprint-object ((self class-name &key (identity t) (type t) with-package)
                            &body body)
@@ -69,12 +24,6 @@ be interned into the current package at the time of calling."
         (let ((*standard-output* ,stream)
               ,@(when with-package `((*package* ,(find-package with-package)))))
           ,@body)))))
-
-(defmacro rebind (bindings &body body)
-  `(let ,(loop
-            for symbol-name in bindings
-            collect (list symbol-name symbol-name))
-     ,@body))
 
 (defmacro define-dynamic-context
     (name direct-slots &key direct-superclasses

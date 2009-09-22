@@ -17,7 +17,7 @@
 
 (import
  '(*suite* count-tests
-   rebind parent-of name-of *tests* eval-always
+   parent-of name-of *tests*
    extract-assert-expression-and-message record-failure record-failure*
    assertion-count-of run-tests-of failure-descriptions-of
    *global-context* *context* debug-on-unexpected-error-p
