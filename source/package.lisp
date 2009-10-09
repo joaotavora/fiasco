@@ -7,8 +7,6 @@
 (in-package :common-lisp-user)
 
 (defpackage :hu.dwim.stefil
-  (:shadow #:log)
-
   (:use :hu.dwim.common-lisp
         :hu.dwim.syntax-sugar
         :swank)
