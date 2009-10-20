@@ -10,7 +10,8 @@
 
 (def book user-guide (:title "User guide")
   (chapter (:title "Introduction")
-    "TODO")
+    (paragraph ()
+      "TODO"))
   (chapter (:title "Supported Common Lisp Implementations")
     (paragraph ()
       "SBCL"))
