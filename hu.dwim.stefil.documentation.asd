@@ -13,9 +13,10 @@
   :author ("Attila Lendvai <attila.lendvai@gmail.com>"
            "Levente Mészáros <levente.meszaros@gmail.com>"
            "Tamás Borbély <tomi.borbely@gmail.com>")
-  :description "Documentation for hu.dwim.stefil"
   :licence "BSD / Public domain"
+  :description "Documentation for hu.dwim.stefil"
   :depends-on (:hu.dwim.stefil.test
                :hu.dwim.wui)
   :components ((:module "documentation"
-                :components ((:file "package")))))
+                :components ((:file "package")
+                             (:file "stefil" :depends-on ("package"))))))
