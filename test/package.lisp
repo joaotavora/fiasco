@@ -7,7 +7,7 @@
 (in-package :common-lisp-user)
 
 (defpackage :hu.dwim.stefil.test
-  (:use :hu.dwim.common-lisp
+  (:use :hu.dwim.common
         :hu.dwim.stefil
         :hu.dwim.syntax-sugar)
 

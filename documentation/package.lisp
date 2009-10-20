@@ -8,7 +8,7 @@
 
 (defpackage :hu.dwim.stefil.documentation
   (:use :hu.dwim.asdf
-        :hu.dwim.common-lisp
+        :hu.dwim.common
         :hu.dwim.def
         :hu.dwim.defclass-star
         :hu.dwim.stefil
