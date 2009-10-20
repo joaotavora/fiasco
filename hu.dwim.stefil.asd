@@ -15,7 +15,7 @@
            "Tamás Borbély <tomi.borbely@gmail.com>")
   :licence "BSD / Public domain"
   :description "Stefil - Simple Test Framework In Lisp"
-  :depends-on (:hu.dwim.common-lisp
+  :depends-on (:hu.dwim.common
                :hu.dwim.syntax-sugar+swank)
   :components ((:module "source"
                 :components ((:file "package")
