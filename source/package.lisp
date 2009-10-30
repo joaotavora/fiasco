@@ -15,6 +15,7 @@
            #:deftest
            #:is
            #:signals
+           #:not-signals
            #:finishes
            #:with-expected-failures
            #:in-suite

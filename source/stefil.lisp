@@ -160,17 +160,27 @@
                   (test-context-backtrace-of self))))
 
 #+nil
-(hu.dwim.defclass-star:defclass* missing-condition (failure-description)
+(hu.dwim.defclass-star:defclass* failure-description/condition (failure-description)
   ((form)
    (condition)))
 
-(defclass missing-condition (failure-description)
+(defclass failure-description/condition (failure-description)
   ((form :accessor form-of :initarg :form)
    (condition :accessor condition-of :initarg :condition)))
+
+(defclass missing-condition (failure-description/condition)
+  ())
 
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
     (format stream "~S failed to signal condition ~S" (form-of self) (condition-of self))))
+
+(defclass extra-condition (failure-description/condition)
+  ())
+
+(defmethod describe-object ((self extra-condition) stream)
+  (let ((*print-circle* nil))
+    (format stream "~S signaled an unwanted condition ~S" (form-of self) (condition-of self))))
 
 #+nil
 (hu.dwim.defclass-star:defclass* unexpected-error (failure-description)
@@ -752,7 +762,7 @@
                                 :format-control ,message :format-arguments (list ,@message-args)))
             (values-list ,result)))))))
 
-(defmacro signals (what &body body)
+(defmacro signals (&whole whole what &body body)
   (bind ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is there a superfulous quote at ~S?)" condition-type))
@@ -765,11 +775,29 @@
                           (return-from test-block c))))
           ,@body)
         (record-failure 'missing-condition
-                        :form (list* 'progn ',body)
+                        :form ',whole
                         :condition ',condition-type)
         (values)))))
 
+(defmacro not-signals (&whole whole what &body body)
+  (bind ((condition-type what))
+    (unless (symbolp condition-type)
+      (error "SIGNALS expects a symbol as condition-type! (Is there a superfulous quote at ~S?)" condition-type))
+    `(progn
+       (register-assertion)
+       (block test-block
+         (multiple-value-prog1
+             (handler-bind ((,condition-type
+                             (lambda (c)
+                               (record-failure 'extra-condition
+                                               :form ',whole
+                                               :condition c)
+                               (return-from test-block c))))
+               ,@body)
+           (register-assertion-was-successful))))))
+
 (defmacro finishes (&body body)
+  ;; could be `(not-signals t ,@body), but that would register a confusing failed-assertion
   `(progn
     (register-assertion)
     (multiple-value-prog1
