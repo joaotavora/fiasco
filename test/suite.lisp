@@ -58,11 +58,18 @@
 (deftest (assertions :compile-before-run #t :in test) (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
-               (is (= 42 42))
-               (is (= 1 42))
-               (is (not (= 42 42)))
-               (is (true-macro))
-               (is (not (false-macro)))))
+                (is (= 42 42))
+                (is (= 1 42))                                ; fails
+                (is (not (= 42 42)))                         ; fails
+                (is (true-macro))
+                (is (not (false-macro)))
+                (finishes 42)
+                (ignore-errors                               ; fails
+                  (finishes (error "foo")))
+                (signals serious-condition (error "foo"))
+                (signals serious-condition 'not)             ; fails
+                (not-signals warning (warn "foo"))           ; fails
+                (not-signals warning 'not)))
     (progn
       ;; this uglyness here is due to testing the test framework which is inherently
       ;; not nestable, so we need to backup and restore some state
@@ -82,9 +89,9 @@
           (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
           (setf (print-test-run-progress-p context) old-print-test-run-progress-p))
         (is (= (assertion-count-of context)
-               (+ old-assertion-count 6))) ; also includes the current assertion
+               (+ old-assertion-count 12))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
-               (+ old-failure-description-count 2)))
+               (+ old-failure-description-count 5)))
         (dotimes (i (- (length (failure-descriptions-of context))
                        old-failure-description-count))
           ;; drop failures registered by the test-test
