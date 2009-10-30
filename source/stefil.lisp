@@ -276,8 +276,8 @@
 (defprint-object (self global-context :identity #f :type #f)
   (let* ((failure-descriptions (failure-descriptions-of self))
          (total-failure-count (length failure-descriptions))
-         (failed-assertion-count (count-if (rcurry #'typep 'failed-assertion) failure-descriptions))
-         (unexpected-error-count (count-if (rcurry #'typep 'unexpected-error) failure-descriptions))
+         (failed-assertion-count (count-if (of-type '(or failed-assertion missing-condition extra-condition)) failure-descriptions))
+         (unexpected-error-count (count-if (of-type 'unexpected-error) failure-descriptions))
          (expected-count (count-if 'expected-p (failure-descriptions-of self))))
     (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec~[~:; (~A failed assertions, ~A errors, ~A expected)~]"
             (hash-table-count (run-tests-of self))
