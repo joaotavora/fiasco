@@ -799,11 +799,11 @@
 (defmacro finishes (&body body)
   ;; could be `(not-signals t ,@body), but that would register a confusing failed-assertion
   `(progn
-    (register-assertion)
-    (multiple-value-prog1
-        (progn
-          ,@body)
-      (register-assertion-was-successful))))
+     (register-assertion)
+     (multiple-value-prog1
+         (progn
+           ,@body)
+       (register-assertion-was-successful))))
 
 (defmacro runs-without-failure? (&body body)
   (with-unique-names (old-failure-count)
