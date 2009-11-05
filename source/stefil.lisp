@@ -147,7 +147,7 @@
 (defclass failed-assertion (failure-description)
   ((form :accessor form-of :initarg :form)
    (format-control :accessor format-control-of :initarg :format-control)
-   (format-arguments :accessor format-arguments-of :initarg :format-arguments)))
+   (format-arguments :initform nil :accessor format-arguments-of :initarg :format-arguments)))
 
 (defmethod describe-object ((self failed-assertion) stream)
   (let ((*print-circle* nil))
@@ -796,14 +796,23 @@
                ,@body)
            (register-assertion-was-successful))))))
 
-(defmacro finishes (&body body)
+(defmacro finishes (&whole whole_ &body body)
   ;; could be `(not-signals t ,@body), but that would register a confusing failed-assertion
-  `(progn
-     (register-assertion)
-     (multiple-value-prog1
-         (progn
-           ,@body)
-       (register-assertion-was-successful))))
+  (with-unique-names (success? whole)
+    `(bind ((,success? #f)
+            (,whole ',whole_))
+       (register-assertion)
+       (unwind-protect
+            (multiple-value-prog1
+                (progn
+                  ,@body)
+              (setf ,success? #t)
+              (register-assertion-was-successful))
+         (unless ,success?
+           (record-failure 'failed-assertion
+                           :form ,whole
+                           :format-control "FINISHES block did not finish: ~S"
+                           :format-arguments ,whole))))))
 
 (defmacro runs-without-failure? (&body body)
   (with-unique-names (old-failure-count)
