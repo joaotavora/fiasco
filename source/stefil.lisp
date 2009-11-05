@@ -37,7 +37,9 @@
 (define-condition test-style-warning (style-warning test-related-condition simple-warning)
   ())
 
-(define-condition assertion-failed (test-related-condition serious-condition)
+;; assertion-failed is not a serious-condition by design, so that handler-bind's can have bindings for serious-condition
+;; without being concerned about failed assertions signalled using #'error to bring up the debugger.
+(define-condition assertion-failed (test-related-condition)
   ((failure-description :accessor failure-description-of :initarg :failure-description))
   (:report (lambda (c stream)
              (format stream "Test assertion failed:~%~%")
@@ -423,18 +425,15 @@
              (setf (number-of-added-failure-descriptions-of *context*) 0))
            (run-test-body ()
              (handler-bind
-                 ((assertion-failed (lambda (c)
-                                      (declare (ignore c))
-                                      (unless (debug-on-assertion-failure-p *global-context*)
-                                        (continue))))
-                  (error (lambda (c)
-                           (unless (typep c 'assertion-failed)
-                             (record-failure* 'unexpected-error
-                                              :description-initargs (list :condition c)
-                                              :signal-assertion-failed #f)
-                             (when (debug-on-unexpected-error-p *global-context*)
-                               (invoke-debugger c))
-                             (return-from run-test-body)))))
+                 ((assertion-failed
+                   (lambda (c)
+                     (declare (ignore c))
+                     (unless (debug-on-assertion-failure-p *global-context*)
+                       (continue))))
+                  (serious-condition
+                   (lambda (c)
+                     (record-unexpected-error c)
+                     (return-from run-test-body))))
                (restart-case
                    (bind ((*package* (package-of test))
                           (*readtable* (copy-readtable))
@@ -621,8 +620,18 @@
           ,@body))
       `(progn ,@body)))
 
-(defun record-failure (description-type &rest args)
-  (record-failure* description-type :description-initargs args))
+(defun record-unexpected-error (condition)
+  (assert (not (typep condition 'assertion-failed)))
+  (record-failure* 'unexpected-error
+                   :description-initargs (list :condition condition)
+                   :signal-assertion-failed #f)
+  (when (or (debug-on-unexpected-error-p *global-context*)
+            #+sbcl(typep condition 'sb-kernel::control-stack-exhausted))
+    (invoke-debugger condition))
+  (values))
+
+(defun record-failure (failure-description-type &rest args)
+  (record-failure* failure-description-type :description-initargs args))
 
 (defun record-failure* (type &key (signal-assertion-failed #t) description-initargs)
   (bind ((description (apply #'make-instance type
@@ -822,8 +831,19 @@
 
 (defmacro with-expected-failures (&body body)
   "Any failure inside the dynamic extent of this block is registered as an expected failure."
-  `(bind ((*failures-and-errors-are-expected* #t))
-     ,@body))
+  (with-unique-names (with-expected-failures-block)
+    `(bind ((*failures-and-errors-are-expected* #t))
+       (block ,with-expected-failures-block
+         (restart-case
+             (handler-bind ((serious-condition
+                             (lambda (error)
+                               (record-unexpected-error error)
+                               (return-from ,with-expected-failures-block (values)))))
+               ,@body)
+           (continue ()
+             :report (lambda (stream)
+                       (format stream "~@<Skip the rest of the innermost WITH-EXPECTED-FAILURES body and continue by returning (values)~@:>"))
+             (values)))))))
 
 
 
