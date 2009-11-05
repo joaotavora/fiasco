@@ -424,6 +424,7 @@
                 do (vector-pop (failure-descriptions-of *global-context*)))
              (setf (number-of-added-failure-descriptions-of *context*) 0))
            (run-test-body ()
+             ;; NOTE: the order of the bindings in this handler-bind is important
              (handler-bind
                  ((assertion-failed
                    (lambda (c)
@@ -633,8 +634,8 @@
 (defun record-failure (failure-description-type &rest args)
   (record-failure* failure-description-type :description-initargs args))
 
-(defun record-failure* (type &key (signal-assertion-failed #t) description-initargs)
-  (bind ((description (apply #'make-instance type
+(defun record-failure* (failure-description-type &key (signal-assertion-failed #t) description-initargs)
+  (bind ((description (apply #'make-instance failure-description-type
                              :test-context-backtrace (when (has-context)
                                                        (iter (for context :first (current-context) :then (parent-context-of context))
                                                              (while context)
@@ -647,9 +648,10 @@
           (incf (number-of-added-failure-descriptions-of *context*))
           (write-progress-char (progress-char-of description))
           (when signal-assertion-failed
-            (restart-case (error 'assertion-failed
-                                 :test (test-of *context*)
-                                 :failure-description description)
+            (restart-case
+                (error 'assertion-failed
+                       :test (test-of *context*)
+                       :failure-description description)
               (continue ()
                 :report (lambda (stream)
                           (format stream "~@<Roger, go on testing...~@:>"))))))
