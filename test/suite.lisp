@@ -63,6 +63,9 @@
                 (is (not (= 42 42)))                         ; fails
                 (is (true-macro))
                 (is (not (false-macro)))
+                (with-expected-failures
+                  (ignore-errors
+                    (finishes (error "expected failure"))))  ; fails
                 (finishes 42)
                 (ignore-errors                               ; fails
                   (finishes (error "foo")))
@@ -89,9 +92,10 @@
           (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
           (setf (print-test-run-progress-p context) old-print-test-run-progress-p))
         (is (= (assertion-count-of context)
-               (+ old-assertion-count 12))) ; also includes the current assertion
+               (+ old-assertion-count 13))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
-               (+ old-failure-description-count 5)))
+               (+ old-failure-description-count 6)))
+        (is (= 1 (count-if 'hu.dwim.stefil::expected-p (failure-descriptions-of context))))
         (dotimes (i (- (length (failure-descriptions-of context))
                        old-failure-description-count))
           ;; drop failures registered by the test-test
