@@ -6,11 +6,11 @@
 
 (in-package :hu.dwim.stefil)
 
-(unless (assoc "STEFIL" *readtable-alist* :test #'string=)
+(unless (assoc "HU.DWIM.STEFIL" *readtable-alist* :test #'string=)
   (bind ((*readtable* (copy-readtable)))
     (setup-readtable)
-    (push (cons "STEFIL" *readtable*) *readtable-alist*)
-    (push (cons "STEFIL-TEST" *readtable*) *readtable-alist*)))
+    (push (cons "HU.DWIM.STEFIL" *readtable*) *readtable-alist*)
+    (push (cons "HU.DWIM.STEFIL.TEST" *readtable*) *readtable-alist*)))
 
 ;; the inspector code in hu.dwim.slime is too far from slime head to easily provide these inspector customizations, so just turn it off
 #+hu.dwim.slime
