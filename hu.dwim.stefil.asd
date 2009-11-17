@@ -15,11 +15,12 @@
            "Tamás Borbély <tomi.borbely@gmail.com>")
   :licence "BSD / Public domain"
   :description "Stefil - Simple Test Framework In Lisp"
-  :depends-on (:hu.dwim.common
-               :hu.dwim.syntax-sugar+swank)
+  :depends-on (:alexandria
+               :anaphora
+               :iterate
+               :metabang-bind)
   :components ((:module "source"
                 :components ((:file "package")
                              (:file "duplicates" :depends-on ("package"))
-                             (:file "configuration" :depends-on ("package"))
-                             (:file "stefil" :depends-on ("configuration" "duplicates"))
-                             (:file "suite" :depends-on ("configuration"))))))
+                             (:file "stefil" :depends-on ("duplicates"))
+                             (:file "suite" :depends-on ("duplicates"))))))

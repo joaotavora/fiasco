@@ -7,9 +7,11 @@
 (in-package :common-lisp-user)
 
 (defpackage :hu.dwim.stefil
-  (:use :hu.dwim.common
-        :hu.dwim.syntax-sugar
-        :swank)
+  (:use :alexandria
+        :anaphora
+        :common-lisp
+        :iterate
+        :metabang-bind)
 
   (:export #:find-test
            #:deftest

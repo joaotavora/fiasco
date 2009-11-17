@@ -7,9 +7,12 @@
 (in-package :common-lisp-user)
 
 (defpackage :hu.dwim.stefil.test
-  (:use :hu.dwim.common
+  (:use :alexandria
+        :anaphora
+        :common-lisp
         :hu.dwim.stefil
-        :hu.dwim.syntax-sugar)
+        :iterate
+        :metabang-bind)
 
   (:shadow #:deftest))
 

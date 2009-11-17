@@ -10,11 +10,6 @@
 
 (defsystem :hu.dwim.stefil+swank
   :class hu.dwim.system
-  :setup-readtable-function-name "hu.dwim.stefil::setup-readtable"
-  :author ("Attila Lendvai <attila.lendvai@gmail.com>"
-           "Tamás Borbély <tomi.borbely@gmail.com>"
-           "Levente Mészáros <levente.meszaros@gmail.com>")
-  :licence "BSD / Public domain"
   :depends-on (:hu.dwim.stefil
                :swank)
   :components ((:module "integration"
