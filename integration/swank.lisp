@@ -25,7 +25,7 @@
 (when (boundp 'swank::*inspector-dwim-lookup-hooks*)
   (pushnew 'stefil-inspector-lookup-hook swank::*inspector-dwim-lookup-hooks*))
 
-(defvar *display-all-slots-in-inspector* #f)
+(defvar *display-all-slots-in-inspector* nil)
 
 (defun make-rerun-test-action-for-inspector (context)
   (lambda ()
@@ -69,11 +69,11 @@
 (defun present-all-slots-for-emacs (object)
   (if *display-all-slots-in-inspector*
       (append `((:newline)
-                (:action "[hide slots]" ,(lambda () (setf *display-all-slots-in-inspector* #f)))
+                (:action "[hide slots]" ,(lambda () (setf *display-all-slots-in-inspector* nil)))
                 (:newline))
               (swank::all-slots-for-inspector object))
       `((:newline)
-        (:action "[show all slots]" ,(lambda () (setf *display-all-slots-in-inspector* #t))))))
+        (:action "[show all slots]" ,(lambda () (setf *display-all-slots-in-inspector* t))))))
 
 (defmacro inspector-result (title content)
   `(list :title ,title :type nil :content ,content))
@@ -84,7 +84,7 @@
    (swank-backend::label-value-line*
     ("Executed tests" (hash-table-values (run-tests-of global-context))
                       :value-text (princ-to-string (hash-table-count (run-tests-of global-context))))
-    ("Executed assertions" (princ-to-string (assertion-count-of global-context)) :splice-as-ispec #t)
+    ("Executed assertions" (princ-to-string (assertion-count-of global-context)) :splice-as-ispec t)
     (@ (unless (emptyp (failure-descriptions-of global-context))
          `((:label ,(format nil "List of failures (~A): " (length (failure-descriptions-of global-context))))
            (:action "[rerun all failed tests]"
@@ -105,10 +105,10 @@
    "Stefil test context"
    (swank-backend::label-value-line*
     ("Test" (test-of context))
-    ("Test arguments" (test-arguments-of context) :display-nil-value #f)
+    ("Test arguments" (test-arguments-of context) :display-nil-value nil)
     ("Real time spent in body" (list (or (real-time-spent-in-seconds context) "?") '(:label " sec ")
                                      `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context)))
-                               :splice-as-ispec #t)
+                               :splice-as-ispec t)
     (@ (iter (for parent-context :first (parent-context-of context) :then (parent-context-of parent-context))
              (while parent-context)
              (when (first-time-p)
@@ -139,17 +139,17 @@
   (inspector-result
    "Stefil test"
    (swank-backend::label-value-line*
-    ("Name" (present-test-for-emacs test :undefine-action #t :name-only #t) :splice-as-ispec #t)
+    ("Name" (present-test-for-emacs test :undefine-action t :name-only t) :splice-as-ispec t)
     ("Package" (package-of test))
-    ("Compile before run?" (if (compile-before-run-p test) "yes" "no") :splice-as-ispec #t)
-    ("Auto call by its suite?" (if (auto-call-p test) "yes" "no") :splice-as-ispec #t)
-    ("Documentation" (documentation-of test) :display-nil-value #f)
-    ("Parent" (present-test-for-emacs (parent-of test)) :splice-as-ispec #t)
+    ("Compile before run?" (if (compile-before-run-p test) "yes" "no") :splice-as-ispec t)
+    ("Auto call by its suite?" (if (auto-call-p test) "yes" "no") :splice-as-ispec t)
+    ("Documentation" (documentation-of test) :display-nil-value nil)
+    ("Parent" (present-test-for-emacs (parent-of test)) :splice-as-ispec t)
     (@ (iter (for (nil child) :in-hashtable (children-of test))
              (when (first-time-p)
                (appending `((:newline) (:label "Children:") (:newline))))
              (collect "  ")
-             (appending (present-test-for-emacs child :actions-first #t))
+             (appending (present-test-for-emacs child :actions-first t))
              (collect `(:newline))))
     (@ (present-all-slots-for-emacs test)))))
 

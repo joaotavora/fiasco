@@ -27,7 +27,3 @@
    illegal-lambda-list)
  (find-package :hu.dwim.stefil.test))
 
-(in-package :hu.dwim.stefil.test)
-
-(defun setup-readtable ()
-  (enable-sharp-boolean-syntax))

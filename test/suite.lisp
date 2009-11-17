@@ -44,18 +44,18 @@
 
 (let ((counter 0))
   (setf *global-counter-for-lexical-test* 0)
-  (deftest (counter-in-lexical-environment :compile-before-run #f) ()
+  (deftest (counter-in-lexical-environment :compile-before-run nil) ()
     (incf counter)
     (incf *global-counter-for-lexical-test*)
     (is (= counter *global-counter-for-lexical-test*))))
 
 (defmacro false-macro ()
-  #f)
+  nil)
 
 (defmacro true-macro ()
-  #t)
+  t)
 
-(deftest (assertions :compile-before-run #t :in test) (&key (test-name (gensym "TEMP-TEST")))
+(deftest (assertions :compile-before-run t :in test) (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
                 (is (= 42 42))
@@ -84,9 +84,9 @@
              (old-print-test-run-progress-p (print-test-run-progress-p context)))
         (unwind-protect
              (progn
-               (setf (debug-on-unexpected-error-p context) #f)
-               (setf (debug-on-assertion-failure-p context) #f)
-               (setf (print-test-run-progress-p context) #f)
+               (setf (debug-on-unexpected-error-p context) nil)
+               (setf (debug-on-assertion-failure-p context) nil)
+               (setf (print-test-run-progress-p context) nil)
                (funcall test-name))
           (setf (debug-on-unexpected-error-p context) old-debug-on-unexpected-error)
           (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
@@ -131,7 +131,7 @@
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))))
 
-(deftest (nested-fixtures2 :auto-call #f) ()
+(deftest (nested-fixtures2 :auto-call nil) ()
   (with-fixture test-fixture
     (is (equal *fixture-test-global* '(42)))))
 

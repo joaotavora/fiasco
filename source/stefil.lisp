@@ -11,21 +11,21 @@
 ;; their keyword counterparts.
 (defvar *suite*)
 (defvar *root-suite*)
-(defvar *print-test-run-progress* #t)
-(defvar *compile-tests-before-run* #f)
+(defvar *print-test-run-progress* t)
+(defvar *compile-tests-before-run* nil)
 (defvar *compile-tests-with-debug-level* nil)
 (defvar *test-progress-print-right-margin* 80)
-(defvar *debug-on-unexpected-error* #t)
-(defvar *debug-on-assertion-failure* #t)
+(defvar *debug-on-unexpected-error* t)
+(defvar *debug-on-assertion-failure* t)
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
-(defvar *failures-and-errors-are-expected* #f)
+(defvar *failures-and-errors-are-expected* nil)
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
 (defmacro without-debugging (&body body)
-  `(bind ((*debug-on-unexpected-error* #f)
-          (*debug-on-assertion-failure* #f))
+  `(bind ((*debug-on-unexpected-error* nil)
+          (*debug-on-assertion-failure* nil))
     ,@body))
 
 ;;;;;;
@@ -60,7 +60,7 @@
   ((name :type symbol)
    (parent nil :initarg nil :type (or null testable))
    (children (make-hash-table) :documentation "A mapping from testable names to testables")
-   (auto-call #t :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
+   (auto-call t :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
 (defclass testable ()
   ((name :accessor name-of :initarg :name :type symbol)
@@ -68,7 +68,7 @@
    (children :initform (make-hash-table) :accessor children-of :initarg :children :documentation "A mapping from testable names to testables")
    (auto-call :initform t :accessor auto-call-p :initarg :auto-call :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
-(defprint-object (self testable :identity #f :type #f)
+(defprint-object (self testable :identity nil :type nil)
   (format t "test ~S" (name-of self))
   (bind ((children (count-tests self)))
     (unless (zerop children)
@@ -110,7 +110,7 @@
 #+nil(hu.dwim.defclass-star:defclass* test (testable)
   ((package nil)
    (lambda-list nil)
-   (compile-before-run #t :type boolean)
+   (compile-before-run t :type boolean)
    (declarations nil)
    (documentation nil)
    (body nil)))
@@ -155,7 +155,7 @@
   (let ((*print-circle* nil))
     (apply #'format stream (format-control-of self) (format-arguments-of self))))
 
-(defprint-object (self failed-assertion :identity #f :type #f)
+(defprint-object (self failed-assertion :identity nil :type nil)
   (format t "failure ~S backtrace: ~{~A~^,~}"
           (form-of self)
           (mapcar (compose #'name-of #'test-of)
@@ -193,7 +193,7 @@
   ((condition :accessor condition-of :initarg :condition)
    (progress-char :initform #\E :accessor progress-char-of :initarg :progress-char :allocation :class)))
 
-(defprint-object (self unexpected-error :identity #f :type #f)
+(defprint-object (self unexpected-error :identity nil :type nil)
   (format t "error ~{~A~^,~}: ~S"
           (mapcar (compose #'name-of #'test-of)
                   (reverse (test-context-backtrace-of self)))
@@ -250,7 +250,7 @@
 
 #+nil
 (define-dynamic-context* global-context
-  ((failure-descriptions (make-array 8 :adjustable #t :fill-pointer 0))
+  ((failure-descriptions (make-array 8 :adjustable t :fill-pointer 0))
    (assertion-count 0)
    (progress-char-count 0)
    (print-test-run-progress-p *print-test-run-progress* :type boolean)
@@ -275,7 +275,7 @@
    (run-fixtures :initform (make-hash-table) :accessor run-fixtures-of :initarg :run-fixtures)
    (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
 
-(defprint-object (self global-context :identity #f :type #f)
+(defprint-object (self global-context :identity nil :type nil)
   (let* ((failure-descriptions (failure-descriptions-of self))
          (total-failure-count (length failure-descriptions))
          (failed-assertion-count (count-if (of-type '(or failed-assertion missing-condition extra-condition)) failure-descriptions))
@@ -307,7 +307,7 @@
     `(let ((,old-state (print-test-run-progress-p *global-context*)))
       (unwind-protect
            (progn
-             (setf (print-test-run-progress-p *global-context*) #f)
+             (setf (print-test-run-progress-p *global-context*) nil)
              ,@body)
         (setf (print-test-run-progress-p *global-context*) ,old-state)))))
 
@@ -316,20 +316,20 @@
      (restart-bind
          ((continue-without-debugging
            (lambda ()
-             (setf (debug-on-unexpected-error-p *global-context*) #f)
-             (setf (debug-on-assertion-failure-p *global-context*) #f)
+             (setf (debug-on-unexpected-error-p *global-context*) nil)
+             (setf (debug-on-assertion-failure-p *global-context*) nil)
              (continue))
             :report-function (lambda (stream)
                                (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
           (continue-without-debugging-errors
            (lambda ()
-             (setf (debug-on-unexpected-error-p *global-context*) #f)
+             (setf (debug-on-unexpected-error-p *global-context*) nil)
              (continue))
             :report-function (lambda (stream)
                                (format stream "~@<Do not stop at unexpected errors for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
           (continue-without-debugging-assertions
            (lambda ()
-             (setf (debug-on-assertion-failure-p *global-context*) #f)
+             (setf (debug-on-assertion-failure-p *global-context*) nil)
              (continue))
             :report-function (lambda (stream)
                                (format stream "~@<Do not stop at failed assertions for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
@@ -368,16 +368,16 @@
    (internal-realtime-spent-with-test nil)
    (test-arguments)
    (number-of-added-failure-descriptions 0))
-  :chain-parents #t)
+  :chain-parents t)
 
 (define-dynamic-context context
   ((test :accessor test-of :initarg :test)
    (internal-realtime-spent-with-test :initform nil :accessor internal-realtime-spent-with-test-of :initarg :internal-realtime-spent-with-test)
    (test-arguments :accessor test-arguments-of :initarg :test-arguments)
    (number-of-added-failure-descriptions :initform 0 :accessor number-of-added-failure-descriptions-of :initarg :number-of-added-failure-descriptions))
-  :chain-parents #t)
+  :chain-parents t)
 
-(defprint-object (self context :identity #f :type #f)
+(defprint-object (self context :identity nil :type nil)
   (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
           (name-of (test-of self))
           (bind ((result (lambda-list-to-funcall-list (lambda-list-of (test-of self)))))
@@ -478,7 +478,7 @@
           (values-list result-values)))))
 
 (defmacro deftest (&whole whole name args &body body)
-  (bind (((:values remaining-forms declarations documentation) (parse-body body :documentation #t :whole whole))
+  (bind (((:values remaining-forms declarations documentation) (parse-body body :documentation t :whole whole))
          ((name &rest test-args &key (compile-before-run *compile-tests-before-run*) in &allow-other-keys) (ensure-list name))
          (in-p (get-properties test-args '(:in))))
     (remove-from-plistf test-args :in)
@@ -573,10 +573,10 @@
              (prog1
                  (if (and ,global-context
                           (> ,nesting-count 1))
-                     #f
+                     nil
                      (progn
                        ,@setup-body
-                       #t))
+                       t))
                (when ,global-context
                  (setf (gethash ',name (run-fixtures-of ,global-context)) ,nesting-count))))
             (:teardown
@@ -584,11 +584,11 @@
              (prog1
                  (if (and ,global-context
                           (> ,nesting-count 0))
-                     #f
+                     nil
                      (progn
                        (setf ,nesting-count 0)
                        ,@teardown-body
-                       #t))
+                       t))
                (when ,global-context
                  (setf (gethash ',name (run-fixtures-of ,global-context))
                        ,nesting-count))))))))))
@@ -625,7 +625,7 @@
   (assert (not (typep condition 'assertion-failed)))
   (record-failure* 'unexpected-error
                    :description-initargs (list :condition condition)
-                   :signal-assertion-failed #f)
+                   :signal-assertion-failed nil)
   (when (or (debug-on-unexpected-error-p *global-context*)
             #+sbcl(typep condition 'sb-kernel::control-stack-exhausted))
     (invoke-debugger condition))
@@ -634,7 +634,7 @@
 (defun record-failure (failure-description-type &rest args)
   (record-failure* failure-description-type :description-initargs args))
 
-(defun record-failure* (failure-description-type &key (signal-assertion-failed #t) description-initargs)
+(defun record-failure* (failure-description-type &key (signal-assertion-failed t) description-initargs)
   (bind ((description (apply #'make-instance failure-description-type
                              :test-context-backtrace (when (has-context)
                                                        (iter (for context :first (current-context) :then (parent-context-of context))
@@ -665,7 +665,7 @@
                           (format stream "~@<Ignore the failure and continue~@:>")))))))))
 
 (defun extract-assert-expression-and-message (input-form)
-  (bind ((negatedp #f)
+  (bind ((negatedp nil)
          (predicate)
          (arguments '()))
     (labels ((process (form)
@@ -810,14 +810,14 @@
 (defmacro finishes (&whole whole_ &body body)
   ;; could be `(not-signals t ,@body), but that would register a confusing failed-assertion
   (with-unique-names (success? whole)
-    `(bind ((,success? #f)
+    `(bind ((,success? nil)
             (,whole ',whole_))
        (register-assertion)
        (unwind-protect
             (multiple-value-prog1
                 (progn
                   ,@body)
-              (setf ,success? #t)
+              (setf ,success? t)
               (register-assertion-was-successful))
          (unless ,success?
            (record-failure 'failed-assertion
@@ -834,7 +834,7 @@
 (defmacro with-expected-failures (&body body)
   "Any failure inside the dynamic extent of this block is registered as an expected failure."
   (with-unique-names (with-expected-failures-block)
-    `(bind ((*failures-and-errors-are-expected* #t))
+    `(bind ((*failures-and-errors-are-expected* t))
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
