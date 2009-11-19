@@ -91,8 +91,8 @@
              (not (eq (symbol-package (name-of new-parent))
                       (symbol-package (name-of self)))))
     (warn 'test-style-warning :test self
-          :format-control "Adding test under parent ~S which is in a different package (parent: ~A, child: ~A). Maybe a missing (in-root-suite)?"
-          :format-arguments (list new-parent (symbol-package (name-of new-parent)) (symbol-package (name-of self)))))
+          :format-control "Adding test ~S under parent ~S which is in a different package"
+          :format-arguments (list (name-of self) (name-of new-parent))))
   (bind ((old-parent (parent-of self)))
     (when old-parent
       (remhash (name-of self) (children-of old-parent)))
@@ -859,7 +859,7 @@
   (error 'illegal-lambda-list :lambda-list lambda-list))
 
 (defun parse-lambda-list (lambda-list visitor &key macro)
-  ;; TODO finish macro lambda list parsing
+  ;; TODO delme, and use alexandria:parse-ordinary-lambda-list
   (declare (optimize (speed 3))
            (type list lambda-list)
            (type (or symbol function) visitor))
@@ -1027,6 +1027,7 @@
     (values (nreverse result)
             rest-variable-name)))
 
+#+nil ; not used
 (defun lambda-list-to-lambda-list-with-quoted-defaults (args)
   (let ((primaries (list))
         (keywords (list))
@@ -1058,6 +1059,7 @@
         `(funcall ,function ,@arg-list))))
 
 (defun lambda-list-to-value-list-expression (args)
+  ;; TODO use alexandria:parse-ordinary-lambda-list
   `(list ,@(let ((result (list)))
              (parse-lambda-list args
                                 (lambda (kind name entry &optional external-name default)
@@ -1068,6 +1070,7 @@
              (nreverse result))))
 
 (defun lambda-list-to-variable-name-list (args &key macro include-specials)
+  ;; TODO use alexandria:parse-ordinary-lambda-list
   (let ((result (list))
         (rest-variable-name nil)
         (whole-variable-name nil)
