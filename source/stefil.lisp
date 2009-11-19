@@ -1012,44 +1012,27 @@
           (t      (process-required)))))))
 
 (defun lambda-list-to-funcall-list (args)
-  (let ((result (list))
-        (rest-variable-name nil))
-    (parse-lambda-list args
-                       (lambda (kind name entry &optional external-name default)
-                         (declare (ignore entry default))
-                         (case kind
-                           (&key
-                            (push external-name result)
-                            (push name result))
-                           (&allow-other-keys)
-                           (&rest (setf rest-variable-name name))
-                           (t (push name result)))))
-    (values (nreverse result)
-            rest-variable-name)))
+  (bind (((:values requireds optionals rest keywords) (parse-ordinary-lambda-list args)))
+    (values (append requireds
+                    (loop
+                      :for entry :in optionals
+                      :collect (first entry))
+                    (loop
+                      :for entry :in keywords
+                      :appending (list (first (first entry)) (second (first entry)))))
+            rest)))
 
 #+nil ; not used
 (defun lambda-list-to-lambda-list-with-quoted-defaults (args)
-  (let ((primaries (list))
-        (keywords (list))
-        (optionals (list))
-        (rest-variable-name nil)
-        (allow-other-keys? nil))
-    (parse-lambda-list args
-                       (lambda (kind name entry &optional external-name default)
-                         (declare (ignore entry))
-                         (ecase kind
-                           (&key
-                            (push `((,external-name ,name) (quote ,default)) keywords))
-                           (&optional
-                            (push `(,name ,default) optionals))
-                           (&allow-other-keys (setf allow-other-keys? t))
-                           (&rest (setf rest-variable-name name))
-                           ((nil) (push name primaries)))))
-    (values `(,@(nreverse primaries)
-              ,@(when optionals (cons '&optional (nreverse optionals)))
-              ,@(when keywords (cons '&key (nreverse keywords)))
-              ,@(when allow-other-keys? (list '&allow-other-keys)))
-            rest-variable-name)))
+  (bind (((:values requireds optionals rest keywords allow-other-keys?) (parse-ordinary-lambda-list args)))
+    (values `(,@requireds
+              ,@(when optionals (cons '&optional optionals))
+              ,@(if rest
+                    `(&rest ,rest)
+                    (when keywords (cons '&key keywords)))
+              ,@(when (and allow-other-keys? (not rest))
+                  (list '&allow-other-keys)))
+            rest)))
 
 (defun lambda-list-to-funcall-expression (function args)
   (multiple-value-bind (arg-list rest-variable)
