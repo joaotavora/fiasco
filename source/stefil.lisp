@@ -681,9 +681,11 @@
       (process input-form)
       (cond ((ignore-errors
                (macro-function predicate))
-             (values '() input-form "Macro expression ~A evaluated to false." (list `(quote ,input-form))))
-            ((ignore-errors
-               (fdefinition predicate))
+             (values '() input-form "Macro expression ~S evaluated to false." (list `(quote ,input-form))))
+            ((and (ignore-errors
+                    (fdefinition predicate))
+                  ;; let's just skip CL:IF and don't change its evaluation semantics while trying to be more informative...
+                  (not (eq predicate 'if)))
              (cond ((= (length arguments) 0)
                     (values '()
                             input-form
