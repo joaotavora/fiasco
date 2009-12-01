@@ -10,11 +10,7 @@
 
 (defsystem :hu.dwim.stefil
   :class hu.dwim.system
-  :author ("Attila Lendvai <attila.lendvai@gmail.com>"
-           "Levente Mészáros <levente.meszaros@gmail.com>"
-           "Tamás Borbély <tomi.borbely@gmail.com>")
-  :licence "BSD / Public domain"
-  :description "Stefil - Simple Test Framework In Lisp"
+  :description "A Simple Test Framework In Lisp."
   :depends-on (:alexandria
                :anaphora
                :iterate

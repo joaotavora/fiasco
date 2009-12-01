@@ -10,10 +10,6 @@
 
 (defsystem :hu.dwim.stefil.test
   :class hu.dwim.test-system
-  :author ("Attila Lendvai <attila.lendvai@gmail.com>"
-           "Levente Mészáros <levente.meszaros@gmail.com>"
-           "Tamás Borbély <tomi.borbely@gmail.com>")
-  :description "Test suite for hu.dwim.stefil"
   :licence "BSD / Public domain"
   :depends-on (:hu.dwim.stefil)
   :components ((:module "test"
