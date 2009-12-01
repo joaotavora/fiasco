@@ -72,7 +72,7 @@
 (defmacro inspector-result (title content)
   `(list :title ,title :type nil :content ,content))
 
-(defmethod emacs-inspect ((global-context global-context))
+(defmethod swank-backend::emacs-inspect ((global-context global-context))
   (inspector-result
    "Stefil test results"
    (swank-backend::label-value-line*
@@ -94,7 +94,7 @@
              (collect `(:newline))))
     (@ (present-all-slots-for-emacs global-context)))))
 
-(defmethod emacs-inspect ((context context))
+(defmethod swank-backend::emacs-inspect ((context context))
   (inspector-result
    "Stefil test context"
    (swank-backend::label-value-line*
@@ -113,7 +113,7 @@
              (collect `(:newline))))
     (@ (present-all-slots-for-emacs context)))))
 
-(defmethod emacs-inspect ((failure failed-assertion))
+(defmethod swank-backend::emacs-inspect ((failure failed-assertion))
   (inspector-result
    "Failed Stefil assertion"
    (swank-backend::label-value-line*
@@ -121,7 +121,7 @@
     (@ (present-test-backtrace-for-emacs failure))
     (@ (present-all-slots-for-emacs failure)))))
 
-(defmethod emacs-inspect ((description unexpected-error))
+(defmethod swank-backend::emacs-inspect ((description unexpected-error))
   (inspector-result
    "Unexpected error in a Stefil test"
    (swank-backend::label-value-line*
@@ -129,7 +129,7 @@
     (@ (present-test-backtrace-for-emacs description))
     (@ (present-all-slots-for-emacs description)))))
 
-(defmethod emacs-inspect ((test test))
+(defmethod swank-backend::emacs-inspect ((test test))
   (inspector-result
    "Stefil test"
    (swank-backend::label-value-line*
