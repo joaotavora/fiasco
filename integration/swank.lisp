@@ -6,6 +6,10 @@
 
 (in-package :hu.dwim.stefil)
 
+(defun call-with-sldb-quit-restart (thunk restart)
+  (bind ((swank::*sldb-quit-restart* restart))
+    (funcall thunk)))
+
 ;; the inspector code in hu.dwim.slime is too far from slime head to easily provide these inspector customizations, so just turn it off
 #+hu.dwim.slime
 (progn

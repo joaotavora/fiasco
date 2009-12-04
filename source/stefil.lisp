@@ -312,34 +312,38 @@
         (setf (print-test-run-progress-p *global-context*) ,old-state)))))
 
 (defmacro with-toplevel-restarts (&body body)
-  `(block restart-wrapper
-     (restart-bind
-         ((continue-without-debugging
-           (lambda ()
-             (setf (debug-on-unexpected-error-p *global-context*) nil)
-             (setf (debug-on-assertion-failure-p *global-context*) nil)
-             (continue))
-            :report-function (lambda (stream)
-                               (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
-          (continue-without-debugging-errors
-           (lambda ()
-             (setf (debug-on-unexpected-error-p *global-context*) nil)
-             (continue))
-            :report-function (lambda (stream)
-                               (format stream "~@<Do not stop at unexpected errors for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
-          (continue-without-debugging-assertions
-           (lambda ()
-             (setf (debug-on-assertion-failure-p *global-context*) nil)
-             (continue))
-            :report-function (lambda (stream)
-                               (format stream "~@<Do not stop at failed assertions for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
-          (abort-testing
-           (lambda ()
-             (return-from restart-wrapper))
-            :report-function (lambda (stream)
-                               (format stream "~@<Abort the entire test session~@:>"))))
-       (bind ((swank::*sldb-quit-restart* (find-restart 'abort-testing)))
-         ,@body))))
+  (with-unique-names (with-toplevel-restarts/body)
+    `(block restart-wrapper
+       (restart-bind
+           ((continue-without-debugging
+             (lambda ()
+               (setf (debug-on-unexpected-error-p *global-context*) nil)
+               (setf (debug-on-assertion-failure-p *global-context*) nil)
+               (continue))
+              :report-function (lambda (stream)
+                                 (format stream "~@<Turn off debugging for this test session and invoke the first CONTINUE restart~@:>")))
+            (continue-without-debugging-errors
+             (lambda ()
+               (setf (debug-on-unexpected-error-p *global-context*) nil)
+               (continue))
+              :report-function (lambda (stream)
+                                 (format stream "~@<Do not stop at unexpected errors for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
+            (continue-without-debugging-assertions
+             (lambda ()
+               (setf (debug-on-assertion-failure-p *global-context*) nil)
+               (continue))
+              :report-function (lambda (stream)
+                                 (format stream "~@<Do not stop at failed assertions for the rest of this test session and continue by invoking the first CONTINUE restart~@:>")))
+            (abort-testing
+             (lambda ()
+               (return-from restart-wrapper))
+              :report-function (lambda (stream)
+                                 (format stream "~@<Abort the entire test session~@:>"))))
+         (flet ((,with-toplevel-restarts/body ()
+                  ,@body))
+           (if (fboundp 'call-with-sldb-quit-restart)
+               (call-with-sldb-quit-restart ,with-toplevel-restarts/body (find-restart 'abort-testing))
+               (,with-toplevel-restarts/body)))))))
 
 (defun test-was-run-p (test)
   (declare (type testable test))
