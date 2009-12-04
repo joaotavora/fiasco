@@ -342,7 +342,7 @@
          (flet ((,with-toplevel-restarts/body ()
                   ,@body))
            (if (fboundp 'call-with-sldb-quit-restart)
-               (call-with-sldb-quit-restart #',with-toplevel-restarts/body (find-restart 'abort-testing))
+               (funcall 'call-with-sldb-quit-restart #',with-toplevel-restarts/body (find-restart 'abort-testing))
                (,with-toplevel-restarts/body)))))))
 
 (defun test-was-run-p (test)
