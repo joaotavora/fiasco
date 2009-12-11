@@ -606,10 +606,10 @@
                  (handler-bind
                      ((serious-condition
                        (lambda (c)
-                         (with-simple-restart
-                             (continue ,(let ((*package* (find-package :common-lisp)))
-                                          (format nil "Skip teardown of ~S and continue" name)))
-                           (error 'error-in-teardown :condition c :fixture ',name))
+                         ;; it's done this way to avoid installing an always visible continue restart, while at the same time do provide one when the debugger comes up due to our teardown error...
+                         (cerror ,(let ((*package* (find-package :common-lisp)))
+                                    (format nil "Ignore error coming from the teardown of ~S and continue" name))
+                                 'error-in-teardown :condition c :fixture ',name)
                          (return-from teardown-block))))
                    (,name :teardown))))))
       (declare (dynamic-extent #',whole-fixture-body))
