@@ -11,7 +11,9 @@
 (defsystem :hu.dwim.stefil.test
   :class hu.dwim.test-system
   :licence "BSD / Public domain"
-  :depends-on (:hu.dwim.stefil)
+  :depends-on (:hu.dwim.stefil
+               ;; you pretty much want this, too... :hu.dwim.stefil+swank
+               )
   :components ((:module "test"
                 :components ((:file "package")
                              (:file "suite" :depends-on ("package"))))))
