@@ -392,10 +392,11 @@
 
 (defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
-    (awhen (internal-realtime-spent-with-test-of self)
-      (coerce (/ it
-                 internal-time-units-per-second)
-              'float))))
+    (bind ((time-spent (internal-realtime-spent-with-test-of self)))
+      (when time-spent
+        (coerce (/ time-spent
+                   internal-time-units-per-second)
+                'float)))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
   `(with-new-global-context ()
@@ -508,8 +509,8 @@
         (defun ,name ,args
           ,@(when documentation (list documentation))
           ,@declarations
-          ,@(awhen *compile-tests-with-debug-level*
-              `((declare (optimize (debug ,it)))))
+          ,@(when *compile-tests-with-debug-level*
+              `((declare (optimize (debug ,*compile-tests-with-debug-level*)))))
           (bind ((,test (find-test ',name))
                  (,toplevel-p (not (has-global-context)))
                  (,global-context (unless ,toplevel-p
@@ -1088,8 +1089,7 @@
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
 This function is ideal for ASDF:TEST-OP's."
-  (aprog1
-      (without-debugging (apply test-function args))
+  (bind ((result (without-debugging (apply test-function args))))
     (let ((*package* (find-package :common-lisp)))
       (format *standard-output*
 "The result of ~S is:
@@ -1101,4 +1101,4 @@ to inspect the results (ASDF eats up the return values). Some inspector
 features may only be available when using the Slime branch at
 darcs get --lazy http://dwim.hu/darcs/hu.dwim.slime
 but the official Slime should also work fine.~%"
-              test-function it))))
+              test-function result))))

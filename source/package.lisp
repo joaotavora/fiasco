@@ -8,7 +8,6 @@
 
 (defpackage :hu.dwim.stefil
   (:use :alexandria
-        :anaphora
         :common-lisp
         :iterate
         :metabang-bind)

@@ -8,7 +8,6 @@
 
 (defpackage :hu.dwim.stefil.test
   (:use :alexandria
-        :anaphora
         :common-lisp
         :hu.dwim.stefil
         :iterate

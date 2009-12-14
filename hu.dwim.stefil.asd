@@ -12,7 +12,6 @@
   :class hu.dwim.system
   :description "A Simple Test Framework In Lisp."
   :depends-on (:alexandria
-               :anaphora
                :iterate
                :metabang-bind)
   :components ((:module "source"
