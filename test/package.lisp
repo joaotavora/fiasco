@@ -10,7 +10,6 @@
   (:use :alexandria
         :common-lisp
         :hu.dwim.stefil
-        :iterate
         :metabang-bind)
 
   (:shadow #:deftest))

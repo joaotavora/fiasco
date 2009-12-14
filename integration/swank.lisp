@@ -56,13 +56,16 @@
   `((:value ,context) " " (:action "[rerun]" ,(make-rerun-test-action-for-inspector context))))
 
 (defun present-test-backtrace-for-emacs (description)
-  (iter (for context :in (test-context-backtrace-of description))
-        (for idx :upfrom 0)
-        (when (first-time-p)
-          (appending `((:newline) (:label "Test backtrace:") (:newline))))
-        (collect (format nil "  ~D: " idx))
-        (appending (present-context-for-emacs context))
-        (collect `(:newline))))
+  (loop
+    :with first-time? = t
+    :for context :in (test-context-backtrace-of description)
+    :for idx :upfrom 0
+    :when first-time?
+      :do (setf first-time? nil)
+      :and :appending `((:newline) (:label "Test backtrace:") (:newline))
+    :collect (format nil "  ~D: " idx)
+    :appending (present-context-for-emacs context)
+    :collect `(:newline)))
 
 (defun present-all-slots-for-emacs (object)
   (if *display-all-slots-in-inspector*
@@ -89,13 +92,14 @@
                     ,(lambda () (swank::inspect-object (run-failed-tests global-context))))
            (:newline))))
     ;; intentionally reverse the order by push'ing
-    (@ (iter (for description :in-vector (failure-descriptions-of global-context))
-             (for context = (first (test-context-backtrace-of description)))
-             (collect "  ")
-             (collect `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context)))
-             (collect " ")
-             (collect `(:value ,description))
-             (collect `(:newline))))
+    (@ (loop
+         :for description :across (failure-descriptions-of global-context)
+         :for context = (first (test-context-backtrace-of description))
+         :collect "  "
+         :collect `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context))
+         :collect " "
+         :collect `(:value ,description)
+         :collect `(:newline)))
     (@ (present-all-slots-for-emacs global-context)))))
 
 (defmethod swank-backend::emacs-inspect ((context context))
@@ -104,17 +108,22 @@
    (swank-backend::label-value-line*
     ("Test" (test-of context))
     ("Test arguments" (test-arguments-of context) :display-nil-value nil)
-    ("Real time spent in body" (list (or (real-time-spent-in-seconds context) "?") '(:label " sec ")
-                                     `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context)))
+    ("Real time spent in body" (bind ((time-spent (real-time-spent-in-seconds context)))
+                                 (list (if time-spent (format nil "~,3F" time-spent) "?")
+                                       '(:label " sec ")
+                                       `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context))))
                                :splice-as-ispec t)
-    (@ (iter (for parent-context :first (parent-context-of context) :then (parent-context-of parent-context))
-             (while parent-context)
-             (when (first-time-p)
-               (collect `(:label "Parent test frames:"))
-               (collect `(:newline)))
-             (collect "  ")
-             (appending (reverse (present-context-for-emacs parent-context)))
-             (collect `(:newline))))
+    (@ (loop
+         :with first-time? = t
+         :for parent-context = (parent-context-of context) :then (parent-context-of parent-context)
+         :while parent-context
+         :when first-time?
+           :do (setf first-time? nil)
+           :and :collect `(:label "Parent test frames:")
+           :and :collect `(:newline)
+         :collect "  "
+         :appending (reverse (present-context-for-emacs parent-context))
+         :collect `(:newline)))
     (@ (present-all-slots-for-emacs context)))))
 
 (defmethod swank-backend::emacs-inspect ((failure failed-assertion))
@@ -143,12 +152,15 @@
     ("Auto call by its suite?" (if (auto-call-p test) "yes" "no") :splice-as-ispec t)
     ("Documentation" (documentation-of test) :display-nil-value nil)
     ("Parent" (present-test-for-emacs (parent-of test)) :splice-as-ispec t)
-    (@ (iter (for (nil child) :in-hashtable (children-of test))
-             (when (first-time-p)
-               (appending `((:newline) (:label "Children:") (:newline))))
-             (collect "  ")
-             (appending (present-test-for-emacs child :actions-first t))
-             (collect `(:newline))))
+    (@ (loop
+         :with first-time? = t
+         :for child :being :the :hash-values :of (children-of test)
+         :when first-time?
+           :do (setf first-time? nil)
+           :and :appending `((:newline) (:label "Children:") (:newline))
+         :collect "  "
+         :appending (present-test-for-emacs child :actions-first t)
+         :collect `(:newline)))
     (@ (present-all-slots-for-emacs test)))))
 
 ) ; #+hu.dwim.slime

@@ -13,11 +13,12 @@
         (deftest (,name ,@deftest-args) ,args
           (bind ((,test (find-test ',name)))
             (flet ((run-child-tests ()
-                     (iter (for (nil subtest) :in-hashtable (children-of ,test))
-                           (when (and (auto-call-p subtest)
-                                      (or (zerop (length (lambda-list-of subtest)))
-                                          (member (first (lambda-list-of subtest)) '(&key &optional))))
-                             (funcall (name-of subtest))))))
+                     (loop
+                       :for subtest :being :the :hash-values :of (children-of ,test)
+                       :when (and (auto-call-p subtest)
+                                  (or (zerop (length (lambda-list-of subtest)))
+                                      (member (first (lambda-list-of subtest)) '(&key &optional))))
+                         :do (funcall (name-of subtest)))))
               ,@(or body
                     `((if (test-was-run-p ,test)
                           (warn "Skipped executing already run tests suite ~S" (name-of ,test))

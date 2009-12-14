@@ -9,7 +9,6 @@
 (defpackage :hu.dwim.stefil
   (:use :alexandria
         :common-lisp
-        :iterate
         :metabang-bind)
 
   (:export #:find-test

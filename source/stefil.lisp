@@ -104,8 +104,9 @@
 (defgeneric count-tests (testable)
   (:method ((self testable))
            (+ (hash-table-count (children-of self))
-              (iter (for (nil child) :in-hashtable (children-of self))
-                    (summing (count-tests child))))))
+              (loop
+                :for child :being :the :hash-values :of (children-of self)
+                :summing (count-tests child)))))
 
 #+nil(hu.dwim.defclass-star:defclass* test (testable)
   ((package nil)
@@ -238,8 +239,9 @@
       (remhash name *tests*)
       (setf (parent-of test) nil)
       (fmakunbound (name-of test))
-      (iter (for (nil subtest) :in-hashtable (children-of test))
-            (rem-test (name-of subtest)))
+      (loop
+        :for subtest :being :the :hash-values :of (children-of test)
+        :do (rem-test (name-of subtest)))
       (when (eq *suite* test)
         (setf *suite* parent)))
     test))
@@ -413,9 +415,10 @@
 (defun %run-failed-tests (global-context-to-be-processed)
   (warn "Re-running failed tests without considering their dynamic environment, which may affect their behaviour!")
   (with-toplevel-restarts
-    (iter (for failure :in-sequence (failure-descriptions-of global-context-to-be-processed))
-          (for context = (elt (test-context-backtrace-of failure) 0))
-          (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
+    (loop
+      :for failure :across (failure-descriptions-of global-context-to-be-processed)
+      :for context = (elt (test-context-backtrace-of failure) 0)
+      :do (apply (name-of (test-of context)) (mapcar #'cdr (test-arguments-of context))))
     (when (print-test-run-progress-p *global-context*)
       (terpri *debug-io*))))
 
@@ -548,22 +551,22 @@
   (with-unique-names (global-context nesting-count phase)
     (bind (setup-body
            teardown-body)
-      (iter (for entry :in body)
-            (if (and (consp body)
-                     (member (first entry) '(:setup :teardown)))
-                (ecase (first entry)
-                  (:setup
-                   (assert (not setup-body) () "Multiple :setup's for fixture ~S" name)
-                   (setf setup-body (rest entry)))
-                  (:teardown
-                   (assert (not teardown-body) () "Multiple :teardown's for fixture ~S" name)
-                   (setf teardown-body (rest entry))))
-                (progn
-                  (assert (and (not setup-body)
-                               (not teardown-body))
-                          () "Error parsing body of fixture ~A" name)
-                  (setf setup-body body)
-                  (leave))))
+      (dolist (entry body)
+        (if (and (consp body)
+                 (member (first entry) '(:setup :teardown)))
+            (ecase (first entry)
+              (:setup
+               (assert (not setup-body) () "Multiple :setup's for fixture ~S" name)
+               (setf setup-body (rest entry)))
+              (:teardown
+               (assert (not teardown-body) () "Multiple :teardown's for fixture ~S" name)
+               (setf teardown-body (rest entry))))
+            (progn
+              (assert (and (not setup-body)
+                           (not teardown-body))
+                      () "Error parsing body of fixture ~A" name)
+              (setf setup-body body)
+              (return))))
       `(defun ,name (&optional (,phase :setup))
         (declare (optimize (debug 3)))
         (bind ((,global-context (and (has-global-context)
@@ -642,9 +645,10 @@
 (defun record-failure* (failure-description-type &key (signal-assertion-failed t) description-initargs)
   (bind ((description (apply #'make-instance failure-description-type
                              :test-context-backtrace (when (has-context)
-                                                       (iter (for context :first (current-context) :then (parent-context-of context))
-                                                             (while context)
-                                                             (collect context)))
+                                                       (loop
+                                                         :for context = (current-context) :then (parent-context-of context)
+                                                         :while context
+                                                         :collect context))
                              description-initargs)))
     (if (and (has-global-context)
              (has-context))
@@ -715,10 +719,11 @@
                                                    (unless (keywordp el)
                                                      (gensym)))
                                                  arguments))
-                             (bindings (iter (for arg :in arguments)
-                                             (for arg-value :in arg-values)
-                                             (when arg-value
-                                               (collect `(,arg-value ,arg)))))
+                             (bindings (loop
+                                         :for arg :in arguments
+                                         :for arg-value :in arg-values
+                                         :when arg-value
+                                           :collect `(,arg-value ,arg)))
                              (expression-values (mapcar (lambda (arg-value argument)
                                                           (or arg-value argument))
                                                         arg-values
@@ -726,14 +731,15 @@
                              (expression (if negatedp
                                              `(not (,predicate ,@expression-values))
                                              `(,predicate ,@expression-values)))
-                             ((:values message message-args) (iter (with message = "Expression ~A evaluated to ~A")
-                                                                  (for arg :in arguments)
-                                                                  (for idx :upfrom 0)
-                                                                  (for arg-value :in arg-values)
-                                                                  (when arg-value
-                                                                    (setf message (concatenate 'string message "~%~D: ~A => ~S"))
-                                                                    (appending `(,idx (quote ,arg) ,arg-value) :into message-args))
-                                                                  (finally (return (values message message-args))))))
+                             ((:values message message-args) (loop
+                                                               :with message = "Expression ~A evaluated to ~A"
+                                                               :for arg :in arguments
+                                                               :for idx :upfrom 0
+                                                               :for arg-value :in arg-values
+                                                               :when arg-value
+                                                                 :do (setf message (concatenate 'string message "~%~D: ~A => ~S"))
+                                                                 :and :appending `(,idx (quote ,arg) ,arg-value) :into message-args
+                                                               :finally (return (values message message-args)))))
                         (values bindings
                                 expression
                                 message
