@@ -19,3 +19,6 @@
                              (:file "duplicates" :depends-on ("package"))
                              (:file "stefil" :depends-on ("duplicates"))
                              (:file "suite" :depends-on ("duplicates"))))))
+
+(defmethod perform :after ((o develop-op) (c (eql (find-system :hu.dwim.stefil))))
+  (asdf:load-system :hu.dwim.stefil+swank))
