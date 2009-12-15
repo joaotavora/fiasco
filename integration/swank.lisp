@@ -149,7 +149,7 @@
     ("Name" (present-test-for-emacs test :undefine-action t :name-only t) :splice-as-ispec t)
     ("Package" (package-of test))
     ("Compile before run?" (if (compile-before-run-p test) "yes" "no") :splice-as-ispec t)
-    ("Auto call by its suite?" (if (auto-call-p test) "yes" "no") :splice-as-ispec t)
+    ("Auto call by its suite?" (if (auto-call? test) "yes" "no") :splice-as-ispec t)
     ("Documentation" (documentation-of test) :display-nil-value nil)
     ("Parent" (present-test-for-emacs (parent-of test)) :splice-as-ispec t)
     (@ (loop

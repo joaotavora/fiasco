@@ -19,7 +19,7 @@
             (flet ((run-child-tests ()
                      (loop
                        :for subtest :being :the :hash-values :of (children-of ,test)
-                       :when (and (auto-call-p subtest)
+                       :when (and (auto-call? subtest)
                                   (or (zerop (length (lambda-list-of subtest)))
                                       (member (first (lambda-list-of subtest)) '(&key &optional))))
                          :do (funcall (name-of subtest)))))

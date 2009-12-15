@@ -53,13 +53,13 @@
   ((name :type symbol)
    (parent nil :initarg nil :type (or null testable))
    (children (make-hash-table) :documentation "A mapping from testable names to testables")
-   (auto-call t :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
+   (auto-call t :type boolean :accessor auto-call? :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
 (defclass testable ()
   ((name :accessor name-of :initarg :name :type symbol)
    (parent :initform nil :accessor parent-of :type (or null testable))
    (children :initform (make-hash-table) :accessor children-of :initarg :children :documentation "A mapping from testable names to testables")
-   (auto-call :initform t :accessor auto-call-p :initarg :auto-call :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
+   (auto-call :initform t :accessor auto-call? :initarg :auto-call :type boolean :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
 
 (defprint-object (self testable :identity nil :type nil)
   (format t "test ~S" (name-of self))
