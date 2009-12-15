@@ -16,4 +16,5 @@
                )
   :components ((:module "test"
                 :components ((:file "package")
-                             (:file "suite" :depends-on ("package"))))))
+                             (:file "basic" :depends-on ("package"))
+                             (:file "fixtures" :depends-on ("package" "basic"))))))
