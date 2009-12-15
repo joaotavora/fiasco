@@ -16,7 +16,7 @@
   (with-unique-names (global-context finished? nesting-count)
     `(defun ,(fixture-function-name-for name) (thunk)
        (declare (optimize (debug 3)))
-       (bind ((,global-context (and (has-global-context)
+       (let* ((,global-context (and (has-global-context)
                                     (current-global-context)))
               (,finished? nil))
          (symbol-macrolet ((,nesting-count (gethash ',name (run-fixtures-of ,global-context) 0)))

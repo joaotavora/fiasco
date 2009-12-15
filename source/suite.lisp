@@ -10,11 +10,12 @@
   (apply #'make-instance 'test :name name args))
 
 (defmacro defsuite (name-or-name-with-args &optional args &body body)
-  (bind (((name &rest deftest-args) (ensure-list name-or-name-with-args)))
+  (destructuring-bind (name &rest deftest-args)
+      (ensure-list name-or-name-with-args)
     (with-unique-names (test)
       `(progn
         (deftest (,name ,@deftest-args) ,args
-          (bind ((,test (find-test ',name)))
+          (let* ((,test (find-test ',name)))
             (flet ((run-child-tests ()
                      (loop
                        :for subtest :being :the :hash-values :of (children-of ,test)

@@ -9,8 +9,7 @@
 (defpackage :hu.dwim.stefil.test
   (:use :alexandria
         :common-lisp
-        :hu.dwim.stefil
-        :metabang-bind)
+        :hu.dwim.stefil)
 
   (:shadow #:deftest))
 

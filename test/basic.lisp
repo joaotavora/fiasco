@@ -17,7 +17,7 @@
       ,@body)))
 
 (deftest lifecycle (&key (test-name (gensym "TEMP-TEST")) (suite-name (gensym "TEMP-SUITE")))
-  (bind ((original-test-count (count-tests *suite*))
+  (let* ((original-test-count (count-tests *suite*))
          (original-current-suite *suite*)
          (transient-test-name (gensym "TRANSIENT-TEST")))
     (unwind-protect
@@ -27,7 +27,7 @@
       (delete-test test-name :otherwise nil))
     (is (= (count-tests *suite*) original-test-count))
     (unwind-protect
-         (bind ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*)))))
+         (let* ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*)))))
            (is (= (count-tests *suite*) (1+ original-test-count)))
            (is (eq (parent-of temp-suite) *suite*))
            (is (eq (find-test (name-of temp-suite)) temp-suite))
@@ -76,7 +76,7 @@
     (progn
       ;; this uglyness here is due to testing the test framework which is inherently
       ;; not nestable, so we need to backup and restore some state
-      (bind ((context *global-context*)
+      (let* ((context *global-context*)
              (old-assertion-count (assertion-count-of context))
              (old-failure-description-count (length (failure-descriptions-of context)))
              (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))

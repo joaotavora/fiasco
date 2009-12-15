@@ -8,8 +8,7 @@
 
 (defpackage :hu.dwim.stefil
   (:use :alexandria
-        :common-lisp
-        :metabang-bind)
+        :common-lisp)
 
   (:export #:find-test
            #:deftest

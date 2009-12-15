@@ -27,9 +27,10 @@
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
-    (bind (((:values test-lambda found-p) (gethash test (test-lambdas-of context))))
+    (multiple-value-bind (test-lambda found-p)
+        (gethash test (test-lambdas-of context))
       (unless found-p
-        (setf test-lambda (bind ((*package* (package-of test))
+        (setf test-lambda (let* ((*package* (package-of test))
                                  (*readtable* (copy-readtable)))
                             (compile nil `(lambda ,(lambda-list-of test)
                                             ,@(body-of test)))))
@@ -58,7 +59,7 @@
                      (record-unexpected-error c)
                      (return-from run-test-body))))
                (restart-case
-                   (bind ((*package* (package-of test))
+                   (let* ((*package* (package-of test))
                           (*readtable* (copy-readtable))
                           (start-time (get-internal-run-time)))
                      (multiple-value-prog1
@@ -80,7 +81,7 @@
 
 (defun run-test-body (test function arguments toplevel-p)
   (declare (type test test))
-  (bind ((result-values '()))
+  (let* ((result-values '()))
     (flet ((body ()
              (with-new-context (:test test :test-arguments arguments)
                (when toplevel-p
@@ -100,61 +101,61 @@
           (values-list result-values)))))
 
 (defmacro deftest (&whole whole name args &body body)
-  (bind (((:values remaining-forms declarations documentation) (parse-body body :documentation t :whole whole))
-         ((name &rest test-args &key (compile-before-run *compile-tests-before-run*) in &allow-other-keys) (ensure-list name))
-         (in-p (get-properties test-args '(:in))))
-    (remove-from-plistf test-args :in)
-    (unless (or (not (symbol-package name))
-                (eq (symbol-package name) *package*))
-      (warn 'test-style-warning :test name
-            :format-control "Defining test on symbol ~S whose home package is not *package* which is ~A"
-            :format-arguments (list name *package*)))
-    (with-unique-names (test test-lambda global-context toplevel-p body)
-      `(progn
-        (eval-when (:load-toplevel :execute)
-          (make-test ',name
-           :package ,*package*
-           :lambda-list ',args
-           :declarations ',declarations
-           :documentation ',documentation
-           :body ',remaining-forms
-           ,@(when in-p
-                   (if in
-                       `(:in (find-test ',in))
-                       '(:in nil)))
-           ,@test-args))
-        (defun ,name ,args
-          ,@(when documentation (list documentation))
-          ,@declarations
-          ,@(when *compile-tests-with-debug-level*
-              `((declare (optimize (debug ,*compile-tests-with-debug-level*)))))
-          (bind ((,test (find-test ',name))
-                 (,toplevel-p (not (has-global-context)))
-                 (,global-context (unless ,toplevel-p
-                                    (current-global-context))))
-            ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
-            (labels (,@(unless compile-before-run
-                               `((,name ()
-                                  ,@remaining-forms)))
-                       (,body ()
-                         ,(if compile-before-run
-                              `(bind ((,test-lambda (get-test-lambda ,test ,global-context)))
-                                (run-test-body ,test
-                                 (lambda ()
-                                   ;; TODO install a labels entry with the test name? to avoid compile at each recursion...
-                                   ,(lambda-list-to-funcall-expression test-lambda args))
-                                 ,(lambda-list-to-value-list-expression args)
-                                 ,toplevel-p))
-                              `(run-test-body ,test
-                                #',name
-                                ,(lambda-list-to-value-list-expression args)
-                                ,toplevel-p))))
-              (declare (dynamic-extent ,@(unless compile-before-run `(#',name))
-                                       #',body))
-              (if ,toplevel-p
-                  (with-new-global-context ()
-                    (setf ,global-context (current-global-context))
-                    (push ,global-context *test-result-history*)
-                    (setf *last-test-result* ,global-context)
-                    (,body))
-                  (,body)))))))))
+  (multiple-value-bind (remaining-forms declarations documentation)
+      (parse-body body :documentation t :whole whole)
+      (destructuring-bind (name &rest test-args &key (compile-before-run *compile-tests-before-run*)
+                                (in nil in-provided?) &allow-other-keys)
+          (ensure-list name)
+        (remove-from-plistf test-args :in)
+        (unless (or (not (symbol-package name))
+                    (eq (symbol-package name) *package*))
+          (warn 'test-style-warning :test name
+                :format-control "Defining test on symbol ~S whose home package is not *package* which is ~A"
+                :format-arguments (list name *package*)))
+        (with-unique-names (test test-lambda global-context toplevel-p body)
+          `(progn
+             (eval-when (:load-toplevel :execute)
+               (make-test ',name
+                          :package ,*package*
+                          :lambda-list ',args
+                          :declarations ',declarations
+                          :documentation ',documentation
+                          :body ',remaining-forms
+                          ,@(when in-provided?
+                              `(:in (find-test ',in)))
+                          ,@test-args))
+             (defun ,name ,args
+               ,@(when documentation (list documentation))
+               ,@declarations
+               ,@(when *compile-tests-with-debug-level*
+                   `((declare (optimize (debug ,*compile-tests-with-debug-level*)))))
+               (let* ((,test (find-test ',name))
+                      (,toplevel-p (not (has-global-context)))
+                      (,global-context (unless ,toplevel-p
+                                         (current-global-context))))
+                 ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
+                 (labels (,@(unless compile-before-run
+                                    `((,name ()
+                                             ,@remaining-forms)))
+                          (,body ()
+                            ,(if compile-before-run
+                                 `(let* ((,test-lambda (get-test-lambda ,test ,global-context)))
+                                    (run-test-body ,test
+                                                   (lambda ()
+                                                     ;; TODO install a labels entry with the test name? to avoid compile at each recursion...
+                                                     ,(lambda-list-to-funcall-expression test-lambda args))
+                                                   ,(lambda-list-to-value-list-expression args)
+                                                   ,toplevel-p))
+                                 `(run-test-body ,test
+                                                 #',name
+                                                 ,(lambda-list-to-value-list-expression args)
+                                                 ,toplevel-p))))
+                   (declare (dynamic-extent ,@(unless compile-before-run `(#',name))
+                                            #',body))
+                   (if ,toplevel-p
+                       (with-new-global-context ()
+                         (setf ,global-context (current-global-context))
+                         (push ,global-context *test-result-history*)
+                         (setf *last-test-result* ,global-context)
+                         (,body))
+                       (,body))))))))))

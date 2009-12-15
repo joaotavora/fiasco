@@ -24,7 +24,7 @@
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
 (defmacro without-debugging (&body body)
-  `(bind ((*debug-on-unexpected-error* nil)
+  `(let* ((*debug-on-unexpected-error* nil)
           (*debug-on-assertion-failure* nil))
     ,@body))
 
@@ -63,7 +63,7 @@
 
 (defprint-object (self testable :identity nil :type nil)
   (format t "test ~S" (name-of self))
-  (bind ((children (count-tests self)))
+  (let* ((children (count-tests self)))
     (unless (zerop children)
       (format t " :tests ~S" children))))
 
@@ -86,7 +86,7 @@
     (warn 'test-style-warning :test self
           :format-control "Adding test ~S under parent ~S which is in a different package"
           :format-arguments (list (name-of self) (name-of new-parent))))
-  (bind ((old-parent (parent-of self)))
+  (let* ((old-parent (parent-of self)))
     (when old-parent
       (remhash (name-of self) (children-of old-parent)))
     (prog1
@@ -176,9 +176,10 @@
 ;;; test repository
 
 (defun find-test (name &key (otherwise :error))
-  (bind (((:values test found-p) (if (typep name 'testable)
-                                    (values name t)
-                                    (gethash name *tests*))))
+  (multiple-value-bind (test found-p)
+      (if (typep name 'testable)
+          (values name t)
+          (gethash name *tests*))
     (when (and (not found-p)
                otherwise)
       (etypecase otherwise
@@ -200,7 +201,7 @@
       (delete-test key)))
 
 (defun delete-test (name &rest args)
-  (bind ((test (apply #'find-test name args))
+  (let* ((test (apply #'find-test name args))
          (parent (when test
                    (parent-of test))))
     (when test
@@ -258,10 +259,9 @@
             (hash-table-count (run-tests-of self))
             (assertion-count-of self)
             total-failure-count
-            (bind ((toplevel-context (toplevel-context-of self))
-                   (real-time-spent-in-seconds
-                    (when toplevel-context
-                      (real-time-spent-in-seconds toplevel-context))))
+            (let* ((toplevel-context (toplevel-context-of self))
+                   (real-time-spent-in-seconds (when toplevel-context
+                                                 (real-time-spent-in-seconds toplevel-context))))
               (if (and toplevel-context
                        real-time-spent-in-seconds)
                   real-time-spent-in-seconds
@@ -346,7 +346,7 @@
 (defprint-object (self context :identity nil :type nil)
   (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
           (name-of (test-of self))
-          (bind ((result (lambda-list-to-funcall-list (lambda-list-of (test-of self)))))
+          (let* ((result (lambda-list-to-funcall-list (lambda-list-of (test-of self)))))
             (mapcar (lambda (arg-cell)
                       (setf result (substitute (cdr arg-cell) (car arg-cell) result :test #'eq)))
                     (test-arguments-of self))
@@ -354,7 +354,7 @@
 
 (defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
-    (bind ((time-spent (internal-realtime-spent-with-test-of self)))
+    (let* ((time-spent (internal-realtime-spent-with-test-of self)))
       (when time-spent
         (coerce (/ time-spent
                    internal-time-units-per-second)
@@ -384,14 +384,14 @@
 
 (defmacro runs-without-failure? (&body body)
   (with-unique-names (old-failure-count)
-    `(bind ((,old-failure-count (length (failure-descriptions-of *global-context*))))
+    `(let* ((,old-failure-count (length (failure-descriptions-of *global-context*))))
        ,@body
        (= ,old-failure-count (length (failure-descriptions-of *global-context*))))))
 
 (defmacro with-expected-failures* (condition &body body)
   "Any failure inside the dynamic extent of this block is registered as an expected failure when CONDITION evaluates to true."
   (with-unique-names (with-expected-failures-block)
-    `(bind ((*failures-and-errors-are-expected* ,condition))
+    `(let* ((*failures-and-errors-are-expected* ,condition))
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
@@ -573,7 +573,8 @@
           (t      (process-required)))))))
 
 (defun lambda-list-to-funcall-list (args)
-  (bind (((:values requireds optionals rest keywords) (parse-ordinary-lambda-list args)))
+  (multiple-value-bind (requireds optionals rest keywords)
+      (parse-ordinary-lambda-list args)
     (values (append requireds
                     (loop
                       :for entry :in optionals
@@ -643,9 +644,9 @@
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
 This function is ideal for ASDF:TEST-OP's."
-  (bind ((result (without-debugging (apply test-function args))))
-    (let ((*package* (find-package :common-lisp)))
-      (format *standard-output*
+  (let* ((result (without-debugging (apply test-function args)))
+         (*package* (find-package :common-lisp)))
+    (format *standard-output*
 "The result of ~S is:
 
   ~A
@@ -655,4 +656,4 @@ to inspect the results (ASDF eats up the return values). Some inspector
 features may only be available when using the Slime branch at
 darcs get --lazy http://dwim.hu/darcs/hu.dwim.slime
 but the official Slime should also work fine.~%"
-              test-function result))))
+            test-function result)))

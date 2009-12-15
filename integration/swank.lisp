@@ -7,7 +7,7 @@
 (in-package :hu.dwim.stefil)
 
 (defun call-with-sldb-quit-restart (thunk restart)
-  (bind ((swank::*sldb-quit-restart* restart))
+  (let* ((swank::*sldb-quit-restart* restart))
     (funcall thunk)))
 
 ;; the inspector code in hu.dwim.slime is too far from slime head to easily provide these inspector customizations, so just turn it off
@@ -38,7 +38,7 @@
 
 (defun present-test-for-emacs (test &key name-only undefine-action actions-first)
   (when test
-    (bind ((actions `(,@(if (lambda-list-of test)
+    (let* ((actions `(,@(if (lambda-list-of test)
                             (when actions-first
                               `((:label "[run]")))
                             `((:action "[run]" ,(make-run-test-action-for-inspector test))))
@@ -108,7 +108,7 @@
    (swank-backend::label-value-line*
     ("Test" (test-of context))
     ("Test arguments" (test-arguments-of context) :display-nil-value nil)
-    ("Real time spent in body" (bind ((time-spent (real-time-spent-in-seconds context)))
+    ("Real time spent in body" (let* ((time-spent (real-time-spent-in-seconds context)))
                                  (list (if time-spent (format nil "~,3F" time-spent) "?")
                                        '(:label " sec ")
                                        `(:action "[rerun]" ,(make-rerun-test-action-for-inspector context))))

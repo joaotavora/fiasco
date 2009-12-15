@@ -11,8 +11,7 @@
 (defsystem :hu.dwim.stefil
   :class hu.dwim.system
   :description "A Simple Test Framework In Lisp."
-  :depends-on (:alexandria
-               :metabang-bind)
+  :depends-on (:alexandria)
   :components ((:module "source"
                 :components ((:file "asserts" :depends-on ("infrastructure"))
                              (:file "package")

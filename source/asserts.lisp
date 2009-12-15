@@ -7,7 +7,7 @@
 (in-package :hu.dwim.stefil)
 
 (defun extract-assert-expression-and-message (input-form)
-  (bind ((negatedp nil)
+  (let* ((negatedp nil)
          (predicate)
          (arguments '()))
     (labels ((process (form)
@@ -48,7 +48,7 @@
                                         `(quote (,predicate x y)))
                                     `(quote ,(first arguments)) x
                                     `(quote ,(second arguments)) y))))
-                   (t (bind ((arg-values (mapcar (lambda (el)
+                   (t (let* ((arg-values (mapcar (lambda (el)
                                                    (unless (keywordp el)
                                                      (gensym)))
                                                  arguments))
@@ -63,25 +63,25 @@
                                                         arguments))
                              (expression (if negatedp
                                              `(not (,predicate ,@expression-values))
-                                             `(,predicate ,@expression-values)))
-                             ((:values message message-args) (loop
-                                                               :with message = "Expression ~A evaluated to ~A"
-                                                               :for arg :in arguments
-                                                               :for idx :upfrom 0
-                                                               :for arg-value :in arg-values
-                                                               :when arg-value
-                                                                 :do (setf message (concatenate 'string message "~%~D: ~A => ~S"))
-                                                                 :and :appending `(,idx (quote ,arg) ,arg-value) :into message-args
-                                                               :finally (return (values message message-args)))))
-                        (values bindings
-                                expression
-                                message
-                                (nconc (list `(quote (,predicate ,@arguments)) (if negatedp "true" "false")) message-args))))))
+                                             `(,predicate ,@expression-values))))
+                        (loop
+                          :with message = "Expression ~A evaluated to ~A"
+                          :for arg :in arguments
+                          :for idx :upfrom 0
+                          :for arg-value :in arg-values
+                          :when arg-value
+                            :do (setf message (concatenate 'string message "~%~D: ~A => ~S"))
+                            :and :appending `(,idx (quote ,arg) ,arg-value) :into message-args
+                          :finally (return (values bindings
+                                                   expression
+                                                   message
+                                                   (nconc (list `(quote (,predicate ,@arguments)) (if negatedp "true" "false"))
+                                                          message-args))))))))
             (t
              (values '() input-form "Expression ~A evaluated to false." (list `(quote ,input-form))))))))
 
 (defun write-progress-char (char)
-  (bind ((global-context (when (boundp '*global-context*)
+  (let* ((global-context (when (boundp '*global-context*)
                            *global-context*)))
     (when (and global-context
                (print-test-run-progress-p global-context))
@@ -117,7 +117,7 @@
   (record-failure* failure-description-type :description-initargs args))
 
 (defun record-failure* (failure-description-type &key (signal-assertion-failed t) description-initargs)
-  (bind ((description (apply #'make-instance failure-description-type
+  (let* ((description (apply #'make-instance failure-description-type
                              :test-context-backtrace (when (has-context)
                                                        (loop
                                                          :for context = (current-context) :then (parent-context-of context)
@@ -148,23 +148,23 @@
                           (format stream "~@<Ignore the failure and continue~@:>")))))))))
 
 (defmacro is (&whole whole form &optional (message nil message-p) &rest message-args)
-  (bind (((:values bindings expression message message-args)
-          (if message-p
-              (values nil form message message-args)
-              (extract-assert-expression-and-message form))))
+  (multiple-value-bind (bindings expression message message-args)
+      (if message-p
+          (values nil form message message-args)
+          (extract-assert-expression-and-message form))
     (with-unique-names (result)
       `(progn
-        (register-assertion)
-        (bind ,bindings
-          (bind ((,result (multiple-value-list ,expression)))
-            (if (first ,result)
-                (register-assertion-was-successful)
-                (record-failure 'failed-assertion :form ',whole
-                                :format-control ,message :format-arguments (list ,@message-args)))
-            (values-list ,result)))))))
+         (register-assertion)
+         (let* (,@bindings
+                (,result (multiple-value-list ,expression)))
+           (if (first ,result)
+               (register-assertion-was-successful)
+               (record-failure 'failed-assertion :form ',whole
+                               :format-control ,message :format-arguments (list ,@message-args)))
+           (values-list ,result))))))
 
 (defmacro signals (&whole whole what &body body)
-  (bind ((condition-type what))
+  (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is there a superfulous quote at ~S?)" condition-type))
     `(progn
@@ -181,7 +181,7 @@
         (values)))))
 
 (defmacro not-signals (&whole whole what &body body)
-  (bind ((condition-type what))
+  (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is there a superfulous quote at ~S?)" condition-type))
     `(progn
@@ -200,7 +200,7 @@
 (defmacro finishes (&whole whole_ &body body)
   ;; could be `(not-signals t ,@body), but that would register a confusing failed-assertion
   (with-unique-names (success? whole)
-    `(bind ((,success? nil)
+    `(let* ((,success? nil)
             (,whole ',whole_))
        (register-assertion)
        (unwind-protect
