@@ -108,13 +108,16 @@
 (defparameter *fixture-test-global* '())
 
 (defixture test-fixture
-  (:setup (push '42 *fixture-test-global*))
-  (:teardown (setf *fixture-test-global* (remove '42 *fixture-test-global*))))
+  (push 42 *fixture-test-global*)
+  (unwind-protect
+       (-body-)
+    (removef *fixture-test-global* 42)))
 
 (defparameter *fixture-test-counter* 0)
 
 (defixture simple-test-fixture
-  (incf *fixture-test-counter*))
+  (incf *fixture-test-counter*)
+  (-body-))
 
 (deftest fixtures ()
   (with-fixture simple-test-fixture
