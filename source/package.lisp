@@ -18,6 +18,7 @@
            #:not-signals
            #:finishes
            #:with-expected-failures
+           #:with-expected-failures*
            #:in-suite
            #:root-suite
            #:defsuite

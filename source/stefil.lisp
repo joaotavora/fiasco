@@ -753,13 +753,14 @@
        ,@body
        (= ,old-failure-count (length (failure-descriptions-of *global-context*))))))
 
-(defmacro with-expected-failures (&body body)
-  "Any failure inside the dynamic extent of this block is registered as an expected failure."
+(defmacro with-expected-failures* (condition &body body)
+  "Any failure inside the dynamic extent of this block is registered as an expected failure when CONDITION evaluates to true."
   (with-unique-names (with-expected-failures-block)
-    `(bind ((*failures-and-errors-are-expected* t))
+    `(bind ((*failures-and-errors-are-expected* ,condition))
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
+                             ;; TODO comment on why it's needed here...
                              (lambda (error)
                                (record-unexpected-error error)
                                (return-from ,with-expected-failures-block (values)))))
@@ -769,6 +770,9 @@
                        (format stream "~@<Skip the rest of the innermost WITH-EXPECTED-FAILURES body and continue by returning (values)~@:>"))
              (values)))))))
 
+(defmacro with-expected-failures (&body body)
+  "Any failure inside the dynamic extent of this block is registered as an expected failure."
+  `(with-expected-failures* t ,@body))
 
 
 ;;;;;;
