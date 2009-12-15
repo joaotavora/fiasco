@@ -6,6 +6,9 @@
 
 (in-package :hu.dwim.stefil)
 
+(defun make-suite (name &rest args &key &allow-other-keys)
+  (apply #'make-instance 'test :name name args))
+
 (defmacro defsuite (name-or-name-with-args &optional args &body body)
   (bind (((name &rest deftest-args) (ensure-list name-or-name-with-args)))
     (with-unique-names (test)

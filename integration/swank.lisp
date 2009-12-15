@@ -46,7 +46,7 @@
                           (if (find-test (name-of test) :otherwise nil)
                               (when actions-first
                                 `((:label "[undefine]")))
-                              `((:action "[undefine]" ,(lambda () (rem-test (name-of test)))))))))
+                              `((:action "[undefine]" ,(lambda () (setf (find-test (name-of test)) nil))))))))
            (value `((:value ,(if name-only (name-of test) test)))))
       (if actions-first
           (append actions '(" ") value)

@@ -16,9 +16,10 @@
   :components ((:module "source"
                 :components ((:file "package")
                              (:file "duplicates" :depends-on ("package"))
-                             (:file "fixture" :depends-on ("stefil"))
-                             (:file "stefil" :depends-on ("duplicates"))
-                             (:file "suite" :depends-on ("duplicates"))))))
+                             (:file "fixture" :depends-on ("test"))
+                             (:file "infrastructure" :depends-on ("duplicates"))
+                             (:file "test" :depends-on ("infrastructure"))
+                             (:file "suite" :depends-on ("infrastructure" "test"))))))
 
 (defmethod perform :after ((o develop-op) (c (eql (find-system :hu.dwim.stefil))))
   (asdf:load-system :hu.dwim.stefil+swank))
