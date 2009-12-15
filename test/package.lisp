@@ -23,7 +23,7 @@
    assertion-count-of run-tests-of failure-descriptions-of
    *global-context* *context* debug-on-unexpected-error-p
    debug-on-assertion-failure-p print-test-run-progress-p
-   rem-test lambda-list-to-variable-name-list
+   delete-test lambda-list-to-variable-name-list
    lambda-list-to-value-list-expression lambda-list-to-funcall-expression
    illegal-lambda-list)
  (find-package :hu.dwim.stefil.test))

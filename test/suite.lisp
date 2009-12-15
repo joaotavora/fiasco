@@ -24,7 +24,7 @@
          (progn
            (eval `(deftest ,test-name ()))
            (is (= (count-tests *suite*) (1+ original-test-count))))
-      (rem-test test-name :otherwise nil))
+      (delete-test test-name :otherwise nil))
     (is (= (count-tests *suite*) original-test-count))
     (unwind-protect
          (bind ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*)))))
@@ -34,7 +34,7 @@
            (eval `(in-suite ,(name-of temp-suite)))
            (is (eq *suite* (find-test suite-name)))
            (eval `(deftest ,transient-test-name ())))
-      (rem-test suite-name))
+      (setf (find-test suite-name) nil))
     (signals error (find-test transient-test-name))
     (signals error (find-test suite-name))
     (is (= (count-tests *suite*) original-test-count))
@@ -100,7 +100,7 @@
                        old-failure-description-count))
           ;; drop failures registered by the test-test
           (vector-pop (failure-descriptions-of context))))
-      (rem-test test-name :otherwise nil)))
+      (delete-test test-name :otherwise nil)))
   (values))
 
 (defsuite* (fixtures :in test))
