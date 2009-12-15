@@ -16,6 +16,7 @@
   :components ((:module "source"
                 :components ((:file "package")
                              (:file "duplicates" :depends-on ("package"))
+                             (:file "fixture" :depends-on ("stefil"))
                              (:file "stefil" :depends-on ("duplicates"))
                              (:file "suite" :depends-on ("duplicates"))))))
 

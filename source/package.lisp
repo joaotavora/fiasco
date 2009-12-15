@@ -24,6 +24,7 @@
            #:defsuite*
            #:run-child-tests
            #:defixture
+           #:-body-
            #:with-fixture
            #:with-fixtures
            #:runs-without-failure?

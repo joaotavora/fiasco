@@ -45,13 +45,6 @@
              (format stream "Test assertion failed:~%~%")
              (describe (failure-description-of c) stream))))
 
-(define-condition error-in-teardown (error)
-  ((condition :accessor condition-of :initarg :condition)
-   (fixture :accessor fixture-of :initarg :fixture))
-  (:report (lambda (c stream)
-             (format stream "Error while running teardown of fixture ~A:~%~%~A" (fixture-of c) (condition-of c)))))
-
-
 ;;;;;;
 ;;; some classes
 
@@ -544,90 +537,6 @@
                     (setf *last-test-result* ,global-context)
                     (,body))
                   (,body)))))))))
-
-
-(defmacro defixture (name &body body)
-  "Fixtures are defun's that only execute the :setup part of their body once per test session if there is any at the time of calling."
-  (with-unique-names (global-context nesting-count phase)
-    (bind (setup-body
-           teardown-body)
-      (dolist (entry body)
-        (if (and (consp body)
-                 (member (first entry) '(:setup :teardown)))
-            (ecase (first entry)
-              (:setup
-               (assert (not setup-body) () "Multiple :setup's for fixture ~S" name)
-               (setf setup-body (rest entry)))
-              (:teardown
-               (assert (not teardown-body) () "Multiple :teardown's for fixture ~S" name)
-               (setf teardown-body (rest entry))))
-            (progn
-              (assert (and (not setup-body)
-                           (not teardown-body))
-                      () "Error parsing body of fixture ~A" name)
-              (setf setup-body body)
-              (return))))
-      `(defun ,name (&optional (,phase :setup))
-        (declare (optimize (debug 3)))
-        (bind ((,global-context (and (has-global-context)
-                                     (current-global-context)))
-               (,nesting-count (or (and ,global-context
-                                        (gethash ',name (run-fixtures-of ,global-context)))
-                                   0)))
-          (assert (>= ,nesting-count 0))
-          (ecase ,phase
-            (:setup
-             (incf ,nesting-count)
-             (prog1
-                 (if (and ,global-context
-                          (> ,nesting-count 1))
-                     nil
-                     (progn
-                       ,@setup-body
-                       t))
-               (when ,global-context
-                 (setf (gethash ',name (run-fixtures-of ,global-context)) ,nesting-count))))
-            (:teardown
-             (decf ,nesting-count)
-             (prog1
-                 (if (and ,global-context
-                          (> ,nesting-count 0))
-                     nil
-                     (progn
-                       (setf ,nesting-count 0)
-                       ,@teardown-body
-                       t))
-               (when ,global-context
-                 (setf (gethash ',name (run-fixtures-of ,global-context))
-                       ,nesting-count))))))))))
-
-(defmacro with-fixture (name &body body)
-  (with-unique-names (whole-fixture-body)
-    `(flet ((,whole-fixture-body ()
-             (,name :setup)
-             (unwind-protect (progn ,@body)
-               (block teardown-block
-                 (handler-bind
-                     ((serious-condition
-                       (lambda (c)
-                         ;; it's done this way to avoid installing an always visible continue restart, while at the same time do provide one when the debugger comes up due to our teardown error...
-                         (cerror ,(let ((*package* (find-package :common-lisp)))
-                                    (format nil "Ignore error coming from the teardown of ~S and continue" name))
-                                 'error-in-teardown :condition c :fixture ',name)
-                         (return-from teardown-block))))
-                   (,name :teardown))))))
-      (declare (dynamic-extent #',whole-fixture-body))
-      (if (has-global-context)
-          (,whole-fixture-body)
-          (with-new-global-context ()
-            (,whole-fixture-body))))))
-
-(defmacro with-fixtures (fixtures &body body)
-  (if fixtures
-      `(with-fixture ,(first fixtures)
-        (with-fixtures ,(rest fixtures)
-          ,@body))
-      `(progn ,@body)))
 
 (defun record-unexpected-error (condition)
   (assert (not (typep condition 'assertion-failed)))
