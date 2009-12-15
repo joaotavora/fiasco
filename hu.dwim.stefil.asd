@@ -14,7 +14,8 @@
   :depends-on (:alexandria
                :metabang-bind)
   :components ((:module "source"
-                :components ((:file "package")
+                :components ((:file "asserts" :depends-on ("infrastructure"))
+                             (:file "package")
                              (:file "duplicates" :depends-on ("package"))
                              (:file "fixture" :depends-on ("test"))
                              (:file "infrastructure" :depends-on ("duplicates"))
