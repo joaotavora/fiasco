@@ -6,6 +6,9 @@
 
 (in-package :hu.dwim.stefil)
 
+(defvar *fixture-body-aliases* '()
+  "This is an kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.stefil without a shared dependency.")
+
 (defun fixture-function-name-for (name)
   (symbolicate '#:fixture/call-with/ name))
 
@@ -33,7 +36,9 @@
                             (= ,nesting-count 1))
                         (progn
                           (multiple-value-prog1
-                              (progn
+                              (flet (,@(loop
+                                         :for alias :in *fixture-body-aliases*
+                                         :collect `(,alias () (-body-))))
                                 ,@body)
                             (unless ,finished?
                               (error "The fixture ~S did not call ~S at all" ',name '-body-)))

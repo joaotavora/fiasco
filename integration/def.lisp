@@ -6,6 +6,14 @@
 
 (in-package :hu.dwim.def)
 
+;; resolve the headache: stefil and def both have -body-, but they have no common dependencies...
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unexport         'hu.dwim.stefil:-body- :hu.dwim.stefil)
+  (shadowing-import 'hu.dwim.def:-body-    :hu.dwim.stefil)
+  (export           'hu.dwim.def:-body-    :hu.dwim.stefil))
+
+(pushnew 'hu.dwim.def:-body- hu.dwim.stefil::*fixture-body-aliases*)
+
 ;; we define "TEST" with a string name, so it will match (def test ...) no matter what is the
 ;; home package of 'test. this is done like that to be able to write
 ;; (def any-package::test some-lib::test ...) in any library to create the toplevel TEST
