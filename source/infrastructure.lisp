@@ -656,4 +656,5 @@ to inspect the results (ASDF eats up the return values). Some inspector
 features may only be available when using the Slime branch at
 darcs get --lazy http://dwim.hu/darcs/hu.dwim.slime
 but the official Slime should also work fine.~%"
-            test-function result)))
+            test-function result)
+    result))
