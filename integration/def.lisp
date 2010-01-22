@@ -8,6 +8,7 @@
 
 ;; resolve the headache: stefil and def both have -body-, but they have no common dependencies...
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  #-allegro ;; TODO THL what does this mean for allegro?
   (unexport         'hu.dwim.stefil:-body- :hu.dwim.stefil)
   (shadowing-import 'hu.dwim.def:-body-    :hu.dwim.stefil)
   (export           'hu.dwim.def:-body-    :hu.dwim.stefil))
