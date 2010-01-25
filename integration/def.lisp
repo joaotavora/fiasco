@@ -7,6 +7,7 @@
 (in-package :hu.dwim.def)
 
 ;; resolve the headache: stefil and def both have -body-, but they have no common dependencies...
+;; TODO get rid of the common -body- and start using -with-macro/body- and similar naming. possibly also add extra defaulting arg for them to be able to provide user given names...
 (eval-when (:compile-toplevel :load-toplevel :execute)
   #-allegro ;; TODO THL what does this mean for allegro?
   (unexport         'hu.dwim.stefil:-body- :hu.dwim.stefil)
