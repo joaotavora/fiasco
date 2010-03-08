@@ -26,4 +26,3 @@
    lambda-list-to-value-list-expression lambda-list-to-funcall-expression
    illegal-lambda-list)
  (find-package :hu.dwim.stefil.test))
-
