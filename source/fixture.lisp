@@ -56,7 +56,7 @@
                                                    ,@body))))
       (if (has-global-context)
           (,body-fn)
-          (with-new-global-context ()
+          (with-new-global-context* ()
             (,body-fn))))))
 
 (defmacro with-fixtures (fixtures &body body)

@@ -20,6 +20,7 @@
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
 (defvar *failures-and-errors-are-expected* nil)
+(defvar *test-run-standard-output* *standard-output*)
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -275,6 +276,11 @@
                    "none")
                   (t expected-count)))))
 
+(defmacro with-new-global-context* ((&rest initargs) &body forms)
+  `(with-new-global-context ,initargs
+     (let* ((*standard-output* *test-run-standard-output*))
+       ,@forms)))
+
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
     `(let ((,old-state (print-test-run-progress-p *global-context*)))
@@ -361,7 +367,7 @@
                 'float)))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
-  `(with-new-global-context ()
+  `(with-new-global-context* ()
      (if (> (length (failure-descriptions-of ,test-result-place)) 0)
          (progn
            (%run-failed-tests ,test-result-place)
@@ -644,7 +650,8 @@
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run the given test non-interactively and print the results to *standard-output*.
 This function is ideal for ASDF:TEST-OP's."
-  (let* ((result (without-debugging (apply test-function args)))
+  (let* ((*test-run-standard-output* (make-broadcast-stream))
+         (result (without-debugging (apply test-function args)))
          (*package* (find-package :common-lisp)))
     (format *standard-output*
 "The result of ~S is:

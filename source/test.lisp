@@ -153,7 +153,7 @@
                    (declare (dynamic-extent ,@(unless compile-before-run `(#',name))
                                             #',body))
                    (if ,toplevel-p
-                       (with-new-global-context ()
+                       (with-new-global-context* ()
                          (setf ,global-context (current-global-context))
                          (push ,global-context *test-result-history*)
                          (setf *last-test-result* ,global-context)
