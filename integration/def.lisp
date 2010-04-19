@@ -25,7 +25,7 @@
 ;; (def any-package::test some-lib::test ...) in any library to create the toplevel TEST
 ;; defun called some-lib::test without shadowing stefil:test everywhere.
 (def (definer :available-flags "do") "TEST" ()
-  (function-like-definer hu.dwim.stefil:deftest))
+  (function-like-definer hu.dwim.stefil:deftest :allow-compound-name t))
 
 (def (definer :available-flags "e") hu.dwim.stefil::suite (name &rest args)
   `(progn
