@@ -9,7 +9,7 @@
 ;;; THE CONTENT OF THIS FILE IS COPIED OVER FROM SOME OTHER LIBRARIES TO DECREASE DEPENDENCIES
 
 ;; from arnesi
-(defmacro defprint-object ((self class-name &key (identity t) (type t) with-package)
+(defmacro defprint-object (&whole whole (self class-name &key (identity t) (type t) with-package (muffle-errors t))
                            &body body)
   "Define a print-object method using print-unreadable-object.
   An example:
@@ -18,12 +18,25 @@
       (princ \"cached\")
       (princ \" \"))
     (princ (parenscript-file self)))"
-  (with-unique-names (stream)
-    `(defmethod print-object ((,self ,class-name) ,stream)
-      (print-unreadable-object (,self ,stream :type ,type :identity ,identity)
-        (let ((*standard-output* ,stream)
-              ,@(when with-package `((*package* ,(find-package with-package)))))
-          ,@body)))))
+  (with-unique-names (stream printing)
+    (bind (((:values body declarations documentation) (parse-body body :documentation t :whole whole)))
+      `(defmethod print-object ((,self ,class-name) ,stream)
+         ,@(when documentation
+             (list documentation))
+         ,@declarations
+         (print-unreadable-object (,self ,stream :type ,type :identity ,identity)
+           (let ((*standard-output* ,stream))
+             (block ,printing
+               (,@(if muffle-errors
+                      `(handler-bind ((error (lambda (error)
+                                               (declare (ignore error))
+                                               (write-string "<<error printing object>>")
+                                               (return-from ,printing)))))
+                      `(progn))
+                  (let (,@(when with-package `((*package* ,(find-package with-package)))))
+                    ,@body)))))
+         ;; primary PRINT-OBJECT methods are supposed to return the object
+         ,self))))
 
 (defmacro define-dynamic-context
     (name direct-slots &key direct-superclasses
