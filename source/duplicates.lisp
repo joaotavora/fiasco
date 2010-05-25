@@ -19,7 +19,7 @@
       (princ \" \"))
     (princ (parenscript-file self)))"
   (with-unique-names (stream printing)
-    (bind (((:values body declarations documentation) (parse-body body :documentation t :whole whole)))
+    (multiple-value-bind (body declarations documentation) (parse-body body :documentation t :whole whole)
       `(defmethod print-object ((,self ,class-name) ,stream)
          ,@(when documentation
              (list documentation))
