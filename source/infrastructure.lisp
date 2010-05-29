@@ -394,10 +394,11 @@
        ,@body
        (= ,old-failure-count (length (failure-descriptions-of *global-context*))))))
 
-(defmacro with-expected-failures* (condition &body body)
+(defmacro with-expected-failures* (&whole whole condition &body body)
   "Any failure inside the dynamic extent of this block is registered as an expected failure when CONDITION evaluates to true."
-  (with-unique-names (with-expected-failures-block)
-    `(let* ((*failures-and-errors-are-expected* ,condition))
+  (with-unique-names (with-expected-failures-block starting-failure-count)
+    `(let* ((*failures-and-errors-are-expected* ,condition)
+            (,starting-failure-count (length (failure-descriptions-of *global-context*))))
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
@@ -405,7 +406,10 @@
                              (lambda (error)
                                (record-unexpected-error error)
                                (return-from ,with-expected-failures-block (values)))))
-               ,@body)
+               (multiple-value-prog1
+                   (progn ,@body)
+                 (unless (< ,starting-failure-count (length (failure-descriptions-of *global-context*)))
+                   (warn "The following ~S block ran without any failures: ~S" 'with-expected-failures* ',whole))))
            (continue ()
              :report (lambda (stream)
                        (format stream "~@<Skip the rest of the innermost WITH-EXPECTED-FAILURES body and continue by returning (values)~@:>"))
