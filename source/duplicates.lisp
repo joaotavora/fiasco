@@ -8,7 +8,6 @@
 
 ;;; THE CONTENT OF THIS FILE IS COPIED OVER FROM SOME OTHER LIBRARIES TO DECREASE DEPENDENCIES
 
-;; from arnesi
 (defmacro defprint-object (&whole whole (self class-name &key (identity t) (type t) with-package (muffle-errors t))
                            &body body)
   "Define a print-object method using print-unreadable-object.

@@ -7,7 +7,7 @@
 (in-package :hu.dwim.stefil)
 
 (defvar *fixture-body-aliases* '()
-  "This is an kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.stefil without a shared dependency.")
+  "This is a kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.stefil without a shared dependency.")
 
 (defun fixture-function-name-for (name)
   (symbolicate '#:fixture/call-with/ name))
