@@ -22,8 +22,11 @@
    (documentation :initform nil :accessor documentation-of :initarg :documentation)
    (body :initform nil :accessor body-of :initarg :body)))
 
-(defun make-test (name &rest args &key &allow-other-keys)
-  (apply #'make-instance 'test :name name args))
+(defun ensure-test (name &rest args &key &allow-other-keys)
+  (let ((test (find-test name :otherwise nil)))
+    (if test
+        (apply #'reinitialize-instance test args)
+        (apply #'make-instance 'test :name name args))))
 
 (defgeneric get-test-lambda (test global-context)
   (:method ((test test) (context global-context))
@@ -115,7 +118,7 @@
         (with-unique-names (test test-lambda global-context toplevel-p body)
           `(progn
              (eval-when (:load-toplevel :execute)
-               (make-test ',name
+               (ensure-test ',name
                           :package ,*package*
                           :lambda-list ',args
                           :declarations ',declarations
