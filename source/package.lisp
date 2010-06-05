@@ -18,6 +18,7 @@
            #:finishes
            #:with-expected-failures
            #:with-expected-failures*
+           #:with-captured-lexical-environment
            #:in-suite
            #:root-suite
            #:defsuite
@@ -25,6 +26,7 @@
            #:run-child-tests
            #:defixture
            #:-body-
+           #:-here-
            #:with-fixture
            #:with-fixtures
            #:runs-without-failure?
