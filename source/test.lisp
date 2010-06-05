@@ -40,6 +40,20 @@
         (setf (gethash test (test-lambdas-of context)) test-lambda))
       test-lambda)))
 
+(defun call-with-test-handlers (function)
+  ;; NOTE: the order of the bindings in this handler-bind is important
+  (handler-bind
+      ((assertion-failed
+        (lambda (c)
+          (declare (ignore c))
+          (unless (debug-on-assertion-failure-p *global-context*)
+            (continue))))
+       (serious-condition
+        (lambda (c)
+          (record-unexpected-error c)
+          (return-from call-with-test-handlers))))
+    (funcall function)))
+
 (defun run-test-body-in-handlers (test function)
   (declare (type test test)
            (type function function))
@@ -50,36 +64,27 @@
                 do (vector-pop (failure-descriptions-of *global-context*)))
              (setf (number-of-added-failure-descriptions-of *context*) 0))
            (run-test-body ()
-             ;; NOTE: the order of the bindings in this handler-bind is important
-             (handler-bind
-                 ((assertion-failed
-                   (lambda (c)
-                     (declare (ignore c))
-                     (unless (debug-on-assertion-failure-p *global-context*)
-                       (continue))))
-                  (serious-condition
-                   (lambda (c)
-                     (record-unexpected-error c)
-                     (return-from run-test-body))))
-               (restart-case
-                   (let* ((*package* (package-of test))
-                          (*readtable* (copy-readtable))
-                          (start-time (get-internal-run-time)))
-                     (multiple-value-prog1
-                         (funcall function)
-                       (setf (internal-realtime-spent-with-test-of *context*)
-                             (- (get-internal-run-time) start-time))))
-                 (continue ()
-                   :report (lambda (stream)
-                             (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
-                   (values))
-                 (retest ()
-                   :report (lambda (stream)
-                             (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
-                   ;; TODO: this will only prune the failures that were recorded in the current context.
-                   ;; in case of nesting it will leave alone the failures recorded in deeper levels.
-                   (prune-failure-descriptions)
-                   (return-from run-test-body (run-test-body)))))))
+             (call-with-test-handlers
+              (lambda ()
+                (restart-case
+                    (let* ((*package* (package-of test))
+                           (*readtable* (copy-readtable))
+                           (start-time (get-internal-run-time)))
+                      (multiple-value-prog1
+                          (funcall function)
+                        (setf (internal-realtime-spent-with-test-of *context*)
+                              (- (get-internal-run-time) start-time))))
+                  (continue ()
+                    :report (lambda (stream)
+                              (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
+                    (values))
+                  (retest ()
+                    :report (lambda (stream)
+                              (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
+                    ;; TODO: this will only prune the failures that were recorded in the current context.
+                    ;; in case of nesting it will leave alone the failures recorded in deeper levels.
+                    (prune-failure-descriptions)
+                    (return-from run-test-body (run-test-body))))))))
     (run-test-body)))
 
 (defun run-test-body (test function arguments toplevel-p)
