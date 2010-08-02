@@ -6,7 +6,7 @@
 
 (in-package :hu.dwim.stefil.documentation)
 
-(def project :hu.dwim.stefil :path (system-pathname :hu.dwim.stefil))
+(def project :hu.dwim.stefil)
 
 (def book user-guide (:title "User guide")
   (chapter (:title "Introduction")
