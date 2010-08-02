@@ -250,16 +250,27 @@
    (run-fixtures :initform (make-hash-table) :accessor run-fixtures-of :initarg :run-fixtures)
    (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
 
-(defprint-object (self global-context :identity nil :type nil)
-  (let* ((failure-descriptions (failure-descriptions-of self))
-         (total-failure-count (length failure-descriptions))
+(defun extract-test-run-statistics (global-context)
+  (let* ((failure-descriptions (failure-descriptions-of global-context))
          (failed-assertion-count (count-if (of-type '(or failed-assertion missing-condition extra-condition)) failure-descriptions))
          (unexpected-error-count (count-if (of-type 'unexpected-error) failure-descriptions))
-         (expected-count (count-if 'expected-p (failure-descriptions-of self))))
+         (expected-count (count-if 'expected-p failure-descriptions)))
+    (list :number-of-tests-run (hash-table-count (run-tests-of global-context))
+          :number-of-assertions (assertion-count-of global-context)
+          :number-of-failures (length failure-descriptions)
+          :number-of-expected-failures expected-count
+          :number-of-failed-assertions failed-assertion-count
+          :number-of-unexpected-errors unexpected-error-count)))
+
+(defprint-object (self global-context :identity nil :type nil)
+  (destructuring-bind (&key number-of-tests-run number-of-assertions number-of-failures number-of-failed-assertions
+                            number-of-unexpected-errors number-of-expected-failures
+                            &allow-other-keys)
+      (extract-test-run-statistics self)
     (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec~[~:; (~A failed assertions, ~A errors, ~A expected)~]"
-            (hash-table-count (run-tests-of self))
-            (assertion-count-of self)
-            total-failure-count
+            number-of-tests-run
+            number-of-assertions
+            number-of-failures
             (let* ((toplevel-context (toplevel-context-of self))
                    (real-time-spent-in-seconds (when toplevel-context
                                                  (real-time-spent-in-seconds toplevel-context))))
@@ -267,14 +278,14 @@
                        real-time-spent-in-seconds)
                   real-time-spent-in-seconds
                   "?"))
-            total-failure-count ; index in the ~[] conditional
-            failed-assertion-count
-            unexpected-error-count
-            (cond ((= expected-count total-failure-count)
+            number-of-failures ; index in the ~[] conditional
+            number-of-failed-assertions
+            number-of-unexpected-errors
+            (cond ((= number-of-expected-failures number-of-failures)
                    "all")
-                  ((zerop expected-count)
+                  ((zerop number-of-expected-failures)
                    "none")
-                  (t expected-count)))))
+                  (t number-of-expected-failures)))))
 
 (defmacro with-new-global-context* ((&rest initargs) &body forms)
   `(with-new-global-context ,initargs
