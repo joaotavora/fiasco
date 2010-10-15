@@ -36,12 +36,12 @@
   (when test
     (let* ((actions `(,@(if (lambda-list-of test)
                             (when actions-first
-                              `((:label "[run]")))
+                              `((:label "     ")))
                             `((:action "[run]" ,(make-run-test-action-for-inspector test))))
                       ,@(when undefine-action
                           (if (find-test (name-of test) :otherwise nil)
                               (when actions-first
-                                `((:label "[undefine]")))
+                                `((:label "          ")))
                               `((:action "[undefine]" ,(lambda () (setf (find-test (name-of test)) nil))))))))
            (value `((:value ,(if name-only (name-of test) test)))))
       (if actions-first

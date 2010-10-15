@@ -15,7 +15,7 @@ stefil:
 - entry point anywhere
 
 IN-SUITE: mimicing in-package.
- - SUITE's are also DEFUN's. RUN-CHILD-TESTS is a lexically visible function
+ - SUITE's are also DEFUN's. -RUN-CHILD-TESTS- is a lexically visible function
    for wrapping suite bodies in a certain environment.
 
 ...which leads to fixtures: code pieces :setup/:teardown
