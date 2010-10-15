@@ -10,10 +10,6 @@
   (let* ((swank::*sldb-quit-restart* restart))
     (funcall thunk)))
 
-;; the inspector code in hu.dwim.slime is too far from slime head to easily provide these inspector customizations, so just turn it off
-#+hu.dwim.slime
-(progn
-
 (defun stefil-inspector-lookup-hook (form)
   (when (symbolp form)
     (let ((test (find-test form :otherwise nil)))
@@ -21,7 +17,7 @@
         (values test t)))))
 
 (when (boundp 'swank::*inspector-lookup-hooks*)
-  (pushnew 'stefil-inspector-lookup-hook swank::*inspector-lookup-hooks*))
+  (pushnew 'stefil-inspector-lookup-hook (symbol-value 'swank::*inspector-lookup-hooks*)))
 
 (defvar *display-all-slots-in-inspector* nil)
 
@@ -77,7 +73,9 @@
         (:action "[show all slots]" ,(lambda () (setf *display-all-slots-in-inspector* t))))))
 
 (defmacro inspector-result (title content)
-  `(list :title ,title :type nil :content ,content))
+  (declare (ignore title))
+  ;;`(list :title ,title :type nil :content ,content)
+  content)
 
 (defmethod swank-backend::emacs-inspect ((global-context global-context))
   (inspector-result
@@ -162,5 +160,3 @@
          :appending (present-test-for-emacs child :actions-first t)
          :collect `(:newline)))
     (@ (present-all-slots-for-emacs test)))))
-
-) ; #+hu.dwim.slime
