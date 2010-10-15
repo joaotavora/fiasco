@@ -23,7 +23,8 @@
            #:root-suite
            #:defsuite
            #:defsuite*
-           #:run-child-tests
+           #:run-child-tests ; TODO delete eventually
+           #:-run-child-tests-
            #:defixture
            #:-body-
            #:-here-

@@ -16,17 +16,22 @@
       `(progn
         (deftest (,name ,@deftest-args) ,args
           (let* ((,test (find-test ',name)))
-            (flet ((run-child-tests ()
-                     (loop
-                       :for subtest :being :the :hash-values :of (children-of ,test)
-                       :when (and (auto-call? subtest)
-                                  (or (zerop (length (lambda-list-of subtest)))
-                                      (member (first (lambda-list-of subtest)) '(&key &optional))))
-                         :do (funcall (name-of subtest)))))
+            (labels ((-run-child-tests- ()
+                       (loop
+                         :for subtest :being :the :hash-values :of (children-of ,test)
+                         :when (and (auto-call? subtest)
+                                    (or (zerop (length (lambda-list-of subtest)))
+                                        (member (first (lambda-list-of subtest)) '(&key &optional))))
+                         :do (funcall (name-of subtest))))
+                     (run-child-tests ()
+                       ;; TODO delme eventually?
+                       ;; (simple-style-warning "~S is obsolete, use ~S to invoke child tests in a testsuite!" 'run-child-tests '-run-child-tests-)
+                       (-run-child-tests-)))
+              (declare (ignorable #'run-child-tests))
               ,@(or body
                     `((if (test-was-run-p ,test)
                           (warn "Skipped executing already run tests suite ~S" (name-of ,test))
-                          (run-child-tests))))))
+                          (-run-child-tests-))))))
           (values))
         (values (find-test ',name))))))
 
