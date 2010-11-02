@@ -22,24 +22,11 @@
     (paragraph ()
       "TODO"))
   (chapter (:title "Tips and Tricks")
-    (paragraph (:title "Adding a new test interactively in slime")
-      "When working in slime, you might be interested in using
-slime-compile-defun \(usually bound to C-c C-c) on a new test, but you
-would be surprised: the test is not added to the suite (as you can
-verify by using slime-inspect on the name of the suite). Even if you
-have issued a (in-suite mysuite) before, the number of the tests in
-the suite remains constant.")
-    (paragraph ()
-      "In fact this behaviour is intentional (a 'feature', if you like):
-tests are not changing suites once they ended up in one of them so
-that you can C-c C-c freely \(without an in-package like support from
-slime). In other words: tests are sticking to suites. So, if you want
-to add a test to an existing suite, you have to use")
-    (shell-script ()
-      "(deftest (foo :in mysuite) () ... )"
-      "or"
-      "(def test (foo :in mysuite) () ...)")
-    (paragraph ()
-      "During the loading of the package with asdf, there is no need
-to specify the suite with the :in clause, so you might want to remove
-it afterwards.")))
+    (chapter (:title "Adding a new test interactively in slime")
+      (paragraph ()
+        "When interactively defining a new test \(e.g. with Slime using C-c C-c), the test will be put in the current suite (see IN-SUITE). However, if a test is already defined with the same name, then the newly (re)defined test will stick to the original suite regardless the current suite.")
+      (paragraph ()
+        "This behaviour is intentional: tests are not changing suites, so that you can C-c C-c freely \(even without an IN-PACKAGE like support from Slime). If you want to force a test into a different suite, you can specify the test suite explicitly for the time of a C-c C-c:")
+      ;; FIXME use a lisp form type here, not shell-script...
+      (shell-script ()
+        "(deftest (foo :in my-new-suite) () ... )"))))
