@@ -267,7 +267,7 @@
                             number-of-unexpected-errors number-of-expected-failures
                             &allow-other-keys)
       (extract-test-run-statistics self)
-    (format t "test-run: ~A tests, ~A assertions, ~A failures in ~A sec~[~:; (~A failed assertions, ~A errors, ~A expected)~]"
+    (format t "test-run: ~A test~:P, ~A assertion~:P, ~A failure~:P in ~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
             number-of-tests-run
             number-of-assertions
             number-of-failures
