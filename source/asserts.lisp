@@ -210,6 +210,7 @@
               (setf ,success? t)
               (register-assertion-was-successful))
          (unless ,success?
+           ;; TODO painfully broken: when we don't finish due to a restart, then we don't want this here to be triggered...
            (record-failure 'failed-assertion
                            :form ,whole
                            :format-control "FINISHES block did not finish: ~S"
