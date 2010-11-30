@@ -11,18 +11,11 @@
         :common-lisp
         :hu.dwim.stefil)
 
-  (:shadow #:deftest))
+  (:shadow
+   #:deftest
+   #:test
+   #:fixtures))
 
 (in-package :hu.dwim.stefil)
 
-(import
- '(*suite* count-tests
-   parent-of name-of *tests*
-   extract-assert-expression-and-message record-failure record-failure*
-   assertion-count-of run-tests-of failure-descriptions-of
-   *global-context* *context* debug-on-unexpected-error-p
-   debug-on-assertion-failure-p print-test-run-progress-p
-   delete-test lambda-list-to-variable-name-list
-   lambda-list-to-value-list-expression lambda-list-to-funcall-expression
-   illegal-lambda-list)
- (find-package :hu.dwim.stefil.test))
+(import-all-owned-symbols :hu.dwim.stefil :hu.dwim.stefil.test)
