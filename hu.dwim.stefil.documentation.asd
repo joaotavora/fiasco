@@ -11,7 +11,7 @@
 (defsystem :hu.dwim.stefil.documentation
   :class hu.dwim.documentation-system
   :depends-on (:hu.dwim.stefil.test
-               :hu.dwim.wui)
+               :hu.dwim.presentation)
   :components ((:module "documentation"
                 :components ((:file "package")
                              (:file "stefil" :depends-on ("package"))))))
