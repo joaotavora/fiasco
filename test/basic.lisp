@@ -6,14 +6,14 @@
 
 (in-package :hu.dwim.stefil.test)
 
-(defparameter *stefil-temp-suite* (defsuite (stefil-temp-suite :documentation "Suite active when the Stefil self-tests are being run")))
-
 (defsuite* (test :in root-suite :documentation "Stefil self tests"))
+
+(defsuite (stefil-temp-suite :in test :documentation "Current test suite while the Stefil self-tests are being run"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
   `(hu.dwim.stefil:deftest ,name ,args
-    (let ((*suite* *stefil-temp-suite*))
+    (let ((*suite* (find-test 'stefil-temp-suite)))
       ,@body)))
 
 (deftest lifecycle ()
