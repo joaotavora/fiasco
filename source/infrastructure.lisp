@@ -20,7 +20,10 @@
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
 (defvar *failures-and-errors-are-expected* nil)
-(defvar *test-run-standard-output* *standard-output*)
+
+;; TODO introduce *progress-output*
+(defvar *test-run-standard-output* '*standard-output*
+  "*STANDARD-OUTPUT* is bound to (eval *test-run-standard-output*) at the toplevel entry point to any test.")
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -289,7 +292,7 @@
 
 (defmacro with-new-global-context* ((&rest initargs) &body forms)
   `(with-new-global-context ,initargs
-     (let* ((*standard-output* *test-run-standard-output*))
+     (let* ((*standard-output* (eval *test-run-standard-output*)))
        ,@forms)))
 
 (defmacro without-test-progress-printing (&body body)
