@@ -196,6 +196,9 @@
     ("Auto call by its suite?" (if (auto-call? test) "yes" "no") :splice-as-ispec t)
     ("Documentation" (documentation-of test) :display-nil-value nil)
     ("Parent" (present-test-for-emacs (parent-of test)) :splice-as-ispec t)
+    (@ `((:newline)
+         (:action "[undefine]" ,(lambda () (setf (find-test test) nil)))
+         (:newline)))
     (@ (loop
          :with first-time? = t
          :for child :being :the :hash-values :of (children-of test)
