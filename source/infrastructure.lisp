@@ -206,6 +206,7 @@
 
 (defun delete-test (name &rest args)
   (let* ((test (apply #'find-test name args))
+         (name (name-of test))
          (parent (when test
                    (parent-of test))))
     (when test
