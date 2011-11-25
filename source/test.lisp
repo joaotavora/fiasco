@@ -87,8 +87,10 @@
                     (return-from run-test-body (run-test-body))))))))
     (run-test-body)))
 
-(defun run-test-body (test function arguments toplevel-p)
+(defun run-test-body (test function arguments toplevel-p timeout)
   (declare (type test test))
+  (when timeout
+    (error "TODO: timeouts are not implemented yet in hu.dwim.stefil"))
   (let* ((result-values '()))
     (flet ((body ()
              (with-new-context (:test test :test-arguments arguments)
@@ -112,7 +114,7 @@
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
       (destructuring-bind (name &rest test-args &key (compile-before-run *compile-tests-before-run*)
-                                (in nil in-provided?) &allow-other-keys)
+                                (in nil in-provided?) timeout &allow-other-keys)
           (ensure-list name)
         (remove-from-plistf test-args :in)
         (unless (or (not (symbol-package name))
@@ -153,11 +155,13 @@
                                                      ;; TODO install a labels entry with the test name? to avoid compile at each recursion...
                                                      ,(lambda-list-to-funcall-expression test-lambda args))
                                                    ,(lambda-list-to-value-list-expression args)
-                                                   ,toplevel-p))
+                                                   ,toplevel-p
+                                                   ,timeout))
                                  `(run-test-body ,test
                                                  #',name
                                                  ,(lambda-list-to-value-list-expression args)
-                                                 ,toplevel-p))))
+                                                 ,toplevel-p
+                                                 ,timeout))))
                    (declare (dynamic-extent ,@(unless compile-before-run `(#',name))
                                             #',body))
                    (if ,toplevel-p
