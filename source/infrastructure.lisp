@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
 ;; Warning: setf-ing these variables in not a smart idea because other systems may rely on their default value.
 ;; It's smarter to rebind them in an :around method from your .asd or shadow stefil:deftest with your own that sets

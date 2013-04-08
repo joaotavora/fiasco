@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil.test)
+(in-package :stefil-test)
 
 (defsuite* (test :in root-suite :documentation "Stefil self tests"))
 
@@ -12,7 +12,7 @@
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
-  `(hu.dwim.stefil:deftest ,name ,args
+  `(stefil:deftest ,name ,args
     (let ((*suite* (find-test 'stefil-temp-suite)))
       ,@body)))
 
@@ -110,7 +110,7 @@
                (+ old-assertion-count 13))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
                (+ old-failure-description-count 6)))
-        (is (= 1 (count-if 'hu.dwim.stefil::expected-p (failure-descriptions-of context))))
+        (is (= 1 (count-if 'stefil::expected-p (failure-descriptions-of context))))
         (dotimes (i (- (length (failure-descriptions-of context))
                        old-failure-description-count))
           ;; drop failures registered by the test-test

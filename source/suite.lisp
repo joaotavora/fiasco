@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
 (defun make-suite (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))

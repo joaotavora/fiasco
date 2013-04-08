@@ -6,7 +6,7 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :hu.dwim.stefil
+(defpackage :stefil
   (:use :alexandria
         :common-lisp)
 

@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
 (defun extract-assert-expression-and-message (input-form)
   (let* ((negatedp nil)

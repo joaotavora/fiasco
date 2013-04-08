@@ -6,16 +6,16 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :hu.dwim.stefil.test
+(defpackage :stefil-test
   (:use :alexandria
         :common-lisp
-        :hu.dwim.stefil)
+        :stefil)
 
   (:shadow
    #:deftest
    #:test
    #:fixtures))
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
-(import-all-owned-symbols :hu.dwim.stefil :hu.dwim.stefil.test)
+(import-all-owned-symbols :stefil :stefil-test)
