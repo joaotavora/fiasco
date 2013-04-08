@@ -6,34 +6,49 @@
 
 (in-package :stefil)
 
+
+(defvar *package-bound-suites* (make-hash-table))
+
+(defun find-suite-for-package (package)
+  (gethash package *package-bound-suites*))
+
 (defun make-suite (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))
 
 (defmacro defsuite (name-or-name-with-args &optional args &body body)
   (destructuring-bind (name &rest deftest-args)
       (ensure-list name-or-name-with-args)
-    (with-unique-names (test)
-      `(progn
-        (deftest (,name ,@deftest-args) ,args
-          (let* ((,test (find-test ',name)))
-            (labels ((-run-child-tests- ()
-                       (loop
-                         :for subtest :being :the :hash-values :of (children-of ,test)
-                         :when (and (auto-call? subtest)
-                                    (or (zerop (length (lambda-list-of subtest)))
-                                        (member (first (lambda-list-of subtest)) '(&key &optional))))
-                         :do (funcall (name-of subtest))))
-                     (run-child-tests ()
-                       ;; TODO delme eventually?
-                       ;; (simple-style-warning "~S is obsolete, use ~S to invoke child tests in a testsuite!" 'run-child-tests '-run-child-tests-)
-                       (-run-child-tests-)))
-              (declare (ignorable #'run-child-tests))
-              ,@(or body
-                    `((if (test-was-run-p ,test)
-                          (warn "Skipped executing already run tests suite ~S" (name-of ,test))
-                          (-run-child-tests-))))))
-          (values))
-        (values (find-test ',name))))))
+    (let ((bind-to-package (getf deftest-args :bind-to-package)))
+      (setq bind-to-package
+            (if (eq t bind-to-package)
+                *package*
+                (find-package bind-to-package)))
+      (remf deftest-args :bind-to-package)
+      (with-unique-names (test)
+        `(progn
+           (deftest (,name ,@deftest-args) ,args
+             (let* ((,test (find-test ',name)))
+               (labels ((-run-child-tests- ()
+                          (loop
+                            :for subtest :being :the :hash-values :of (children-of ,test)
+                            :when (and (auto-call? subtest)
+                                       (or (zerop (length (lambda-list-of subtest)))
+                                           (member (first (lambda-list-of subtest)) '(&key &optional))))
+                              :do (funcall (name-of subtest))))
+                        (run-child-tests ()
+                          ;; TODO delme eventually?
+                          ;; (simple-style-warning "~S is obsolete, use ~S to invoke child tests in a testsuite!" 'run-child-tests '-run-child-tests-)
+                          (-run-child-tests-)))
+                 (declare (ignorable #'run-child-tests))
+                 ,@(or body
+                       `((if (test-was-run-p ,test)
+                             (warn "Skipped executing already run tests suite ~S" (name-of ,test))
+                             (-run-child-tests-))))))
+             (values))
+           (let ((suite (find-test ',name)))
+             ,(when bind-to-package
+                `(setf (gethash ,bind-to-package *package-bound-suites*) suite))
+             (values suite)))))))
 
 (defmacro defsuite* (name-or-name-with-args &optional args &body body)
   "Equivalent to (in-suite (defsuite ...)) which is the preferred way to define suites."
