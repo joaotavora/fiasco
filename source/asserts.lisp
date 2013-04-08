@@ -148,20 +148,28 @@
                           (format stream "~@<Ignore the failure and continue~@:>")))))))))
 
 (defmacro is (&whole whole form &optional (message nil message-p) &rest message-args)
-  (multiple-value-bind (bindings expression message message-args)
-      (if message-p
-          (values nil form message message-args)
-          (extract-assert-expression-and-message form))
-    (with-unique-names (result)
+  (multiple-value-bind (bindings expression expression-message expression-message-args)
+      (extract-assert-expression-and-message form)
+    (with-unique-names (result format-control format-arguments)
       `(progn
          (register-assertion)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
-           (if (first ,result)
-               (register-assertion-was-successful)
-               (record-failure 'failed-assertion :form ',whole
-                               :format-control ,message :format-arguments (list ,@message-args)))
+           (multiple-value-bind (,format-control ,format-arguments)
+               (if (and ,message-p *always-show-failed-sexp*)
+                   (values (format nil "~A~%~%~A" ,message ,expression-message)
+                           (list ,@message-args ,@expression-message-args))
+                   ,(if message-p
+                        `(values ,message (list ,@message-args))
+                        `(values ,expression-message (list ,@expression-message-args))))
+
+             (if (first ,result)
+                 (register-assertion-was-successful)
+                 (record-failure 'failed-assertion :form ',whole
+                                                   :format-control ,format-control :format-arguments ,format-arguments)))
            (values-list ,result))))))
+
+
 
 (defmacro signals (&whole whole what &body body)
   (let* ((condition-type what))

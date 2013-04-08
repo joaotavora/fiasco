@@ -45,4 +45,5 @@
            ;; these are the defaults from which the test context is initialized
            #:*print-test-run-progress*
            #:*debug-on-unexpected-error*
-           #:*debug-on-assertion-failure*))
+           #:*debug-on-assertion-failure*
+           #:*always-show-failed-sexp*))

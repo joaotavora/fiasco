@@ -20,6 +20,7 @@
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
 (defvar *failures-and-errors-are-expected* nil)
+(defvar *always-show-failed-sexp* nil)
 
 ;; TODO introduce *progress-output*
 (defvar *test-run-standard-output* '*standard-output*
