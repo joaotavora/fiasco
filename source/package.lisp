@@ -46,4 +46,9 @@
            #:*print-test-run-progress*
            #:*debug-on-unexpected-error*
            #:*debug-on-assertion-failure*
-           #:*always-show-failed-sexp*))
+           #:*always-show-failed-sexp*
+           #:*ignore-package-suite-mismatch*
+           #:all-tests
+           #:define-test-package
+           #:describe-failed-tests
+           #:run-suite-tests))

@@ -87,6 +87,8 @@
                     (return-from run-test-body (run-test-body))))))))
     (run-test-body)))
 
+(defvar *run-test-function* #'run-test-body-in-handlers)
+
 (defun run-test-body (test function arguments toplevel-p timeout)
   (declare (type test test))
   (when timeout
@@ -96,7 +98,7 @@
              (with-new-context (:test test :test-arguments arguments)
                (when toplevel-p
                  (setf (toplevel-context-of *global-context*) (current-context)))
-               (setf result-values (multiple-value-list (run-test-body-in-handlers test function))))))
+               (setf result-values (multiple-value-list (funcall *run-test-function* test function))))))
       (if toplevel-p
           (with-toplevel-restarts
             (body))
@@ -113,11 +115,12 @@
 (defmacro deftest (&whole whole name args &body body)
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
-      (destructuring-bind (name &rest test-args &key (compile-before-run *compile-tests-before-run*)
+      (destructuring-bind (name &rest test-args &key ignore-home-package (compile-before-run *compile-tests-before-run*)
                                 (in nil in-provided?) timeout &allow-other-keys)
           (ensure-list name)
-        (remove-from-plistf test-args :in)
-        (unless (or (not (symbol-package name))
+        (remove-from-plistf test-args :in :ignore-home-package)
+        (unless (or ignore-home-package
+                    (not (symbol-package name))
                     (eq (symbol-package name) *package*))
           (warn 'test-style-warning :test name
                 :format-control "Defining test on symbol ~S whose home package is not *package* which is ~A"
