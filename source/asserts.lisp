@@ -26,7 +26,8 @@
              (values '() input-form "Macro expression ~S evaluated to false." (list `(quote ,input-form))))
             ((and (ignore-errors
                     (fdefinition predicate))
-                  ;; let's just skip CL:IF and don't change its evaluation semantics while trying to be more informative...
+                  ;; let's just skip CL:IF and don't change its evaluation
+                  ;; semantics while trying to be more informative...
                   (not (eq predicate 'if)))
              (cond ((= (length arguments) 0)
                     (values '()
@@ -166,10 +167,9 @@
              (if (first ,result)
                  (register-assertion-was-successful)
                  (record-failure 'failed-assertion :form ',whole
-                                                   :format-control ,format-control :format-arguments ,format-arguments)))
+                                                   :format-control ,format-control
+						   :format-arguments ,format-arguments)))
            (values-list ,result))))))
-
-
 
 (defmacro signals (&whole whole what &body body)
   (let* ((condition-type what))
@@ -218,7 +218,8 @@
               (setf ,success? t)
               (register-assertion-was-successful))
          (unless ,success?
-           ;; TODO painfully broken: when we don't finish due to a restart, then we don't want this here to be triggered...
+           ;; TODO painfully broken: when we don't finish due to a restart, then
+           ;; we don't want this here to be triggered...
            (record-failure 'failed-assertion
                            :form ,whole
                            :format-control "FINISHES block did not finish: ~S"
@@ -233,11 +234,12 @@
   (let ((body '.with-captured-lexical-environment/body.)
         (injector-macro '.with-captured-lexical-environment/injector-macro.))
     `(let ((,body (lambda (,env-variable)
-                    ;; TODO: wrap the body in our handlers that will prevent the errors/failed-asserts reaching COMPILE
+                    ;; TODO: wrap the body in our handlers that will prevent the
+                    ;; errors/failed-asserts reaching COMPILE
                     ,@code)))
        (declare (special ,body))        ; For the macrolet
        (handler-bind
-           (#+sbcl(sb-ext:compiler-note #'muffle-warning)
+           (#+sbcl (sb-ext:compiler-note #'muffle-warning)
             (warning #'muffle-warning))
          (,compiler
           ,(subst `(macrolet ((,injector-macro (&environment env)
