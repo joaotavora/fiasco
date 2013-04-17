@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
 ;; Warning: setf-ing these variables in not a smart idea because other systems may rely on their default value.
 ;; It's smarter to rebind them in an :around method from your .asd or shadow stefil:deftest with your own that sets
@@ -20,6 +20,7 @@
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
 (defvar *failures-and-errors-are-expected* nil)
+(defvar *always-show-failed-sexp* nil)
 
 ;; TODO introduce *progress-output*
 (defvar *test-run-standard-output* '*standard-output*
@@ -73,12 +74,18 @@
 
 (defmethod shared-initialize :after ((self testable) slot-names
                                      &key (in (or (parent-of self)
+                                                  (find-suite-for-package *package*)
                                                   (and (boundp '*suite*)
-                                                       *suite*))))
+                                                       *suite*))
+                                           in-supplied-p))
+  (declare (ignore slot-names))
   (assert (name-of self))
   (setf (find-test (name-of self)) self)
   ;; make sure the specialized writer below is triggered
-  (setf (parent-of self) in))
+  (let ((*ignore-package-suite-mismatch* in-supplied-p))
+    (setf (parent-of self) in)))
+
+(defvar *ignore-package-suite-mismatch* nil)
 
 (defmethod (setf parent-of) :around (new-parent (self testable))
   (assert (typep new-parent '(or null testable)))
@@ -86,10 +93,12 @@
              (symbol-package (name-of self)) ; leave alone tests named by uninterned symbols
              (not (eq new-parent *root-suite*))
              (not (eq (symbol-package (name-of new-parent))
-                      (symbol-package (name-of self)))))
+                      (symbol-package (name-of self))))
+             (not *ignore-package-suite-mismatch*)
+             (not (gethash (package-of self) *package-bound-suites*)))
     (warn 'test-style-warning :test self
-          :format-control "Adding test ~S under parent ~S which is in a different package"
-          :format-arguments (list (name-of self) (name-of new-parent))))
+          :format-control "Adding test under parent ~S which is in a different package (parent: ~A, child: ~A). Maybe a missing (in-root-suite)?"
+          :format-arguments (list new-parent (symbol-package (name-of new-parent)) (symbol-package (name-of self)))))
   (let* ((old-parent (parent-of self)))
     (when old-parent
       (remhash (name-of self) (children-of old-parent)))

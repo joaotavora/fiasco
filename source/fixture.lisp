@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :hu.dwim.stefil)
+(in-package :stefil)
 
 (defvar *fixture-body-aliases* '()
   "This is a kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.stefil without a shared dependency.")

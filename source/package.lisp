@@ -6,7 +6,7 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :hu.dwim.stefil
+(defpackage :stefil
   (:use :alexandria
         :common-lisp)
 
@@ -45,4 +45,10 @@
            ;; these are the defaults from which the test context is initialized
            #:*print-test-run-progress*
            #:*debug-on-unexpected-error*
-           #:*debug-on-assertion-failure*))
+           #:*debug-on-assertion-failure*
+           #:*always-show-failed-sexp*
+           #:*ignore-package-suite-mismatch*
+           #:all-tests
+           #:define-test-package
+           #:describe-failed-tests
+           #:run-suite-tests))
