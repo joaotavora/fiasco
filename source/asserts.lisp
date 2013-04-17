@@ -168,7 +168,7 @@
                  (register-assertion-was-successful)
                  (record-failure 'failed-assertion :form ',whole
                                                    :format-control ,format-control
-						   :format-arguments ,format-arguments)))
+                                                   :format-arguments ,format-arguments)))
            (values-list ,result))))))
 
 (defmacro signals (&whole whole what &body body)

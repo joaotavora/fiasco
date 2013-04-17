@@ -100,17 +100,17 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
         (suite-sym (intern (string name) :stefil-suites)))
     `(progn
        (defpackage ,name
-	 ,@(append `((:export ,(symbol-name run-package-tests))
-		     (:use :stefil :cl))
-		   package-options))
+         ,@(append `((:export ,(symbol-name run-package-tests))
+                     (:use :stefil :cl))
+                   package-options))
        (defsuite (,suite-sym :ignore-home-package t
-			     :bind-to-package ,name
-			     :in stefil-suites::all-tests))
+                             :bind-to-package ,name
+                             :in stefil-suites::all-tests))
        (defun ,run-package-tests (&key verbose (stream t) interactive)
          (run-suite-tests ',suite-sym
-			  :verbose verbose
-			  :stream stream
-			  :interactive interactive)
+                          :verbose verbose
+                          :stream stream
+                          :interactive interactive)
          (unless (or interactive
                      (zerop (length (stefil::failure-descriptions-of *last-test-result*))))
            (stefil::describe-failed-tests))
@@ -123,8 +123,8 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
 
 (defun run-suite-tests (suite-sym &key verbose (stream t) interactive)
   (let ((*debug-on-unexpected-error* interactive)
-	(*debug-on-assertion-failure* interactive)
-	(*print-test-run-progress* nil)
+        (*debug-on-assertion-failure* interactive)
+        (*print-test-run-progress* nil)
         (*pretty-log-stream* stream)
         (*pretty-log-verbose-p* verbose)
         (*pretty-log-accumulated-failure-descriptions* nil)
@@ -162,12 +162,12 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
     (when (suite-p)
       (pp nil "~&~A (Suite)" (name-of test)))
     (let* ((*within-non-suite-test* (not (suite-p)))
-	   (v-list (multiple-value-list (run-test-body-in-handlers test function)))
+           (v-list (multiple-value-list (run-test-body-in-handlers test function)))
            (results *global-context*))
       (unless (suite-p)
         (pp (if (zerop (number-of-added-failure-descriptions-of (current-context)))
-		" OK "
-		"FAIL")
+                " OK "
+                "FAIL")
             "~&~A" (stefil::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
@@ -196,8 +196,8 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
   (let ((line-prefix (make-string level :initial-element #\Space)))
     (let ((output (format nil "~?~%" format-control format-arguments)))
       (with-input-from-string (s output)
-	(loop for line = (read-line s nil nil) until (null line)
-	      do (format stream "~A~A~%" line-prefix line))))))
+        (loop for line = (read-line s nil nil) until (null line)
+              do (format stream "~A~A~%" line-prefix line))))))
 
 (defun describe-failed-tests (&key (result *last-test-result*) (stream t))
   "Prints out a report for RESULT in STREAM.
@@ -211,9 +211,9 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
            (dotimes (i (length descs))
              (let ((desc (aref descs i))
                    format-control format-arguments)
-	       ;; XXX: most of Stefil's conditions specialise DESCRIBE-OBJECT
-	       ;; with nice human-readable messages. We should add any missing
-	       ;; ones (like UNEXPECTED-ERROR) and ditch this code.
+               ;; XXX: most of Stefil's conditions specialise DESCRIBE-OBJECT
+               ;; with nice human-readable messages. We should add any missing
+               ;; ones (like UNEXPECTED-ERROR) and ditch this code.
 
                (etypecase desc
                  (unexpected-error
@@ -222,14 +222,14 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
                  (failed-assertion
                   (setf format-control (format-control-of desc)
                         format-arguments (format-arguments-of desc)))
-		 (missing-condition
-		  (setf format-control "~A"
-			format-arguments (list (with-output-to-string (stream)
-						 (describe desc stream)))))
+                 (missing-condition
+                  (setf format-control "~A"
+                        format-arguments (list (with-output-to-string (stream)
+                                                 (describe desc stream)))))
                  (null
-		  (setf format-control "Test succeeded!")))
+                  (setf format-control "Test succeeded!")))
                (format stream "~%Failure ~A: ~A when running ~S~%~%"
                        (1+ i)
                        (type-of desc)
                        (name-of (test-of (first (test-context-backtrace-of desc)))))
-	       (indented-format 4 stream "~?" format-control format-arguments)))))))
+               (indented-format 4 stream "~?" format-control format-arguments)))))))
