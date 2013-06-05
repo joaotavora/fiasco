@@ -96,7 +96,7 @@ Package NAME is defined via normal `defpackage', and in addition to processing
 PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
   (unless (find-package name)
     (make-package name :use nil))
-  (let ((run-package-tests (intern '#:run-package-tests name))
+  (let ((run-package-tests (intern "RUN-PACKAGE-TESTS" name))
         (suite-sym (intern (string name) :stefil-suites)))
     `(progn
        (defpackage ,name
