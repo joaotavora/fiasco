@@ -11,6 +11,7 @@
 ;; their keyword counterparts.
 (defvar *suite*)
 (defvar *root-suite*)
+(defvar *package-bound-suites* (make-hash-table))
 (defvar *print-test-run-progress* t)
 (defvar *compile-tests-before-run* nil)
 (defvar *compile-tests-with-debug-level* nil)
@@ -73,6 +74,8 @@
     (unless (zerop children)
       (format t " :tests ~S" children))))
 
+(defvar *ignore-package-suite-mismatch* nil)
+
 (defmethod shared-initialize :after ((self testable) slot-names
                                      &key (in (or (parent-of self)
                                                   (find-suite-for-package *package*)
@@ -85,8 +88,6 @@
   ;; make sure the specialized writer below is triggered
   (let ((*ignore-package-suite-mismatch* in-supplied-p))
     (setf (parent-of self) in)))
-
-(defvar *ignore-package-suite-mismatch* nil)
 
 (defmethod (setf parent-of) :around (new-parent (self testable))
   (assert (typep new-parent '(or null testable)))

@@ -6,9 +6,6 @@
 
 (in-package :stefil)
 
-
-(defvar *package-bound-suites* (make-hash-table))
-
 (defun find-suite-for-package (package)
   (gethash package *package-bound-suites*))
 
