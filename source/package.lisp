@@ -48,6 +48,7 @@
            #:*debug-on-assertion-failure*
            #:*always-show-failed-sexp*
            #:*ignore-package-suite-mismatch*
+           #:*warn-about-test-redefinitions*
            #:all-tests
            #:define-test-package
            #:describe-failed-tests

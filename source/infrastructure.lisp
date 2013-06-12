@@ -21,6 +21,7 @@
 (defvar *last-test-result* nil)
 (defvar *failures-and-errors-are-expected* nil)
 (defvar *always-show-failed-sexp* nil)
+(defvar *warn-about-test-redefinitions* nil)
 
 ;; TODO introduce *progress-output*
 (defvar *test-run-standard-output* '*standard-output*
@@ -205,7 +206,8 @@
 (defun (setf find-test) (new-value key)
   (if new-value
       (progn
-        (when (gethash key *tests*)
+        (when (and *warn-about-test-redefinitions*
+                   (gethash key *tests*))
           (warn 'test-style-warning
                 :format-control "redefining test ~A"
                 :format-arguments (list (let ((*package* #.(find-package "KEYWORD")))
