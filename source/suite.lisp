@@ -54,7 +54,7 @@
   "Equivalent to (in-suite (defsuite ...)) which is the preferred way to define suites."
   `(setf *suite* (%in-suite (defsuite ,name-or-name-with-args ,args ,@body))))
 
-(setf *root-suite* (make-suite 'root-suite :documentation "Root Suite"))
+(setf *root-suite* (make-suite 'root-suite :documentation "Root Suite" :in nil))
 (setf *suite* *root-suite*)
 
 (defmacro in-root-suite ()
