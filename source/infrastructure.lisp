@@ -457,7 +457,7 @@
 
 (defun parse-lambda-list (lambda-list visitor &key macro)
   ;; TODO delme, and use alexandria:parse-ordinary-lambda-list
-  (declare (optimize (speed 3))
+  (declare #+nil (optimize (speed 3))
            (type list lambda-list)
            (type (or symbol function) visitor))
   (let ((args lambda-list))

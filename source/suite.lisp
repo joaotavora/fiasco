@@ -78,7 +78,7 @@
   (:use)
   (:documentation "Namespace for Stefil suites defined via DEFINE-TEST-PACKAGE."))
 
-(defsuite stefil-suites::all-tests)
+(defsuite (stefil-suites::all-tests :in root-suite :ignore-home-package t))
 
 (defun all-tests ()
   "Run all currently defined tests."
