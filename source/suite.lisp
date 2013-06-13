@@ -103,14 +103,18 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
                              :in stefil-suites::all-tests))
-       (defun ,run-package-tests (&key verbose (stream t) interactive)
+       (defun ,run-package-tests (&key (describe-failures t)
+                                       verbose
+                                       (stream t)
+                                       interactive)
          (run-suite-tests ',suite-sym
                           :verbose verbose
                           :stream stream
                           :interactive interactive)
          (unless (or interactive
-                     (zerop (length (stefil::failure-descriptions-of *last-test-result*))))
-           (stefil::describe-failed-tests))
+                     (null describe-failures)
+                     (zerop (length (failure-descriptions-of *last-test-result*))))
+           (describe-failed-tests))
          *last-test-result*))))
 
 (defvar *pretty-log-accumulated-assertion-count* 0)
