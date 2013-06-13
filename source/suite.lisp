@@ -215,8 +215,15 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
                ;; ones (like UNEXPECTED-ERROR) and ditch this code.
                (etypecase desc
                  (unexpected-error
-                  (setf format-control (simple-condition-format-control (condition-of desc))
-                        format-arguments (simple-condition-format-arguments (condition-of desc))))
+                  (let ((c (condition-of desc)))
+                    (typecase c
+                      (simple-condition
+                       (setf format-control (simple-condition-format-control c))
+                       (setf format-arguments
+                             (simple-condition-format-arguments c)))
+                      (t
+                       (setf format-control "~S"
+                             format-arguments (list c))))))
                  (failed-assertion
                   (setf format-control (format-control-of desc)
                         format-arguments (format-arguments-of desc)))
