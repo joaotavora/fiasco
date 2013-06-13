@@ -174,7 +174,6 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
               "    (~A)"
               (or (documentation (name-of test) 'function)
                   "no docstring for this test"))
-
           (let* ((assertion-count (- (assertion-count-of results) *pretty-log-accumulated-assertion-count*))
                  (failure-descriptions (remove-if #'(lambda (desc)
                                                       (find desc *pretty-log-accumulated-failure-descriptions*))
@@ -214,7 +213,6 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
                ;; XXX: most of Stefil's conditions specialise DESCRIBE-OBJECT
                ;; with nice human-readable messages. We should add any missing
                ;; ones (like UNEXPECTED-ERROR) and ditch this code.
-
                (etypecase desc
                  (unexpected-error
                   (setf format-control (simple-condition-format-control (condition-of desc))

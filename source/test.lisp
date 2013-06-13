@@ -129,14 +129,14 @@
           `(progn
              (eval-when (:load-toplevel :execute)
                (ensure-test ',name
-                          :package ,*package*
-                          :lambda-list ',args
-                          :declarations ',declarations
-                          :documentation ',documentation
-                          :body ',remaining-forms
-                          ,@(when in-provided?
-                              `(:in (find-test ',in)))
-                          ,@test-args))
+                            :package ,*package*
+                            :lambda-list ',args
+                            :declarations ',declarations
+                            :documentation ',documentation
+                            :body ',remaining-forms
+                            ,@(when in-provided?
+                                `(:in (find-test ',in)))
+                            ,@test-args))
              (defun ,name ,args
                ,@(when documentation (list documentation))
                ,@declarations
