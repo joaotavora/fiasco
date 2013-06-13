@@ -131,7 +131,8 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
         (*pretty-log-accumulated-failure-descriptions* nil)
         (*pretty-log-accumulated-assertion-count* 0)
         (*run-test-function* #'pretty-run-test))
-    (funcall suite-sym)))
+    (funcall suite-sym)
+    (terpri stream)))
 
 (defvar *within-non-suite-test* nil
   "True within the scope of a non-suite test. Used to suppress printing test
