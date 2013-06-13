@@ -151,7 +151,10 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
                (if suffix
                    (format *pretty-log-stream* "~&~A~A[~A]~%"
                            body
-                           (make-string (max 1 (- 80 (length body))) :initial-element #\space)
+                           (make-string (max 1 (- *test-progress-print-right-margin*
+                                                  (length body)
+                                                  (length "[XXXX]")))
+                                        :initial-element #\space)
                            suffix)
                    (format *pretty-log-stream* "~&~A" body))))
            (suite-p ()
