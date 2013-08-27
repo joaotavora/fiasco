@@ -213,22 +213,26 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
            (format stream "~&~%[no failures!]"))
           (t
            (dotimes (i (length descs))
-             (let ((desc (aref descs i))
-                   format-control format-arguments)
+             (let* ((desc (aref descs i))
+                    (format-control "~A")
+                    (format-arguments (list desc)))
                ;; XXX: most of Stefil's conditions specialise DESCRIBE-OBJECT
                ;; with nice human-readable messages. We should add any missing
                ;; ones (like UNEXPECTED-ERROR) and ditch this code.
                (etypecase desc
                  (unexpected-error
                   (let ((c (condition-of desc)))
-                    (typecase c
-                      (simple-condition
-                       (setf format-control (simple-condition-format-control c))
-                       (setf format-arguments
-                             (simple-condition-format-arguments c)))
-                      (t
-                       (setf format-control "~S"
-                             format-arguments (list c))))))
+                    (when (typep c 'simple-condition)
+                      ;; SIMPLE-CONDITIONs behaving badly, like some Allegro
+                      ;; ones, won't have a bound FORMAT-CONTROL slot.
+                      ;;
+                      (handler-case
+                          (progn
+                            (setf format-control (simple-condition-format-control c))
+                            (setf format-arguments
+                                  (simple-condition-format-arguments c)))
+                        (error ()
+                          (setf format-arguments (list c)))))))
                  (failed-assertion
                   (setf format-control (format-control-of desc)
                         format-arguments (format-arguments-of desc)))
