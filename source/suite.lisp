@@ -30,7 +30,7 @@
                             :for subtest :being :the :hash-values :of (children-of ,test)
                             :when (and (auto-call? subtest)
                                        (or (zerop (length (lambda-list-of subtest)))
-                                           (member (first (lambda-list-of subtest)) '(&key &optional))))
+                                           (member (first (lambda-list-of subtest)) '(&rest &key &optional))))
                               :do (funcall (name-of subtest))))
                         (run-child-tests ()
                           ;; TODO delme eventually?
