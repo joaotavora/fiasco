@@ -181,9 +181,7 @@
    (progress-char :initform #\E :accessor progress-char-of :initarg :progress-char :allocation :class)))
 
 (defmethod describe-object ((self unexpected-error) stream)
-  (let ((*print-circle* nil))
-    (let ((oops (condition-of self)))
-      (format stream "~a" oops))))
+  (format stream "~a" (condition-of self)))
 
 (defprint-object (self unexpected-error :identity nil :type nil)
   (format t "error ~{~A~^,~}: ~S"
