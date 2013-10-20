@@ -6,10 +6,6 @@ Stefil is a great and simple test framework in lisp.
 Read about [here][old-intro] or scroll down for a simple example demonstrating
 just few features.
 
-Unfortunately, as of writing date (April, 2013) it's more or less abandoned (the
-[new home][new-home] is akwardly down). This github fork is an attempt to
-revive it and add some useful features.
-
 Up and running
 --------------
 
@@ -104,7 +100,6 @@ Reach us via the [stefil-devel][stefil-devel] mailing list or the
 
 
 [old-intro]: http://common-lisp.net/project/stefil/index-old.shtml
-[new-home]: http://dwim.hu/project/hu.dwim.stefil
 [quicklisp]: http://quicklisp.org
 [asdf]: http://common-lisp.net/project/asdf/
 [stefil-devel]: http://dir.gmane.org/gmane.lisp.stefil.devel
