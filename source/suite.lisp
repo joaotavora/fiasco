@@ -114,7 +114,7 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
          (unless (or interactive
                      (null describe-failures)
                      (zerop (length (failure-descriptions-of *last-test-result*))))
-           (describe-failed-tests))
+           (describe-failed-tests :stream stream))
          *last-test-result*))))
 
 (defvar *pretty-log-accumulated-assertion-count* 0)
