@@ -21,29 +21,30 @@ or alternatively, just use [asdf][asdf]
 
 now create some lisp file with
 
-    (stefil:define-test-package :stefil-examples)
-    (in-package :stefil-examples)
+```lisp
+(stefil:define-test-package :stefil-examples)
+(in-package :stefil-examples)
 
-    (defun seconds (hours-and-minutes)
-      (+ (* 3600 (first hours-and-minutes))
-         (* 60 (seconds hours-and-minutes))))
+(defun seconds (hours-and-minutes)
+  (+ (* 3600 (first hours-and-minutes))
+     (* 60 (seconds hours-and-minutes))))
 
-    (defun hours-and-minutes (seconds)
-      (list (truncate seconds 3600)
-            (truncate seconds 60)))
+(defun hours-and-minutes (seconds)
+  (list (truncate seconds 3600)
+        (truncate seconds 60)))
 
-    (deftest test-conversion-to-hours-and-minutes ()
-      (is (equal (hours-and-minutes 180) '(0 3)))
-      (is (equal (hours-and-minutes 4500) '(1 15))))
+(deftest test-conversion-to-hours-and-minutes ()
+  (is (equal (hours-and-minutes 180) '(0 3)))
+  (is (equal (hours-and-minutes 4500) '(1 15))))
 
-    (deftest test-conversion-to-seconds ()
-      (is (= 60 (seconds '(0 1))))
-      (is (= 4500 (seconds '(1 15)))))
+(deftest test-conversion-to-seconds ()
+  (is (= 60 (seconds '(0 1))))
+  (is (= 4500 (seconds '(1 15)))))
 
-    (deftest double-conversion ()
-      (is (= 3600 (seconds (hours-and-minutes 3600))))
-      (is (= 1234 (seconds (hours-and-minutes 1234)))))
-
+(deftest double-conversion ()
+  (is (= 3600 (seconds (hours-and-minutes 3600))))
+  (is (= 1234 (seconds (hours-and-minutes 1234)))))
+```
 load or compile it, and in your REPL run
 
     > (stefil-examples:run-package-tests)
@@ -79,9 +80,11 @@ failure (lisp error or assertion failure). This allows us to
 see that the the stack overflow erros are due to a typo (`seconds` should be
 `second` in line 6) and that `hours-and-minutes` should be rewritten like
 
-    (defun hours-and-minutes (seconds)
-      (list (truncate seconds 3600)
-            (/ (rem seconds 3600) 60)))
+```lisp
+(defun hours-and-minutes (seconds)
+  (list (truncate seconds 3600)
+        (/ (rem seconds 3600) 60)))
+```
 
 After that, you'll see a nice
 
