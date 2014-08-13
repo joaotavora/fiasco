@@ -12,15 +12,15 @@ Up and running
 This assumes you're using a recent version of [quicklisp][quicklisp]
 
 ```lisp
-    (push "path/to/stefils/parent/dir" quicklisp:*local-project-directories*)
-    (ql:quickload :stefil)
+(push "path/to/stefils/parent/dir" quicklisp:*local-project-directories*)
+(ql:quickload :stefil)
 ```
 
 or alternatively, just use [asdf][asdf]
 
 ```lisp
-    (push "path/to/stefils/dir" asdf:*central-registry*)
-    (asdf:require-system :stefil)
+(push "path/to/stefils/dir" asdf:*central-registry*)
+(asdf:require-system :stefil)
 ```
 
 now create some lisp file with
@@ -79,10 +79,13 @@ Yay, everything fails!
 Debugging failures
 ------------------
 
-Run with `:interactive t` to bring up the lisp debugger every time a test
-failure (lisp error or assertion failure). This allows us to
-see that the the stack overflow erros are due to a typo (`seconds` should be
-`second` in line 6) and that `hours-and-minutes` should be rewritten like
+Run the example again, with `:interactive t` to bring up the lisp debugger 
+every time a test failure happens. They are caused by error conditions or 
+test assertion failures. We have two of the former and one of the latter.
+
+In this case, we see that the the stack overflow erros are due to a typo 
+(`seconds` should be `second` in line 6) and that `hours-and-minutes` should 
+be rewritten like:
 
 ```lisp
 (defun hours-and-minutes (seconds)
@@ -102,8 +105,8 @@ After that, you'll see a nice
 Support
 -------
 
-Reach us via the [stefil-devel][stefil-devel] mailing list or the
-[#lisp][sharp-lisp] IRC channel.
+Open an [issue][issues], discuss in the [stefil-devel][stefil-devel] mailing 
+list or in the [#lisp][sharp-lisp] IRC channel.
 
 
 [old-intro]: http://common-lisp.net/project/stefil/index-old.shtml
@@ -111,3 +114,4 @@ Reach us via the [stefil-devel][stefil-devel] mailing list or the
 [asdf]: http://common-lisp.net/project/asdf/
 [stefil-devel]: http://dir.gmane.org/gmane.lisp.stefil.devel
 [sharp-lisp]: irc://irc.freenode.net/#lisp
+[issues]: https://github.com/luismbo/stefil/issues
