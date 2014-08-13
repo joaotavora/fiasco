@@ -11,13 +11,17 @@ Up and running
 
 This assumes you're using a recent version of [quicklisp][quicklisp]
 
-    > (push "path/to/stefils/parent/dir" quicklisp:*local-project-directories*)
-    > (ql:quickload :stefil)
+```lisp
+    (push "path/to/stefils/parent/dir" quicklisp:*local-project-directories*)
+    (ql:quickload :stefil)
+```
 
 or alternatively, just use [asdf][asdf]
 
-    > (push "path/to/stefils/dir" asdf:*central-registry*)
-    > (asdf:require-system :asdf)
+```lisp
+    (push "path/to/stefils/dir" asdf:*central-registry*)
+    (asdf:require-system :stefil)
+```
 
 now create some lisp file with
 
