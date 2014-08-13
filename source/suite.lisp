@@ -102,27 +102,31 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
                    package-options))
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
-                             :in stefil-suites::all-tests))
-       (defun ,run-package-tests (&key (describe-failures t)
-                                       verbose
-                                       (stream t)
-                                       interactive)
-         (run-suite-tests ',suite-sym
-                          :verbose verbose
-                          :stream stream
-                          :interactive interactive)
-         (unless (or interactive
-                     (null describe-failures)
-                     (zerop (length (failure-descriptions-of *last-test-result*))))
-           (describe-failed-tests :stream stream))
-         *last-test-result*))))
+                             :in stefil-suites::all-tests)))))
 
 (defvar *pretty-log-accumulated-assertion-count* 0)
 (defvar *pretty-log-accumulated-failure-descriptions* nil)
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
 
-(defun run-suite-tests (suite-sym &key verbose (stream t) interactive)
+(defun run-package-tests (&key (package *package*)
+                               (describe-failures t)
+                               verbose
+                               (stream t)
+                               interactive)
+  (let ((suite (find-suite-for-package (find-package package))))
+    (assert suite nil "Can't find a test suite for package ~a" package)
+    (run-suite-tests suite
+                     :verbose verbose
+                     :stream stream
+                     :interactive interactive)
+    (unless (or interactive
+                (null describe-failures)
+                (zerop (length (failure-descriptions-of *last-test-result*))))
+      (describe-failed-tests :stream stream))
+    *last-test-result*))
+
+(defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
   (let ((*debug-on-unexpected-error* interactive)
         (*debug-on-assertion-failure* interactive)
         (*print-test-run-progress* nil)
@@ -131,7 +135,9 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
         (*pretty-log-accumulated-failure-descriptions* nil)
         (*pretty-log-accumulated-assertion-count* 0)
         (*run-test-function* #'pretty-run-test))
-    (funcall suite-sym)
+    (funcall (etypecase suite-designator
+               (symbol suite-designator)
+               (test (name-of suite-designator))))
     (terpri stream)))
 
 (defvar *within-non-suite-test* nil

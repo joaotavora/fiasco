@@ -6,7 +6,7 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :stefil-test
+(defpackage :stefil-self-tests
   (:use :alexandria
         :common-lisp
         :stefil)
@@ -18,4 +18,4 @@
 
 (in-package :stefil)
 
-(import-all-owned-symbols :stefil :stefil-test)
+(import-all-owned-symbols :stefil :stefil-self-tests)
