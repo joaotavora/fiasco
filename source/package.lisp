@@ -51,5 +51,6 @@
            #:*warn-about-test-redefinitions*
            #:all-tests
            #:define-test-package
+           #:run-package-tests
            #:describe-failed-tests
            #:run-suite-tests))

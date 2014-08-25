@@ -1,10 +1,10 @@
 Stefil
 ======
 
-Stefil is a great and simple test framework in lisp.
+Stefil is a simple and powerful test framework for Common Lisp.
 
-Read about [here][old-intro] or scroll down for a simple example demonstrating
-just few features.
+There's a fairly outdated introduction [here][old-intro], but scroll
+down for a simple example demonstrating just few features.
 
 Up and running
 --------------
@@ -23,11 +23,11 @@ or alternatively, just use [asdf][asdf]
 (asdf:require-system :stefil)
 ```
 
-now create some lisp file with
+now create some Lisp file with
 
 ```lisp
-(stefil:define-test-package :stefil-examples)
-(in-package :stefil-examples)
+(defpackage #:example-time (:export #:seconds #:hours-and-minutes))
+(in-package #:example-time)
 
 (defun seconds (hours-and-minutes)
   (+ (* 3600 (first hours-and-minutes))
@@ -36,6 +36,10 @@ now create some lisp file with
 (defun hours-and-minutes (seconds)
   (list (truncate seconds 3600)
         (truncate seconds 60)))
+
+(stefil:define-test-package #:stefil-examples
+  (:use #:example-time))
+(in-package #:stefil-examples)
 
 (deftest test-conversion-to-hours-and-minutes ()
   (is (equal (hours-and-minutes 180) '(0 3)))
@@ -51,7 +55,8 @@ now create some lisp file with
 ```
 load or compile it, and in your REPL run
 
-    > (stefil-examples:run-package-tests)
+    > (in-package :stefil-examples)
+    STEFIL-EXAMPLES> (run-package-tests)
     STEFIL-EXAMPLES (Suite)
       TEST-CONVERSION-TO-SECONDS                                                    [FAIL]
       TEST-CONVERSION-TO-HOURS-AND-MINUTES                                          [FAIL]
@@ -79,7 +84,7 @@ Yay, everything fails!
 Debugging failures
 ------------------
 
-Run the example again, with `:interactive t` to bring up the lisp debugger 
+Run the example again, with `:interactive t` to bring up the Lisp debugger 
 every time a test failure happens. They are caused by error conditions or 
 test assertion failures. We have two of the former and one of the latter.
 
@@ -95,7 +100,8 @@ be rewritten like:
 
 After that, you'll see a nice
 
-    > (stefil-examples:run-package-tests)
+    > (in-package :stefil-examples)
+    STEFIL-EXAMPLES> (run-package-tests)
     STEFIL-EXAMPLES (Suite)
       TEST-CONVERSION-TO-SECONDS                                                    [ OK ]
       TEST-CONVERSION-TO-HOURS-AND-MINUTES                                          [ OK ]
