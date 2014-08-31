@@ -1,10 +1,11 @@
-Stefil
+Fiasco
 ======
 
-Stefil is a simple and powerful test framework for Common Lisp.
+Fiasco is a simple and powerful test framework for Common Lisp.
 
-There's a fairly outdated introduction [here][old-intro], but scroll
-down for a simple example demonstrating just few features.
+It's a fork of the great, but slightly abandoned, [Stefil][stefil]
+by Attila Lendvai, Tamás Borbély and Levente Mészáros.
+
 
 Up and running
 --------------
@@ -12,15 +13,15 @@ Up and running
 This assumes you're using a recent version of [quicklisp][quicklisp]
 
 ```lisp
-(push "path/to/stefils/parent/dir" quicklisp:*local-project-directories*)
-(ql:quickload :stefil)
+(push "path/to/fiascos/parent/dir" quicklisp:*local-project-directories*)
+(ql:quickload :fiasco)
 ```
 
 or alternatively, just use [asdf][asdf]
 
 ```lisp
-(push "path/to/stefils/dir" asdf:*central-registry*)
-(asdf:require-system :stefil)
+(push "path/to/fiascos/dir" asdf:*central-registry*)
+(asdf:require-system :fiasco)
 ```
 
 now create some Lisp file with
@@ -37,9 +38,9 @@ now create some Lisp file with
   (list (truncate seconds 3600)
         (truncate seconds 60)))
 
-(stefil:define-test-package #:stefil-examples
+(fiasco:define-test-package #:fiasco-examples
   (:use #:example-time))
-(in-package #:stefil-examples)
+(in-package #:fiasco-examples)
 
 (deftest test-conversion-to-hours-and-minutes ()
   (is (equal (hours-and-minutes 180) '(0 3)))
@@ -55,27 +56,24 @@ now create some Lisp file with
 ```
 load or compile it, and in your REPL run
 
-    > (in-package :stefil-examples)
-    STEFIL-EXAMPLES> (run-package-tests)
-    STEFIL-EXAMPLES (Suite)
+    > (in-package :fiasco-examples)
+    FIASCO-EXAMPLES> (run-package-tests)
+    FIASCO-EXAMPLES (Suite)
       TEST-CONVERSION-TO-SECONDS                                                    [FAIL]
       TEST-CONVERSION-TO-HOURS-AND-MINUTES                                          [FAIL]
       DOUBLE-CONVERSION                                                             [FAIL]
 
-    Test failures:
+    Fiasco! (3 failures)
 
-    Failure 1: UNEXPECTED-ERROR when running STEFIL-EXAMPLES::TEST-CONVERSION-TO-SECONDS
-
+      Failure 1: UNEXPECTED-ERROR when running FIASCO-EXAMPLES::TEST-CONVERSION-TO-SECONDS
         Stack overflow (signal 1000)
 
-    Failure 2: FAILED-ASSERTION when running STEFIL-EXAMPLES::TEST-CONVERSION-TO-HOURS-AND-MINUTES
-
+      Failure 2: FAILED-ASSERTION when running FIASCO-EXAMPLES::TEST-CONVERSION-TO-HOURS-AND-MINUTES
         Binary predicate (EQUAL X Y) failed.
-        x: (STEFIL-EXAMPLES::HOURS-AND-MINUTES 4500) => (1 75)
+        x: (FIASCO-EXAMPLES::HOURS-AND-MINUTES 4500) => (1 75)
         y: '(1 15) => (1 15)
 
-    Failure 3: UNEXPECTED-ERROR when running STEFIL-EXAMPLES::DOUBLE-CONVERSION
-
+      Failure 3: UNEXPECTED-ERROR when running FIASCO-EXAMPLES::DOUBLE-CONVERSION
         Stack overflow (signal 1000)
     #<test-run: 4 tests, 4 assertions, 3 failures in 0.031 sec (1 failed assertion, 2 errors, none expected)>
 
@@ -100,9 +98,9 @@ be rewritten like:
 
 After that, you'll see a nice
 
-    > (in-package :stefil-examples)
-    STEFIL-EXAMPLES> (run-package-tests)
-    STEFIL-EXAMPLES (Suite)
+    > (in-package :fiasco-examples)
+    FIASCO-EXAMPLES> (run-package-tests)
+    FIASCO-EXAMPLES (Suite)
       TEST-CONVERSION-TO-SECONDS                                                    [ OK ]
       TEST-CONVERSION-TO-HOURS-AND-MINUTES                                          [ OK ]
       DOUBLE-CONVERSION                                                             [ OK ]
@@ -111,13 +109,12 @@ After that, you'll see a nice
 Support
 -------
 
-Open an [issue][issues], discuss in the [stefil-devel][stefil-devel] mailing 
-list or in the [#lisp][sharp-lisp] IRC channel.
+To discuss matters open an [issue][issues] for now or perhaps ask in
+the [#lisp][sharp-lisp] IRC channel.
 
 
-[old-intro]: http://common-lisp.net/project/stefil/index-old.shtml
+[stefil]: http://common-lisp.net/project/stefil/index-old.shtml
 [quicklisp]: http://quicklisp.org
 [asdf]: http://common-lisp.net/project/asdf/
-[stefil-devel]: http://dir.gmane.org/gmane.lisp.stefil.devel
 [sharp-lisp]: irc://irc.freenode.net/#lisp
-[issues]: https://github.com/luismbo/stefil/issues
+[issues]: https://github.com/luismbo/fiasco/issues

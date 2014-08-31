@@ -4,9 +4,9 @@
 ;;;
 ;;; See LICENCE for details.
 
-(asdf:defsystem :stefil-self-tests
+(asdf:defsystem :fiasco-self-tests
     :licence "BSD / Public domain"
-  :depends-on (:stefil)
+  :depends-on (:fiasco)
   :serial t
   :components ((:file "package")
                (:file "basic")

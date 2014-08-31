@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
+(in-package :fiasco)
 
 (defun extract-assert-expression-and-message (input-form)
   (let* ((negatedp nil)

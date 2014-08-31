@@ -6,7 +6,7 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :stefil
+(defpackage :fiasco
   (:use :alexandria
         :common-lisp)
 

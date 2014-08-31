@@ -4,16 +4,16 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil-self-tests)
+(in-package :fiasco-self-tests)
 
-(defsuite* (test :in root-suite :documentation "Stefil self tests"))
+(defsuite* (test :in root-suite :documentation "Fiasco self tests"))
 
-(defsuite (stefil-temp-suite :in test :documentation "Current test suite while the Stefil self-tests are being run"))
+(defsuite (fiasco-temp-suite :in test :documentation "Current test suite while the Fiasco self-tests are being run"))
 
 ;; hide deftest with a local version that rebinds and sets *suite* when executing the body
 (defmacro deftest (name args &body body)
-  `(stefil:deftest ,name ,args
-    (let ((*suite* (find-test 'stefil-temp-suite)))
+  `(fiasco:deftest ,name ,args
+    (let ((*suite* (find-test 'fiasco-temp-suite)))
       ,@body)))
 
 (deftest lifecycle ()
@@ -110,7 +110,7 @@
                (+ old-assertion-count 13))) ; also includes the current assertion
         (is (= (length (failure-descriptions-of context))
                (+ old-failure-description-count 6)))
-        (is (= 1 (count-if 'stefil::expected-p (failure-descriptions-of context))))
+        (is (= 1 (count-if 'fiasco::expected-p (failure-descriptions-of context))))
         (dotimes (i (- (length (failure-descriptions-of context))
                        old-failure-description-count))
           ;; drop failures registered by the test-test

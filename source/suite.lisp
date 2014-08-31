@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
+(in-package :fiasco)
 
 (defun find-suite-for-package (package)
   (gethash package *package-bound-suites*))
@@ -71,18 +71,18 @@
 
 
 ;;; define-test-package and friends
-(defpackage :stefil-suites
+(defpackage :fiasco-suites
   (:use)
-  (:documentation "Namespace for Stefil suites defined via DEFINE-TEST-PACKAGE."))
+  (:documentation "Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
-(defsuite (stefil-suites::all-tests :in root-suite :ignore-home-package t))
+(defsuite (fiasco-suites::all-tests :in root-suite :ignore-home-package t))
 
 (defun all-tests ()
   "Run all currently defined tests."
-  (stefil-suites::all-tests))
+  (fiasco-suites::all-tests))
 
 (defmacro define-test-package (name &body package-options)
-  "Defines a package NAME and binds to it a new suite STEFIL-SUITES::NAME.
+  "Defines a package NAME and binds to it a new suite FIASCO-SUITES::NAME.
 
 The binding between package and suite means that tests defined under the package
 NAME are automatically added to the bounded suite. A new function
@@ -90,19 +90,19 @@ RUN-PACKAGE-TESTS (exported from the newly created package) is the preferred way
 to execute the suite.
 
 Package NAME is defined via normal `defpackage', and in addition to processing
-PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
+PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
   (unless (find-package name)
     (make-package name :use nil))
   (let ((run-package-tests (intern "RUN-PACKAGE-TESTS" name))
-        (suite-sym (intern (string name) :stefil-suites)))
+        (suite-sym (intern (string name) :fiasco-suites)))
     `(progn
        (defpackage ,name
          ,@(append `((:export ,(symbol-name run-package-tests))
-                     (:use :stefil :cl))
+                     (:use :fiasco :cl))
                    package-options))
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
-                             :in stefil-suites::all-tests)))))
+                             :in fiasco-suites::all-tests)))))
 
 (defvar *pretty-log-accumulated-assertion-count* 0)
 (defvar *pretty-log-accumulated-failure-descriptions* nil)
@@ -179,7 +179,7 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
         (pp (if (zerop (number-of-added-failure-descriptions-of (current-context)))
                 " OK "
                 "FAIL")
-            "~&~A" (stefil::name-of test))
+            "~&~A" (fiasco::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
               "    (~A)"
@@ -213,14 +213,14 @@ PACKAGE-OPTIONS, automatically USEs the :STEFIL and :CL packages."
   "Prints out a report for RESULT in STREAM.
 
 RESULT defaults to `*last-test-result*' and STREAM defaults to t"
-  (format stream "~&~%Test failures:~%")
+  (format stream "~&~%Fiasco! (~a failures)~%" (length (failure-descriptions-of result)))
   (let ((descs (failure-descriptions-of result)))
     (cond ((zerop (length descs))
            (format stream "~&~%[no failures!]"))
           (t
            (dotimes (i (length descs))
              (let* ((desc (aref descs i)))
-               (format stream "~%Failure ~A: ~A when running ~S~%~%"
+               (format stream "~%  Failure ~A: ~A when running ~S~%"
                        (1+ i)
                        (type-of desc)
                        (name-of (test-of (first (test-context-backtrace-of desc)))))
