@@ -4,10 +4,10 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
+(in-package :fiasco)
 
 (defvar *fixture-body-aliases* '()
-  "This is a kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.stefil without a shared dependency.")
+  "This is a kludge to overcome some package/dependency issues between -body- in hu.dwim.def and hu.dwim.fiasco without a shared dependency.")
 
 (defun fixture-function-name-for (name)
   (symbolicate '#:fixture/call-with/ name))

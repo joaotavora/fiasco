@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil)
+(in-package :fiasco)
 
 #+nil(defclass-star:defclass* test (testable)
   ((package nil)
@@ -92,7 +92,7 @@
 (defun run-test-body (test function arguments toplevel-p timeout)
   (declare (type test test))
   (when timeout
-    (error "TODO: timeouts are not implemented yet in Stefil."))
+    (error "TODO: timeouts are not implemented yet in Fiasco."))
   (let* ((result-values '()))
     (flet ((body ()
              (with-new-context (:test test :test-arguments arguments)

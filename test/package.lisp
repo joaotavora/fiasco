@@ -6,16 +6,16 @@
 
 (in-package :common-lisp-user)
 
-(defpackage :stefil-self-tests
+(defpackage :fiasco-self-tests
   (:use :alexandria
         :common-lisp
-        :stefil)
+        :fiasco)
 
   (:shadow
    #:deftest
    #:test
    #:fixtures))
 
-(in-package :stefil)
+(in-package :fiasco)
 
-(import-all-owned-symbols :stefil :stefil-self-tests)
+(import-all-owned-symbols :fiasco :fiasco-self-tests)

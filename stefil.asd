@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(defsystem :stefil
+(defsystem :fiasco
   :description "A Simple Test Framework In Lisp."
   :depends-on (:alexandria)
   :components

@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 
-(in-package :stefil-self-tests)
+(in-package :fiasco-self-tests)
 
 (defsuite* (fixtures :in test))
 

@@ -9,9 +9,9 @@
   (list (truncate seconds 3600)
         (truncate seconds 60)))
 
-(stefil:define-test-package #:stefil-examples
+(fiasco:define-test-package #:fiasco-examples
   (:use #:example-time))
-(in-package #:stefil-examples)
+(in-package #:fiasco-examples)
 
 (deftest test-conversion-to-hours-and-minutes ()
   (is (equal (hours-and-minutes 180) '(0 3)))
@@ -25,7 +25,7 @@
   (is (= 3600 (seconds (hours-and-minutes 3600))))
   (is (= 1234 (seconds (hours-and-minutes 1234)))))
 
-(in-package :stefil-self-tests)
+(in-package :fiasco-self-tests)
 
 ;; define a metatest to test the other test
 ;;
@@ -33,7 +33,7 @@
   (let ((*debug-on-unexpected-error* nil)
         (*debug-on-assertion-failure* nil))
     (let ((run (with-new-global-context* ()
-                 (run-package-tests :package :stefil-examples)
+                 (run-package-tests :package :fiasco-examples)
                  ;; must access *GLOBAL-CONTEXT* directly, otherwise
                  ;; we get the run of running INTRO-METATEST itself
                  *global-context*)))
