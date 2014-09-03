@@ -82,23 +82,20 @@
   (fiasco-suites::all-tests))
 
 (defmacro define-test-package (name &body package-options)
-  "Defines a package NAME and binds to it a new suite FIASCO-SUITES::NAME.
+  "Defines package NAME and binds to it a new suite test suite.
 
-The binding between package and suite means that tests defined under the package
-NAME are automatically added to the bounded suite. A new function
-RUN-PACKAGE-TESTS (exported from the newly created package) is the preferred way
-to execute the suite.
+The binding between package and suite means that tests defined under
+the package NAME are automatically added to the bounded suite. The
+function RUN-PACKAGE-TESTS is the preferred way to execute the suite.
 
 Package NAME is defined via normal `defpackage', and in addition to processing
 PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
   (unless (find-package name)
     (make-package name :use nil))
-  (let ((run-package-tests (intern "RUN-PACKAGE-TESTS" name))
-        (suite-sym (intern (string name) :fiasco-suites)))
+  (let ((suite-sym (intern (string name) :fiasco-suites)))
     `(progn
        (defpackage ,name
-         ,@(append `((:export ,(symbol-name run-package-tests))
-                     (:use :fiasco :cl))
+         ,@(append `((:use :fiasco :cl))
                    package-options))
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
@@ -114,6 +111,9 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
                                verbose
                                (stream t)
                                interactive)
+  "Execute the test suite associated with current package.
+With optional PACKAGE run the test suite associated with that
+instead. "
   (let ((suite (find-suite-for-package (find-package package))))
     (assert suite nil "Can't find a test suite for package ~a" package)
     (run-suite-tests suite
