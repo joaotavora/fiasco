@@ -97,6 +97,7 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
        (defpackage ,name
          ,@(append `((:use :fiasco :cl))
                    package-options))
+       (export 'run-package-tests ,name)
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
                              :in fiasco-suites::all-tests)))))
