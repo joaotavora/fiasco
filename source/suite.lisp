@@ -86,7 +86,11 @@
 
 The binding between package and suite means that tests defined under
 the package NAME are automatically added to the bounded suite. The
-function RUN-PACKAGE-TESTS is the preferred way to execute the suite.
+function RUN-PACKAGE-TESTS is the preferred way to execute the
+suite.
+
+This function is automatically exported from package NAME, so you can
+also use NAME:RUN-PACKAGE-TESTS.
 
 Package NAME is defined via normal `defpackage', and in addition to processing
 PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
@@ -97,6 +101,7 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
        (defpackage ,name
          ,@(append `((:use :fiasco :cl))
                    package-options))
+       (export 'run-package-tests ,name)
        (defsuite (,suite-sym :ignore-home-package t
                              :bind-to-package ,name
                              :in fiasco-suites::all-tests)))))
