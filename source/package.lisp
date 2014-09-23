@@ -25,11 +25,8 @@
            #:defsuite*
            #:run-child-tests ; TODO delete eventually
            #:-run-child-tests-
-           #:defixture
            #:-body-
            #:-here-
-           #:with-fixture
-           #:with-fixtures
            #:runs-without-failure?
            #:without-debugging
            #:without-test-progress-printing

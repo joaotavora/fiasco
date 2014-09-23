@@ -115,62 +115,39 @@
 (defmacro deftest (&whole whole name args &body body)
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
-      (destructuring-bind (name &rest test-args &key ignore-home-package (compile-before-run *compile-tests-before-run*)
-                                (in nil in-provided?) timeout &allow-other-keys)
-          (ensure-list name)
-        (remove-from-plistf test-args :in :ignore-home-package)
-        (unless (or ignore-home-package
-                    (not (symbol-package name))
-                    (eq (symbol-package name) *package*))
-          (warn 'test-style-warning :test name
-                :format-control "Defining test on symbol ~S whose home package is not *package* which is ~A"
-                :format-arguments (list name *package*)))
-        (with-unique-names (test test-lambda global-context toplevel-p body)
-          `(progn
-             (eval-when (:load-toplevel :execute)
-               (ensure-test ',name
-                            :package ,*package*
-                            :lambda-list ',args
-                            :declarations ',declarations
-                            :documentation ',documentation
-                            :body ',remaining-forms
-                            ,@(when in-provided?
-                                `(:in (find-test ',in)))
-                            ,@test-args))
-             (defun ,name ,args
-               ,@(when documentation (list documentation))
-               ,@declarations
-               ,@(when *compile-tests-with-debug-level*
-                   `((declare (optimize (debug ,*compile-tests-with-debug-level*)))))
-               (let* ((,test (find-test ',name))
-                      (,toplevel-p (not (has-global-context)))
-                      (,global-context (unless ,toplevel-p
-                                         (current-global-context))))
-                 ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
-                 (labels (,@(unless compile-before-run
-                                    `((,name ()
-                                             ,@remaining-forms)))
-                          (,body ()
-                            ,(if compile-before-run
-                                 `(let* ((,test-lambda (get-test-lambda ,test ,global-context)))
-                                    (run-test-body ,test
-                                                   (lambda ()
-                                                     ;; TODO install a labels entry with the test name? to avoid compile at each recursion...
-                                                     ,(lambda-list-to-funcall-expression test-lambda args))
-                                                   ,(lambda-list-to-value-list-expression args)
-                                                   ,toplevel-p
-                                                   ,timeout))
-                                 `(run-test-body ,test
-                                                 #',name
-                                                 ,(lambda-list-to-value-list-expression args)
-                                                 ,toplevel-p
-                                                 ,timeout))))
-                   (declare (dynamic-extent ,@(unless compile-before-run `(#',name))
-                                            #',body))
-                   (if ,toplevel-p
-                       (with-new-global-context* ()
-                         (setf ,global-context (current-global-context))
-                         (push ,global-context *test-result-history*)
-                         (setf *last-test-result* ,global-context)
-                         (,body))
-                       (,body))))))))))
+    (destructuring-bind (name &rest test-args &key (in nil in-provided?) timeout &allow-other-keys)
+        (ensure-list name)
+      (remove-from-plistf test-args :in)
+      (with-unique-names (test global-context toplevel-p body-sym)
+        `(progn
+           (eval-when (:load-toplevel :execute)
+             (ensure-test ',name
+                          :package ,*package*
+                          :lambda-list ',args
+                          :declarations ',declarations
+                          :documentation ',documentation
+                          :body ',remaining-forms
+                          ,@(when in-provided?
+                              `(:in (find-test ',in)))
+                          ,@test-args))
+           (defun ,name ,args
+             ,@(when documentation (list documentation))
+             ,@declarations
+             (let* ((,test (find-test ',name))
+                    (,toplevel-p (not (has-global-context)))
+                    (,global-context (unless ,toplevel-p
+                                       (current-global-context))))
+               ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
+               (labels ((,name () ,@remaining-forms)
+                        (,body-sym () (run-test-body ,test
+                                                     #',name
+                                                     ,(lambda-list-to-value-list-expression args)
+                                                     ,toplevel-p
+                                                     ,timeout)))
+                 (if ,toplevel-p
+                     (with-new-global-context* ()
+                       (setf ,global-context (current-global-context))
+                       (push ,global-context *test-result-history*)
+                       (setf *last-test-result* ,global-context)
+                       (,body-sym))
+                     (,body-sym))))))))))

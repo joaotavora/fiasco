@@ -5,7 +5,7 @@
 ;;; See LICENCE for details.
 
 (defsystem :fiasco
-  :description "A Simple Test Framework In Lisp."
+  :description "A Common Lisp test framework that treasures your failures"
   :depends-on (:alexandria)
   :components
   ((:module "source"
@@ -13,7 +13,6 @@
     ((:file "asserts" :depends-on ("infrastructure"))
      (:file "package")
      (:file "duplicates" :depends-on ("package"))
-     (:file "fixture" :depends-on ("test"))
      (:file "infrastructure" :depends-on ("duplicates"))
      (:file "test" :depends-on ("infrastructure"))
      (:file "suite" :depends-on ("infrastructure" "test"))))))

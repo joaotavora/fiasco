@@ -47,27 +47,8 @@
                 `(setf (gethash ,bind-to-package *package-bound-suites*) suite))
              (values suite)))))))
 
-(defmacro defsuite* (name-or-name-with-args &optional args &body body)
-  "Equivalent to (in-suite (defsuite ...)) which is the preferred way to define suites."
-  `(setf *suite* (%in-suite (defsuite ,name-or-name-with-args ,args ,@body))))
-
 (setf *root-suite* (make-suite 'root-suite :documentation "Root Suite" :in nil))
 (setf *suite* *root-suite*)
-
-(defmacro in-root-suite ()
-  "Used to reset the current suite to protect from other project's last in-suite statement. Unfortunately there's noone for us to rebind *suite* when a file is loaded, so we can't behave exactly like *package* and in-package."
-  `(setf *suite* *root-suite*))
-
-(defun %in-suite (name)
-  (assert (typep name '(or symbol test)) () "Suite names should be symbols or literal TEST instances instead of ~S" name)
-  (etypecase name
-    (symbol (find-test name :otherwise (lambda ()
-                                         (cerror "Create a new suite named ~A." "Unkown suite ~A." name)
-                                         (eval `(defsuite ',name)))))
-    (test name)))
-
-(defmacro in-suite (name)
-  `(setf *suite* (%in-suite ',name)))
 
 
 ;;; define-test-package and friends
@@ -75,7 +56,7 @@
   (:use)
   (:documentation "Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
-(defsuite (fiasco-suites::all-tests :in root-suite :ignore-home-package t))
+(defsuite (fiasco-suites::all-tests :in root-suite))
 
 (defun all-tests ()
   "Run all currently defined tests."
@@ -101,9 +82,7 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
        (defpackage ,name
          ,@(append `((:use :fiasco :cl))
                    package-options))
-       (export 'run-package-tests ,name)
-       (defsuite (,suite-sym :ignore-home-package t
-                             :bind-to-package ,name
+       (defsuite (,suite-sym :bind-to-package ,name
                              :in fiasco-suites::all-tests)))))
 
 (defvar *pretty-log-accumulated-assertion-count* 0)

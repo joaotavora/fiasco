@@ -13,8 +13,6 @@
 (defvar *root-suite*)
 (defvar *package-bound-suites* (make-hash-table))
 (defvar *print-test-run-progress* t)
-(defvar *compile-tests-before-run* nil)
-(defvar *compile-tests-with-debug-level* nil)
 (defvar *test-progress-print-right-margin* 80)
 (defvar *debug-on-unexpected-error* t)
 (defvar *debug-on-assertion-failure* t)
@@ -253,7 +251,6 @@
    (toplevel-context nil)
    (current-test nil)
    (run-tests (make-hash-table) :documentation "test -> context mapping")
-   (run-fixtures (make-hash-table))
    (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
 
 (define-dynamic-context global-context
@@ -266,7 +263,6 @@
    (toplevel-context :initform nil :accessor toplevel-context-of :initarg :toplevel-context)
    (current-test :initform nil :accessor current-test-of :initarg :current-test)
    (run-tests :initform (make-hash-table) :accessor run-tests-of :initarg :run-tests :documentation "test -> context mapping")
-   (run-fixtures :initform (make-hash-table) :accessor run-fixtures-of :initarg :run-fixtures)
    (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
 
 (defun extract-test-run-statistics (global-context)

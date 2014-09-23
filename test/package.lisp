@@ -13,8 +13,7 @@
 
   (:shadow
    #:deftest
-   #:test
-   #:fixtures))
+   #:test))
 
 (in-package :fiasco)
 

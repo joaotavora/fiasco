@@ -59,7 +59,7 @@
 
 (let ((counter 0))
   (setf *global-counter-for-lexical-test* 0)
-  (deftest (counter-in-lexical-environment :compile-before-run nil) ()
+  (deftest counter-in-lexical-environment ()
     (incf counter)
     (incf *global-counter-for-lexical-test*)
     (is (= counter *global-counter-for-lexical-test*))))
@@ -70,7 +70,7 @@
 (defmacro true-macro ()
   t)
 
-(deftest (assertions :compile-before-run t :in test) (&key (test-name (gensym "TEMP-TEST")))
+(deftest (assertions :in test) (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
                 (is (= 42 42))

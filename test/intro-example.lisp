@@ -54,3 +54,11 @@
         (is (= 2 number-of-unexpected-errors))
         (is (= 0 number-of-expected-failures))))))
   
+#+nil
+(defun seconds (hours-and-minutes)
+  (+ (* 3600 (first hours-and-minutes))
+     (* 60 (second hours-and-minutes))))
+#+nil
+(defun hours-and-minutes (seconds)
+  (list (truncate seconds 3600)
+        (/ (rem seconds 3600) 60)))
