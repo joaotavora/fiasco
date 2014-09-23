@@ -9,11 +9,22 @@
   :depends-on (:alexandria)
   :components
   ((:module "src"
-    :components
     :serial t
+    :components
     ((:file "package")
      (:file "utils")
      (:file "infrastructure")
      (:file "asserts")
      (:file "test")
      (:file "suite")))))
+
+(asdf:defsystem :fiasco-self-tests
+    :licence "BSD / Public domain"
+  :depends-on (:fiasco)
+  :serial t
+  :components ((:module "test"
+                :serial t
+                :components
+                ((:file "basic")
+                 (:file "intro-example")))))
+

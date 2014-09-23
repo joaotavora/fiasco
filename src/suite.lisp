@@ -70,9 +70,6 @@ the package NAME are automatically added to the bounded suite. The
 function RUN-PACKAGE-TESTS is the preferred way to execute the
 suite.
 
-This function is automatically exported from package NAME, so you can
-also use NAME:RUN-PACKAGE-TESTS.
-
 Package NAME is defined via normal `defpackage', and in addition to processing
 PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
   (unless (find-package name)
@@ -90,7 +87,7 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
 
-(defun run-package-tests (&key (package *package*)
+(defun run-package-tests (&key (packages (list *package*))
                                (describe-failures t)
                                verbose
                                (stream t)
@@ -98,7 +95,9 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
   "Execute the test suite associated with current package.
 With optional PACKAGE run the test suite associated with that
 instead. "
-  (let ((suite (find-suite-for-package (find-package package))))
+  
+  (let ((suites (mapcar #'find-suite-for-package
+                        (mapcar #'find-package (alexandria:ensure-list packages)))))
     (assert suite nil "Can't find a test suite for package ~a" package)
     (run-suite-tests suite
                      :verbose verbose

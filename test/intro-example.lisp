@@ -25,9 +25,14 @@
   (is (= 3600 (seconds (hours-and-minutes 3600))))
   (is (= 1234 (seconds (hours-and-minutes 1234)))))
 
-(in-package :fiasco-self-tests)
 
-;; define a metatest to test the other test
+(fiasco:define-test-package #:fiasco-intro-example
+  (:import-from #:fiasco
+                #:with-new-global-context*
+                #:*global-context*))
+(in-package #:fiasco-intro-example)
+
+;; define a metatest to test the other tests
 ;;
 (deftest intro-metatest ()
   (let ((*debug-on-unexpected-error* nil)

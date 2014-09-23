@@ -3,57 +3,75 @@
 ;;; Copyright (c) 2006 by the authors.
 ;;;
 ;;; See LICENCE for details.
+(fiasco:define-test-package #:fiasco-basic-self-tests
+  (:use #:example-time)
 
-(in-package :fiasco-self-tests)
+  ;; These tests are testing FIASCO's own internals, so its
+  ;; more-or-less OK to explicitly import some of it. Or is it?
+  (:import-from #:fiasco #:*suite*
+                #:name-of
+                #:parent-of
+                #:delete-test
+                #:count-tests
 
-(defsuite* (test :in root-suite :documentation "Fiasco self tests"))
+                #:*global-context*
+                #:print-test-run-progress-p
+                #:debug-on-assertion-failure-p
+                #:debug-on-unexpected-error-p
+                #:failure-descriptions-of
+                #:assertion-count-of
+                #:print-test-run-progress-p
+                #:debug-on-assertion-failure-p
+                #:debug-on-unexpected-error-p
 
-(defsuite (fiasco-temp-suite :in test :documentation "Current test suite while the Fiasco self-tests are being run"))
-
-;; hide deftest with a local version that rebinds and sets *suite* when executing the body
-(defmacro deftest (name args &body body)
-  `(fiasco:deftest ,name ,args
-    (let ((*suite* (find-test 'fiasco-temp-suite)))
-      ,@body)))
+                #:lambda-list-to-value-list-expression
+                #:lambda-list-to-funcall-expression
+                #:lambda-list-to-variable-name-list))
+(in-package #:fiasco-basic-self-tests)
 
 (deftest lifecycle ()
   (let* ((original-test-count (count-tests *suite*))
-         (original-current-suite *suite*)
          (suite-name (gensym "TEMP-SUITE"))
          (test-name (gensym "TEMP-TEST"))
          (transient-test-name (gensym "TRANSIENT-TEST"))
-         (transient-suite-name (gensym "TRANSIENT-SUITE")))
+         (transient-suite-name (gensym "TRANSIENT-SUITE"))
+         (temp-suite (eval `(defsuite (,suite-name :in ,*suite*))))
+         (transient-suite (eval `(defsuite (,transient-suite-name :in ,*suite*)))))
     (unwind-protect
          (progn
-           (eval `(deftest ,test-name ()))
-           (is (= (count-tests *suite*) (1+ original-test-count)))
-           (let ((test (find-test test-name)))
-             ;; it should keep the original test object identity
-             (eval `(deftest ,test-name ()))
-             (is (eq test (find-test test-name)))))
-      (delete-test test-name :otherwise nil))
-    (is (not (find-test test-name :otherwise nil)))
-    (is (= (count-tests *suite*) original-test-count))
-    (unwind-protect
-         (let* ((temp-suite (eval `(defsuite (,suite-name :in ,*suite*))))
-                (transient-suite (eval `(defsuite (,transient-suite-name :in ,*suite*)))))
-           (is (= (count-tests *suite*) (+ 2 original-test-count)))
+           ;; The suites are freshly defined, test some things
+           ;; 
            (is (eq (parent-of temp-suite) *suite*))
+           (is (= (count-tests *suite*) (+ 2 original-test-count)))
            (is (eq (find-test (name-of temp-suite)) temp-suite))
-           (eval `(in-suite ,(name-of temp-suite)))
-           (is (eq *suite* (find-test suite-name)))
-           (eval `(deftest ,transient-test-name ()))
+           (is (= (count-tests temp-suite) 0))
+
+           ;; Now define a test
+           ;; 
+           (eval `(deftest (,test-name :in ,suite-name ) ()))
+           (is (= (count-tests temp-suite) 1))
+
+           ;; redefining a test should keep the original test object
+           ;; identity
+           (let ((test (find-test test-name)))
+             (eval `(deftest ,test-name ()))
+             (is (eq test (find-test test-name))))
+
+           ;; Define a second test in the same TEMP-SUITE
+           (eval `(deftest (,transient-test-name :in ,suite-name) ()))
+           (is (= (count-tests temp-suite) 2))
+           
            (let ((transient-test (find-test transient-test-name)))
-             (is (eq *suite* (parent-of transient-test)))
-             ;; redefine in another suite
+             (is (eq temp-suite (parent-of transient-test)))
+             ;; Now redefine in another suite, TRANSIENT-SUITE
              (eval `(deftest (,transient-test-name :in ,transient-suite-name) ()))
-             (is (eq transient-suite (parent-of transient-test)))))
+             (is (eq transient-suite (parent-of transient-test)))
+             (is (= (count-tests temp-suite) 1))
+             (is (= (count-tests transient-suite) 1))))
       (setf (find-test suite-name) nil)
       (setf (find-test transient-suite-name) nil))
     (signals error (find-test transient-test-name))
-    (signals error (find-test suite-name))
-    (is (= (count-tests *suite*) original-test-count))
-    (is (eq original-current-suite *suite*))))
+    (signals error (find-test suite-name))))
 
 (defparameter *global-counter-for-lexical-test* 0)
 
@@ -70,7 +88,7 @@
 (defmacro true-macro ()
   t)
 
-(deftest (assertions :in test) (&key (test-name (gensym "TEMP-TEST")))
+(deftest assertions (&key (test-name (gensym "TEMP-TEST")))
   (unwind-protect
        (eval `(deftest ,test-name ()
                 (is (= 42 42))
@@ -118,8 +136,6 @@
       (delete-test test-name :otherwise nil)))
   (values))
 
-(defsuite* (lambda-lists :in test))
-
 (deftest lambda-list-processing ()
   (is (equal (lambda-list-to-value-list-expression '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
              '(list (cons 'p1 p1) (cons 'p2 p2) (cons 'o1 o1) (cons 'o2 o2) (cons 'k1 k1)
@@ -146,7 +162,7 @@
                    (&allow-other-keys)
                    (&key k1 &optional o1)
                    (&aux x1 &key k1)))
-    (signals illegal-lambda-list
+    (signals error
       (lambda-list-to-variable-name-list entry)))
   (dolist (entry '((p1 &whole)
                    (&allow-other-keys)
@@ -154,5 +170,5 @@
                    (&aux x1 &key k1)
                    (a &rest rest &body body)
                    (&aux a &body body)))
-    (signals illegal-lambda-list
+    (signals error
       (lambda-list-to-variable-name-list entry :macro t))))

@@ -19,10 +19,8 @@
            #:with-expected-failures
            #:with-expected-failures*
            #:with-captured-lexical-environment
-           #:in-suite
            #:root-suite
            #:defsuite
-           #:defsuite*
            #:run-child-tests ; TODO delete eventually
            #:-run-child-tests-
            #:-body-
