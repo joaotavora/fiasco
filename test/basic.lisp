@@ -4,7 +4,7 @@
 ;;;
 ;;; See LICENCE for details.
 (fiasco:define-test-package #:fiasco-basic-self-tests
-  (:use #:example-time)
+  (:use #:cl)
 
   ;; These tests are testing FIASCO's own internals, so its
   ;; more-or-less OK to explicitly import some of it. Or is it?
