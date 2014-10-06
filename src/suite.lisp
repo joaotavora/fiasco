@@ -95,18 +95,18 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
   "Execute the test suite associated with current package.
 With optional PACKAGE run the test suite associated with that
 instead. "
-  
   (let ((suites (mapcar #'find-suite-for-package
                         (mapcar #'find-package (alexandria:ensure-list packages)))))
-    (assert suite nil "Can't find a test suite for package ~a" package)
-    (run-suite-tests suite
-                     :verbose verbose
-                     :stream stream
-                     :interactive interactive)
-    (unless (or interactive
-                (null describe-failures)
-                (zerop (length (failure-descriptions-of *last-test-result*))))
-      (describe-failed-tests :stream stream))
+    (assert suites nil "Can't find a test suite for package ~{~A~^, ~}" packages)
+    (dolist (suite suites)
+      (run-suite-tests suite
+                       :verbose verbose
+                       :stream stream
+                       :interactive interactive)
+      (unless (or interactive
+                  (null describe-failures)
+                  (zerop (length (failure-descriptions-of *last-test-result*))))
+        (describe-failed-tests :stream stream)))
     *last-test-result*))
 
 (defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
