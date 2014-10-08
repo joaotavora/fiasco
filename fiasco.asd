@@ -5,7 +5,9 @@
 ;;; See LICENCE for details.
 
 (defsystem :fiasco
-    :description "A Common Lisp test framework that treasures your failures"
+  :description "A Common Lisp test framework that treasures your failures. A logical continuation of the Stefil test framework."
+  :author "capitaomorte <https://github.com/capitaomorte>"
+  :license "BSD 2-clause"
   :depends-on (:alexandria)
   :components
   ((:module "src"
