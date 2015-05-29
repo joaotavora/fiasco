@@ -56,21 +56,20 @@
   (assert (not (and create-class create-struct)) () "Only one of CREATE-CLASS and CREATE-STRUCT is allowed.")
   (flet ((concatenate-symbol (&rest args)
            (let* ((package nil)
-                  (symbol-name (string-upcase
-                                (with-output-to-string (str)
-                                  (dolist (arg args)
-                                    (typecase arg
-                                      (string (write-string arg str))
-                                      (package (setf package arg))
-                                      (symbol (unless package
-                                                (setf package (symbol-package arg)))
-                                              (write-string (symbol-name arg) str))
-                                      (integer (write-string (princ-to-string arg) str))
-                                      (character (write-char arg) str)
-                                      (t (error "Cannot convert argument ~S to symbol" arg))))))))
+                  (symbol-name (with-output-to-string (str)
+				 (dolist (arg args)
+				   (typecase arg
+				     (string (write-string arg str))
+				     (package (setf package arg))
+				     (symbol (unless package
+					       (setf package (symbol-package arg)))
+					     (write-string (symbol-name arg) str))
+				     (integer (write-string (princ-to-string arg) str))
+				     (character (write-char arg) str)
+				     (t (error "Cannot convert argument ~S to symbol" arg)))))))
              (if package
-                 (intern symbol-name package)
-                 (intern symbol-name))))
+                 (intern (read-from-string symbol-name) package)
+                 (intern (read-from-string symbol-name)))))
          (strcat (&rest string-designators)
            (with-output-to-string (str)
              (dolist (s string-designators)
