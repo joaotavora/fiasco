@@ -68,8 +68,8 @@
 				     (character (write-char arg) str)
 				     (t (error "Cannot convert argument ~S to symbol" arg)))))))
              (if package
-                 (intern (read-from-string symbol-name) package)
-                 (intern (read-from-string symbol-name)))))
+                 (intern (string (read-from-string symbol-name)) package)
+                 (intern (string (read-from-string symbol-name))))))
          (strcat (&rest string-designators)
            (with-output-to-string (str)
              (dolist (s string-designators)
