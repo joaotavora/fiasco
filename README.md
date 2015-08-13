@@ -13,7 +13,6 @@ Up and running
 This assumes you're using a recent version of [quicklisp][quicklisp]
 
 ```lisp
-(push "path/to/fiascos/parent/dir" quicklisp:*local-project-directories*)
 (ql:quickload :fiasco)
 ```
 
