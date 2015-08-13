@@ -43,9 +43,16 @@
      (create-struct nil) (create-class (not create-struct))
      struct-options
      (defclass-macro-name 'defclass))
-  "The purpose of this macro is to provide an easy way to access a group of related special variables. To do so, it generates
-   with-NAME/in-NAME/current-NAME/has-NAME macros to access either a CLOS instance or a defstruct in a special variable.
-   Optionally it can chain the \"parent\" bindings (use :CHAIN-PARENTS T and access with PARENT-CONTEXT-OF)."
+  "Defined a dynamic context named NAME.
+
+A dynamic context is both a class/struct definition and a lot accessor
+macros.
+
+Generates with-NAME/in-NAME/current-NAME/has-NAME macros to access
+either a CLOS instance or a defstruct in a special variable.
+
+Optionally it can chain the \"parent\" bindings (use :CHAIN-PARENTS T
+and access with PARENT-CONTEXT-OF)."
   (assert (and (or create-class
                    create-struct
                    (not (or direct-slots direct-superclasses chain-parents)))
@@ -54,40 +61,23 @@
           () "Invalid combination of DIRECT-SLOTS, DIRECT-SUPERCLASSES, CHAIN-PARENTS and CREATE-CLASS/CREATE-STRUCT.")
   (assert (or (not struct-options) create-struct) () "STRUCT-OPTIONS while no CREATE-STRUCT?")
   (assert (not (and create-class create-struct)) () "Only one of CREATE-CLASS and CREATE-STRUCT is allowed.")
-  (flet ((concatenate-symbol (&rest args)
-           (let* ((package nil)
-                  (symbol-name (string-upcase
-                                (with-output-to-string (str)
-                                  (dolist (arg args)
-                                    (typecase arg
-                                      (string (write-string arg str))
-                                      (package (setf package arg))
-                                      (symbol (unless package
-                                                (setf package (symbol-package arg)))
-                                              (write-string (symbol-name arg) str))
-                                      (integer (write-string (princ-to-string arg) str))
-                                      (character (write-char arg) str)
-                                      (t (error "Cannot convert argument ~S to symbol" arg))))))))
-             (if package
-                 (intern symbol-name package)
-                 (intern symbol-name))))
-         (strcat (&rest string-designators)
+  (flet ((strcat (&rest string-designators)
            (with-output-to-string (str)
              (dolist (s string-designators)
                (when s (princ s str))))))
-    (let ((special-var-name (concatenate-symbol "*" name "*"))
-          (extractor-name (concatenate-symbol "current-" name))
-          (has-checker-name (concatenate-symbol "has-" name))
-          (in-macro-name (concatenate-symbol "in-" name))
-          (with-new-macro-name (concatenate-symbol "with-new-" name))
-          (with-macro-name (concatenate-symbol "with-" name))
-          (ensure-macro-name (concatenate-symbol "ensure-" name))
+    (let ((special-var-name (alexandria:symbolicate '#:* name '#:*))
+          (extractor-name (alexandria:symbolicate '#:current- name))
+          (has-checker-name (alexandria:symbolicate '#:has- name))
+          (in-macro-name (alexandria:symbolicate '#:in- name))
+          (with-new-macro-name (alexandria:symbolicate '#:with-new- name))
+          (with-macro-name (alexandria:symbolicate '#:with- name))
+          (ensure-macro-name (alexandria:symbolicate '#:ensure- name))
           (struct-constructor-name (when create-struct
                                      (or (second (assoc :constructor struct-options))
-                                         (concatenate-symbol "make-" name))))
+                                         (alexandria:symbolicate '#:make- name))))
           (struct-conc-name (when create-struct
                               (or (second (assoc :conc-name struct-options))
-                                  (concatenate-symbol class-name "-")))))
+                                  (alexandria:symbolicate class-name '#:-)))))
       `(progn
         (defvar ,special-var-name)
         (declaim (inline ,has-checker-name ,extractor-name (setf ,extractor-name)))
@@ -137,7 +127,7 @@
               (declare (special ,',special-var-name)) ; KLUDGE with-call/cc in arnesi needs it currently
               ,@,(when chain-parents
                    ``((setf (,',(if create-struct
-                                    (concatenate-symbol struct-conc-name "parent-context")
+                                    (alexandria:symbolicate struct-conc-name '#:parent-context)
                                     'parent-context-of) ,context-instance)
                        ,parent)))
               (unless ,context-instance
