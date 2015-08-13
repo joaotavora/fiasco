@@ -95,9 +95,13 @@
     (error "TODO: timeouts are not implemented yet in Fiasco."))
   (let* ((result-values '()))
     (flet ((body ()
-             (with-new-context (:test test :test-arguments arguments)
+             (let ((*context* (make-instance 'context
+                                             :test test
+                                             :test-arguments arguments
+                                             :parent-context (when (boundp '*context*)
+                                                               *context*))))
                (when toplevel-p
-                 (setf (toplevel-context-of *global-context*) (current-context)))
+                 (setf (toplevel-context-of *global-context*) *context*))
                (setf result-values (multiple-value-list (funcall *run-test-function* test function))))))
       (if toplevel-p
           (with-toplevel-restarts
@@ -134,9 +138,8 @@
              ,@(when documentation (list documentation))
              ,@declarations
              (let* ((,test (find-test ',name))
-                    (,toplevel-p (not (has-global-context)))
-                    (,global-context (unless ,toplevel-p
-                                       (current-global-context))))
+                    (,toplevel-p (not (boundp '*global-context*)))
+                    (,global-context (unless ,toplevel-p *global-context*)))
                ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
                (labels ((,name () ,@remaining-forms)
                         (,body-sym () (run-test-body ,test
@@ -145,8 +148,8 @@
                                                      ,toplevel-p
                                                      ,timeout)))
                  (if ,toplevel-p
-                     (with-new-global-context* ()
-                       (setf ,global-context (current-global-context))
+                     (with-new-global-context ()
+                       (setf ,global-context *global-context*)
                        (push ,global-context *test-result-history*)
                        (setf *last-test-result* ,global-context)
                        (,body-sym))

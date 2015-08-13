@@ -52,14 +52,6 @@
 
 ;;;;;;
 ;;; some classes
-
-#+nil
-(hu.dwim.defclass-star:defclass* testable ()
-  ((name :type symbol)
-   (parent nil :initarg nil :type (or null testable))
-   (children (make-hash-table) :documentation "A mapping from testable names to testables")
-   (auto-call t :type boolean :accessor auto-call? :documentation "Controls whether to automatically call this test when its parent suite is invoked. Enabled by default.")))
-
 (defclass testable ()
   ((name :accessor name-of :initarg :name :type symbol)
    (parent :initform nil :accessor parent-of :type (or null testable))
@@ -114,22 +106,10 @@
                 :for child :being :the :hash-values :of (children-of self)
                 :summing (count-tests child)))))
 
-#+nil
-(hu.dwim.defclass-star:defclass* failure-description ()
-  ((test-context-backtrace)
-   (progress-char #\X :allocation :class)
-   (expected *failures-and-errors-are-expected* :type boolean)))
-
 (defclass failure-description ()
   ((test-context-backtrace :accessor test-context-backtrace-of :initarg :test-context-backtrace)
    (progress-char :initform #\X :accessor progress-char-of :initarg :progress-char :allocation :class)
    (expected :initform *failures-and-errors-are-expected* :accessor expected-p :initarg :expected :type boolean)))
-
-#+nil
-(hu.dwim.defclass-star:defclass* failed-assertion (failure-description)
-  ((form)
-   (format-control)
-   (format-arguments)))
 
 (defclass failed-assertion (failure-description)
   ((form :accessor form-of :initarg :form)
@@ -145,11 +125,6 @@
           (form-of self)
           (mapcar (compose #'name-of #'test-of)
                   (test-context-backtrace-of self))))
-
-#+nil
-(hu.dwim.defclass-star:defclass* failure-description/condition (failure-description)
-  ((form)
-   (condition)))
 
 (defclass failure-description/condition (failure-description)
   ((form :accessor form-of :initarg :form)
@@ -240,30 +215,34 @@
 ;;;;;;
 ;;; the real thing
 
-#+nil
-(define-dynamic-context* global-context
-  ((failure-descriptions (make-array 8 :adjustable t :fill-pointer 0))
-   (assertion-count 0)
-   (progress-char-count 0)
-   (print-test-run-progress-p *print-test-run-progress* :type boolean)
-   (debug-on-unexpected-error-p *debug-on-unexpected-error* :type boolean)
-   (debug-on-assertion-failure-p *debug-on-assertion-failure* :type boolean)
-   (toplevel-context nil)
-   (current-test nil)
-   (run-tests (make-hash-table) :documentation "test -> context mapping")
-   (test-lambdas (make-hash-table) :documentation "test -> compiled test lambda mapping for this test run")))
+(defvar *global-context*)
 
-(define-dynamic-context global-context
-  ((failure-descriptions :initform (make-array 8 :adjustable t :fill-pointer 0) :accessor failure-descriptions-of :initarg :failure-descriptions)
+(defclass global-context ()
+  ((failure-descriptions :initform (make-array 8 :adjustable t :fill-pointer 0)
+                         :accessor failure-descriptions-of :initarg :failure-descriptions)
    (assertion-count :initform 0 :accessor assertion-count-of :initarg :assertion-count)
    (progress-char-count :initform 0 :accessor progress-char-count-of :initarg :progress-char-count)
-   (print-test-run-progress-p :initform *print-test-run-progress* :accessor print-test-run-progress-p :initarg :print-test-run-progress-p :type boolean)
-   (debug-on-unexpected-error-p :initform *debug-on-unexpected-error* :accessor debug-on-unexpected-error-p :initarg :debug-on-unexpected-error-p :type boolean)
-   (debug-on-assertion-failure-p :initform *debug-on-assertion-failure* :accessor debug-on-assertion-failure-p :initarg :debug-on-assertion-failure-p :type boolean)
+   (print-test-run-progress-p :initform *print-test-run-progress*
+                              :accessor print-test-run-progress-p :initarg :print-test-run-progress-p
+                              :type boolean)
+   (debug-on-unexpected-error-p :initform *debug-on-unexpected-error*
+                                :accessor debug-on-unexpected-error-p :initarg :debug-on-unexpected-error-p
+                                :type boolean)
+   (debug-on-assertion-failure-p :initform *debug-on-assertion-failure*
+                                 :accessor debug-on-assertion-failure-p :initarg :debug-on-assertion-failure-p
+                                 :type boolean)
    (toplevel-context :initform nil :accessor toplevel-context-of :initarg :toplevel-context)
    (current-test :initform nil :accessor current-test-of :initarg :current-test)
-   (run-tests :initform (make-hash-table) :accessor run-tests-of :initarg :run-tests :documentation "test -> context mapping")
-   (test-lambdas :initform (make-hash-table) :accessor test-lambdas-of :initarg :test-lambdas :documentation "test -> compiled test lambda mapping for this test run")))
+   (run-tests :initform (make-hash-table)
+              :accessor run-tests-of :initarg :run-tests :documentation "test -> context mapping")
+   (test-lambdas :initform (make-hash-table)
+                 :accessor test-lambdas-of :initarg :test-lambdas
+                 :documentation "test -> compiled test lambda mapping for this test run")))
+
+(defmacro with-new-global-context ((&rest initargs) &body forms)
+  `(let* ((*global-context* (make-instance 'global-context ,@initargs))
+          (*standard-output* (eval *test-run-standard-output*)))
+     ,@forms))
 
 (defun extract-test-run-statistics (global-context)
   (let* ((failure-descriptions (failure-descriptions-of global-context))
@@ -301,11 +280,6 @@
                   ((zerop number-of-expected-failures)
                    "none")
                   (t number-of-expected-failures)))))
-
-(defmacro with-new-global-context* ((&rest initargs) &body forms)
-  `(with-new-global-context ,initargs
-     (let* ((*standard-output* (eval *test-run-standard-output*)))
-       ,@forms)))
 
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
@@ -357,23 +331,17 @@
 
 (defun register-test-being-run (test)
   (declare (type testable test))
-  (setf (gethash test (run-tests-of *global-context*)) (current-context))
+  (setf (gethash test (run-tests-of *global-context*)) *context*)
   (setf (current-test-of *global-context*) test))
 
-#+nil
-(define-dynamic-context* context
-  ((test)
-   (internal-realtime-spent-with-test nil)
-   (test-arguments)
-   (number-of-added-failure-descriptions 0))
-  :chain-parents t)
+(defvar *context*)
 
-(define-dynamic-context context
+(defclass context ()
   ((test :accessor test-of :initarg :test)
    (internal-realtime-spent-with-test :initform nil :accessor internal-realtime-spent-with-test-of :initarg :internal-realtime-spent-with-test)
    (test-arguments :accessor test-arguments-of :initarg :test-arguments)
-   (number-of-added-failure-descriptions :initform 0 :accessor number-of-added-failure-descriptions-of :initarg :number-of-added-failure-descriptions))
-  :chain-parents t)
+   (number-of-added-failure-descriptions :initform 0 :accessor number-of-added-failure-descriptions-of :initarg :number-of-added-failure-descriptions)
+   (parent-context :initarg :parent-context :initform nil :accessor parent-context-of)))
 
 (defprint-object (self context :identity nil :type nil)
   (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
@@ -393,7 +361,7 @@
                 'float)))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
-  `(with-new-global-context* ()
+  `(with-new-global-context ()
      (if (> (length (failure-descriptions-of ,test-result-place)) 0)
          (progn
            (%run-failed-tests ,test-result-place)

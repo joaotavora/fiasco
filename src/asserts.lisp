@@ -119,14 +119,14 @@
 
 (defun record-failure* (failure-description-type &key (signal-assertion-failed t) description-initargs)
   (let* ((description (apply #'make-instance failure-description-type
-                             :test-context-backtrace (when (has-context)
+                             :test-context-backtrace (when (boundp '*context*)
                                                        (loop
-                                                         :for context = (current-context) :then (parent-context-of context)
+                                                         :for context = *context* :then (parent-context-of context)
                                                          :while context
                                                          :collect context))
                              description-initargs)))
-    (if (and (has-global-context)
-             (has-context))
+    (if (and (boundp '*global-context*)
+             (boundp '*context*))
         (progn
           (vector-push-extend description (failure-descriptions-of *global-context*))
           (incf (number-of-added-failure-descriptions-of *context*))

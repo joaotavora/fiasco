@@ -151,7 +151,7 @@ docstring."
                      do (incf depth))
                depth))
            (pp (suffix format-control &rest format-args)
-             (let* ((depth (depth-of (current-context)))
+             (let* ((depth (depth-of *context*))
                     (body (format nil "~A~A"
                                   (make-string (* depth 2) :initial-element #\space)
                                   (apply #'format nil format-control format-args))))
@@ -172,7 +172,7 @@ docstring."
            (v-list (multiple-value-list (run-test-body-in-handlers test function)))
            (results *global-context*))
       (unless (suite-p)
-        (pp (if (zerop (number-of-added-failure-descriptions-of (current-context)))
+        (pp (if (zerop (number-of-added-failure-descriptions-of *context*))
                 " OK "
                 "FAIL")
             "~&~A" (fiasco::name-of test))
