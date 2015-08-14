@@ -113,7 +113,11 @@
 
 (defun register-assertion ()
   (when (boundp '*global-context*)
-    (incf (assertion-count-of *global-context*))))
+    ;; JT@15/08/14: TODO: Abtract this away to a single
+    ;; (add-failure-description *context*)
+    ;; 
+    (loop for recorder in (list *global-context* *context*)
+          do (incf (assertion-count-of recorder)))))
 
 (defun record-unexpected-error (condition)
   (assert (not (typep condition 'assertion-failed)))
@@ -139,12 +143,13 @@
                                  :while context
                                  :collect context))
                              description-initargs)))
-    (if (and (boundp '*global-context*)
-             (boundp '*context*))
+    (if (boundp '*global-context*)
         (progn
-          (vector-push-extend description
-                              (failure-descriptions-of *global-context*))
-          (incf (number-of-added-failure-descriptions-of *context*))
+          ;; JT@15/08/14: TODO: Abtract this away to a single
+          ;; (add-failure-description *context*)
+          ;;
+          (loop for recorder in (list *global-context* *context*)
+                do (vector-push-extend description (failure-descriptions-of recorder)))
           (write-progress-char (progress-char-of description))
           (when signal-assertion-failed
             (restart-case

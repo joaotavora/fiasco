@@ -246,13 +246,15 @@ If this variable is unbound
 
 (defun assert-global-context () (assert (boundp '*global-context*)))
 
-(defclass global-context ()
+(defclass assertion-recorder ()
   ((failure-descriptions :initform (make-array 8 :adjustable t :fill-pointer 0)
                          :accessor failure-descriptions-of
                          :initarg :failure-descriptions)
    (assertion-count :initform 0 :accessor assertion-count-of
-                    :initarg :assertion-count)
-   (progress-char-count :initform 0 :accessor progress-char-count-of
+                    :initarg :assertion-count)))
+
+(defclass global-context (assertion-recorder)
+  ((progress-char-count :initform 0 :accessor progress-char-count-of
                         :initarg :progress-char-count)
    (print-test-run-progress-p :initform *print-test-run-progress*
                               :accessor print-test-run-progress-p
@@ -398,17 +400,13 @@ test session~@:>"))))
 (setf (documentation '*context* 'variable)
       "Status and progress info for a particular test run.")
 
-(defclass context ()
+(defclass context (assertion-recorder)
   ((test :accessor test-of :initarg :test)
    (internal-realtime-spent-with-test
     :initform nil
     :accessor internal-realtime-spent-with-test-of
     :initarg :internal-realtime-spent-with-test)
    (test-arguments :accessor test-arguments-of :initarg :test-arguments)
-   (number-of-added-failure-descriptions
-    :initform 0
-    :accessor number-of-added-failure-descriptions-of
-    :initarg :number-of-added-failure-descriptions)
    (parent-context
     :initarg :parent-context :initform nil :accessor parent-context-of)))
 

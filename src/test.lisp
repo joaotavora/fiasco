@@ -54,39 +54,44 @@
   (declare (type test test)
            (type function function))
   (register-test-being-run test)
-  (labels ((prune-failure-descriptions ()
-             ;; drop failures recorded by the previous run of this test
-             (loop repeat (number-of-added-failure-descriptions-of *context*)
-                do (vector-pop (failure-descriptions-of *global-context*)))
-             (setf (number-of-added-failure-descriptions-of *context*) 0))
-           (run-test-body ()
-             (call-with-test-handlers
-              (lambda ()
-                (restart-case
-                    (let* ((*package* (package-of test))
-                           (*readtable* (copy-readtable))
-                           (start-time (get-internal-run-time)))
-                      (multiple-value-prog1
-                          (funcall function)
-                        (setf (internal-realtime-spent-with-test-of *context*)
-                              (- (get-internal-run-time) start-time))))
-                  (continue ()
-                    :report (lambda (stream)
-                              (format stream "~
+  (let ((saved-failure-descriptions (copy-array (failure-descriptions-of *context*))))
+    (labels ((run-test-body ()
+               (call-with-test-handlers
+                (lambda ()
+                  (restart-case
+                      (let* ((*package* (package-of test))
+                             (*readtable* (copy-readtable))
+                             (start-time (get-internal-run-time)))
+                        (multiple-value-prog1
+                            (funcall function)
+                          (setf (internal-realtime-spent-with-test-of *context*)
+                                (- (get-internal-run-time) start-time))))
+                    (continue ()
+                      :report (lambda (stream)
+                                (format stream "~
 ~@<Skip the rest of the test ~S and continue by~
 returning (values)~@:>" (name-of test)))
-                    (values))
-                  (retest ()
-                    :report (lambda (stream)
-                              (format stream "~@<Rerun the test ~S~@:>"
-                                      (name-of test)))
-                    ;; TODO: this will only prune the failures that
-                    ;; were recorded in the current context.  in case
-                    ;; of nesting it will leave alone the failures
-                    ;; recorded in deeper levels.
-                    (prune-failure-descriptions)
-                    (return-from run-test-body (run-test-body))))))))
-    (run-test-body)))
+                      (values))
+                    (retest ()
+                      :report (lambda (stream)
+                                (format stream "~@<Rerun the test ~S~@:>"
+                                        (name-of test)))
+                      ;; Restore the global context. JT@15/08/14:
+                      ;; TODO, this is very brittle, there are
+                      ;; probably many other things that may need to
+                      ;; be restored.
+                      ;; 
+                      (setf (failure-descriptions-of *global-context*)
+                            saved-failure-descriptions)
+                      ;; Make a new pristine *CONTEXT* binding
+                      ;;
+                      (setf *context*
+                            (make-instance 'context
+                                           :test (test-of *context*)
+                                           :test-arguments (test-arguments-of *context*)
+                                           :parent-context (parent-context-of *context*)))
+                      (return-from run-test-body (run-test-body))))))))
+      (run-test-body))))
 
 (defvar *run-test-function* #'run-test-body-in-handlers)
 

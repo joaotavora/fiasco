@@ -91,8 +91,6 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
        (defsuite (,suite-sym :bind-to-package ,name
                              :in fiasco-suites::all-tests)))))
 
-(defvar *pretty-log-accumulated-assertion-count* 0)
-(defvar *pretty-log-accumulated-failure-descriptions* nil)
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
 
@@ -138,8 +136,6 @@ docstring."
         (*print-test-run-progress* nil)
         (*pretty-log-stream* stream)
         (*pretty-log-verbose-p* verbose)
-        (*pretty-log-accumulated-failure-descriptions* nil)
-        (*pretty-log-accumulated-assertion-count* 0)
         (*run-test-function* #'pretty-run-test))
     (funcall (etypecase suite-designator
                (symbol suite-designator)
@@ -180,46 +176,24 @@ docstring."
     (when (suite-p)
       (pp nil "~&~A (Suite)" (name-of test)))
     (let* ((*within-non-suite-test* (not (suite-p)))
-           (v-list (multiple-value-list
-                    (run-test-body-in-handlers test function)))
-           (results *global-context*))
+           (retval-v-list (multiple-value-list
+                           (run-test-body-in-handlers test function)))
+           (failures (failure-descriptions-of *context*)))
       (unless (suite-p)
-        (pp (if (zerop (number-of-added-failure-descriptions-of *context*))
-                " OK "
-                "FAIL")
+        (pp (if failures " OK " "FAIL")
             "~&~A" (fiasco::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
               "    (~A)"
               (or (documentation (name-of test) 'function)
                   "no docstring for this test"))
-          (let* ((assertion-count
-                   (- (assertion-count-of results)
-                      *pretty-log-accumulated-assertion-count*))
-                 (failure-descriptions
-                   (remove-if
-                    (lambda (desc)
-                      (find desc *pretty-log-accumulated-failure-descriptions*))
-                    (failure-descriptions-of results)))
-                 (failed-assertion-count
-                   (count-if (alexandria:rcurry #'typep 'failed-assertion)
-                             failure-descriptions))
-                 (unexpected-error-count
-                   (count-if (alexandria:rcurry #'typep 'unexpected-error)
-                             failure-descriptions))
-                 (expected-count
-                   (count-if 'expected-p failure-descriptions)))
-            (pp nil
-                "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
-                assertion-count
-                failed-assertion-count
-                unexpected-error-count
-                expected-count))))
-      (setf *pretty-log-accumulated-assertion-count*
-            (assertion-count-of results))
-      (setf *pretty-log-accumulated-failure-descriptions*
-            (failure-descriptions-of results))
-      (values-list v-list))))
+          (pp nil
+              "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
+              (assertion-count-of *context*)
+              (count-if (alexandria:rcurry #'typep 'failed-assertion) failures)
+              (count-if (alexandria:rcurry #'typep 'unexpected-error) failures)
+              (count-if 'expected-p failures))))
+      (values-list retval-v-list))))
 
 (defun indented-format (level stream format-control &rest format-arguments)
   (let ((line-prefix (make-string level :initial-element #\Space)))
