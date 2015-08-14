@@ -18,10 +18,8 @@
            #:finishes
            #:with-expected-failures
            #:with-expected-failures*
-           #:with-captured-lexical-environment
            #:root-suite
            #:defsuite
-           #:run-child-tests ; TODO delete eventually
            #:-run-child-tests-
            #:-body-
            #:-here-
@@ -32,7 +30,6 @@
            #:run-failed-tests
            #:extract-test-run-statistics
 
-           #:*display-all-slots-in-inspector* ; to also display the raw slots, disabled by default
            #:*test-progress-print-right-margin*
            #:*test-result-history*
            #:*last-test-result*

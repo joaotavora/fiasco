@@ -27,19 +27,27 @@
              (let* ((,test (find-test ',name)))
                (labels ((-run-child-tests- ()
                           (loop
-                            :for subtest :being :the :hash-values :of (children-of ,test)
+                            :for subtest :being :the :hash-values
+                              :of (children-of ,test)
                             :when (and (auto-call? subtest)
-                                       (or (zerop (length (lambda-list-of subtest)))
-                                           (member (first (lambda-list-of subtest)) '(&rest &key &optional))))
+                                       (or (zerop (length
+                                                   (lambda-list-of subtest)))
+                                           (member (first
+                                                    (lambda-list-of subtest))
+                                                   '(&rest &key &optional))))
                               :do (funcall (name-of subtest))))
                         (run-child-tests ()
                           ;; TODO delme eventually?
-                          ;; (simple-style-warning "~S is obsolete, use ~S to invoke child tests in a testsuite!" 'run-child-tests '-run-child-tests-)
+                          ;; (simple-style-warning "~S is obsolete,
+                          ;; use ~S to invoke child tests in a
+                          ;; testsuite!" 'run-child-tests
+                          ;; '-run-child-tests-)
                           (-run-child-tests-)))
                  (declare (ignorable #'run-child-tests))
                  ,@(or body
                        `((if (test-was-run-p ,test)
-                             (warn "Skipped executing already run tests suite ~S" (name-of ,test))
+                             (warn "~
+Skipped executing already run tests suite ~S" (name-of ,test))
                              (-run-child-tests-))))))
              (values))
            (let ((suite (find-test ',name)))
@@ -54,7 +62,8 @@
 ;;; define-test-package and friends
 (defpackage :fiasco-suites
   (:use)
-  (:documentation "Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
+  (:documentation "~
+Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
 (defsuite (fiasco-suites::all-tests :in root-suite))
 
@@ -118,7 +127,8 @@ docstring."
                             :interactive interactive)
            (unless (or interactive
                        (null describe-failures)
-                       (zerop (length (failure-descriptions-of *last-test-result*))))
+                       (zerop (length (failure-descriptions-of
+                                       *last-test-result*))))
              (describe-failed-tests :stream stream))
         collect *last-test-result*))
 
@@ -145,31 +155,33 @@ docstring."
   ;; reporting non-toplevel tests altogether.
   (when *within-non-suite-test*
     (return-from pretty-run-test (run-test-body-in-handlers test function)))
-  (labels ((depth-of (context)
-             (let ((depth 0))
-               (loop while (setf context (parent-context-of context))
-                     do (incf depth))
-               depth))
-           (pp (suffix format-control &rest format-args)
-             (let* ((depth (depth-of *context*))
-                    (body (format nil "~A~A"
-                                  (make-string (* depth 2) :initial-element #\space)
-                                  (apply #'format nil format-control format-args))))
-               (if suffix
-                   (format *pretty-log-stream* "~&~A~A[~A]~%"
-                           body
-                           (make-string (max 1 (- *test-progress-print-right-margin*
-                                                  (length body)
-                                                  (length "[XXXX]")))
-                                        :initial-element #\space)
-                           suffix)
-                   (format *pretty-log-stream* "~&~A" body))))
-           (suite-p ()
-             (not (zerop (hash-table-count (children-of test))))))
+  (labels
+      ((depth-of (context)
+         (let ((depth 0))
+           (loop while (setf context (parent-context-of context))
+                 do (incf depth))
+           depth))
+       (pp (suffix format-control &rest format-args)
+         (let* ((depth (depth-of *context*))
+                (body (format nil "~A~A"
+                              (make-string (* depth 2) :initial-element #\space)
+                              (apply #'format nil format-control format-args))))
+           (if suffix
+               (format *pretty-log-stream* "~&~A~A[~A]~%"
+                       body
+                       (make-string (max 1 (- *test-progress-print-right-margin*
+                                              (length body)
+                                              (length "[XXXX]")))
+                                    :initial-element #\space)
+                       suffix)
+               (format *pretty-log-stream* "~&~A" body))))
+       (suite-p ()
+         (not (zerop (hash-table-count (children-of test))))))
     (when (suite-p)
       (pp nil "~&~A (Suite)" (name-of test)))
     (let* ((*within-non-suite-test* (not (suite-p)))
-           (v-list (multiple-value-list (run-test-body-in-handlers test function)))
+           (v-list (multiple-value-list
+                    (run-test-body-in-handlers test function)))
            (results *global-context*))
       (unless (suite-p)
         (pp (if (zerop (number-of-added-failure-descriptions-of *context*))
@@ -181,21 +193,32 @@ docstring."
               "    (~A)"
               (or (documentation (name-of test) 'function)
                   "no docstring for this test"))
-          (let* ((assertion-count (- (assertion-count-of results) *pretty-log-accumulated-assertion-count*))
-                 (failure-descriptions (remove-if #'(lambda (desc)
-                                                      (find desc *pretty-log-accumulated-failure-descriptions*))
-                                                  (failure-descriptions-of results)))
+          (let* ((assertion-count
+                   (- (assertion-count-of results)
+                      *pretty-log-accumulated-assertion-count*))
+                 (failure-descriptions
+                   (remove-if
+                    (lambda (desc)
+                      (find desc *pretty-log-accumulated-failure-descriptions*))
+                    (failure-descriptions-of results)))
                  (failed-assertion-count
-                   (count-if (alexandria:rcurry #'typep 'failed-assertion) failure-descriptions))
+                   (count-if (alexandria:rcurry #'typep 'failed-assertion)
+                             failure-descriptions))
                  (unexpected-error-count
-                   (count-if (alexandria:rcurry #'typep 'unexpected-error) failure-descriptions))
+                   (count-if (alexandria:rcurry #'typep 'unexpected-error)
+                             failure-descriptions))
                  (expected-count
                    (count-if 'expected-p failure-descriptions)))
             (pp nil
                 "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
-                assertion-count failed-assertion-count unexpected-error-count expected-count))))
-      (setf *pretty-log-accumulated-assertion-count* (assertion-count-of results))
-      (setf *pretty-log-accumulated-failure-descriptions* (failure-descriptions-of results))
+                assertion-count
+                failed-assertion-count
+                unexpected-error-count
+                expected-count))))
+      (setf *pretty-log-accumulated-assertion-count*
+            (assertion-count-of results))
+      (setf *pretty-log-accumulated-failure-descriptions*
+            (failure-descriptions-of results))
       (values-list v-list))))
 
 (defun indented-format (level stream format-control &rest format-arguments)
@@ -209,7 +232,8 @@ docstring."
   "Prints out a report for RESULT in STREAM.
 
 RESULT defaults to `*last-test-result*' and STREAM defaults to t"
-  (format stream "~&~%Fiasco! (~a failures)~%" (length (failure-descriptions-of result)))
+  (format stream "~&~%Fiasco! (~a failures)~%"
+          (length (failure-descriptions-of result)))
   (let ((descs (failure-descriptions-of result)))
     (cond ((zerop (length descs))
            (format stream "~&~%[no failures!]"))
@@ -219,5 +243,6 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
                (format stream "~%  Failure ~A: ~A when running ~S~%"
                        (1+ i)
                        (type-of desc)
-                       (name-of (test-of (first (test-context-backtrace-of desc)))))
+                       (name-of (test-of
+                                 (first (test-context-backtrace-of desc)))))
                (indented-format 4 stream "~a" (describe-object desc nil))))))))
