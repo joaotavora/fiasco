@@ -313,7 +313,7 @@ compiled lambda functions")))
                             &allow-other-keys)
       (extract-test-run-statistics self)
     (format t "test-run: ~A test~:P, ~A assertion~:P, ~A failure~:P in~
-~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
+ ~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
             number-of-tests-run
             number-of-assertions
             number-of-failures
