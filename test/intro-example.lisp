@@ -28,7 +28,7 @@
 
 (fiasco:define-test-package #:fiasco-intro-example
   (:import-from #:fiasco
-                #:with-new-global-context*
+                #:with-new-global-context
                 #:*global-context*))
 (in-package #:fiasco-intro-example)
 
@@ -37,7 +37,7 @@
 (deftest intro-metatest ()
   (let ((*debug-on-unexpected-error* nil)
         (*debug-on-assertion-failure* nil))
-    (let ((run (with-new-global-context* ()
+    (let ((run (with-new-global-context ()
                  (run-package-tests :package :fiasco-examples)
                  ;; must access *GLOBAL-CONTEXT* directly, otherwise
                  ;; we get the run of running INTRO-METATEST itself

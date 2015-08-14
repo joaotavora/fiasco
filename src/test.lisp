@@ -6,21 +6,17 @@
 
 (in-package :fiasco)
 
-#+nil(defclass-star:defclass* test (testable)
-  ((package nil)
-   (lambda-list nil)
-   (compile-before-run t :type boolean)
-   (declarations nil)
-   (documentation nil)
-   (body nil)))
-
 (defclass test (testable)
   ((package :initform nil :accessor package-of :initarg :package)
    (lambda-list :initform nil :accessor lambda-list-of :initarg :lambda-list)
-   (compile-before-run :initform t :accessor compile-before-run-p :initarg :compile-before-run :type boolean)
-   (declarations :initform nil :accessor declarations-of :initarg :declarations)
-   (documentation :initform nil :accessor documentation-of :initarg :documentation)
-   (body :initform nil :accessor body-of :initarg :body)))
+   (compile-before-run :initform t :accessor compile-before-run-p
+                       :initarg :compile-before-run :type boolean)
+   (declarations :initform nil :accessor declarations-of
+                 :initarg :declarations)
+   (documentation :initform nil :accessor documentation-of
+                  :initarg :documentation)
+   (body :initform nil :accessor body-of
+         :initarg :body)))
 
 (defun ensure-test (name &rest args &key &allow-other-keys)
   (let ((test (find-test name :otherwise nil)))
@@ -76,13 +72,18 @@
                               (- (get-internal-run-time) start-time))))
                   (continue ()
                     :report (lambda (stream)
-                              (format stream "~@<Skip the rest of the test ~S and continue by returning (values)~@:>" (name-of test)))
+                              (format stream "~
+~@<Skip the rest of the test ~S and continue by~
+returning (values)~@:>" (name-of test)))
                     (values))
                   (retest ()
                     :report (lambda (stream)
-                              (format stream "~@<Rerun the test ~S~@:>" (name-of test)))
-                    ;; TODO: this will only prune the failures that were recorded in the current context.
-                    ;; in case of nesting it will leave alone the failures recorded in deeper levels.
+                              (format stream "~@<Rerun the test ~S~@:>"
+                                      (name-of test)))
+                    ;; TODO: this will only prune the failures that
+                    ;; were recorded in the current context.  in case
+                    ;; of nesting it will leave alone the failures
+                    ;; recorded in deeper levels.
                     (prune-failure-descriptions)
                     (return-from run-test-body (run-test-body))))))))
     (run-test-body)))
@@ -95,10 +96,17 @@
     (error "TODO: timeouts are not implemented yet in Fiasco."))
   (let* ((result-values '()))
     (flet ((body ()
-             (with-new-context (:test test :test-arguments arguments)
+             (let ((*context*
+                     (make-instance 'context
+                                    :test test
+                                    :test-arguments arguments
+                                    :parent-context (when (boundp '*context*)
+                                                      *context*))))
                (when toplevel-p
-                 (setf (toplevel-context-of *global-context*) (current-context)))
-               (setf result-values (multiple-value-list (funcall *run-test-function* test function))))))
+                 (setf (toplevel-context-of *global-context*) *context*))
+               (setf result-values
+                     (multiple-value-list
+                      (funcall *run-test-function* test function))))))
       (if toplevel-p
           (with-toplevel-restarts
             (body))
@@ -115,7 +123,8 @@
 (defmacro deftest (&whole whole name args &body body)
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
-    (destructuring-bind (name &rest test-args &key (in nil in-provided?) timeout &allow-other-keys)
+    (destructuring-bind (name &rest test-args &key (in nil in-provided?)
+                                                   timeout &allow-other-keys)
         (ensure-list name)
       (remove-from-plistf test-args :in)
       (with-unique-names (test global-context toplevel-p body-sym)
@@ -134,19 +143,22 @@
              ,@(when documentation (list documentation))
              ,@declarations
              (let* ((,test (find-test ',name))
-                    (,toplevel-p (not (has-global-context)))
-                    (,global-context (unless ,toplevel-p
-                                       (current-global-context))))
-               ;; for convenience we define a function in a LABELS with the test name, so the debugger shows it in the backtrace
+                    (,toplevel-p (not (boundp '*global-context*)))
+                    (,global-context (unless ,toplevel-p *global-context*)))
+               ;; for convenience we define a function in a LABELS
+               ;; with the test name, so the debugger shows it in the
+               ;; backtrace
                (labels ((,name () ,@remaining-forms)
-                        (,body-sym () (run-test-body ,test
-                                                     #',name
-                                                     ,(lambda-list-to-value-list-expression args)
-                                                     ,toplevel-p
-                                                     ,timeout)))
+                        (,body-sym ()
+                          (run-test-body ,test
+                                         #',name
+                                         ,(lambda-list-to-value-list-expression
+                                           args)
+                                         ,toplevel-p
+                                         ,timeout)))
                  (if ,toplevel-p
-                     (with-new-global-context* ()
-                       (setf ,global-context (current-global-context))
+                     (with-new-global-context ()
+                       (setf ,global-context *global-context*)
                        (push ,global-context *test-result-history*)
                        (setf *last-test-result* ,global-context)
                        (,body-sym))
