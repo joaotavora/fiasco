@@ -4,7 +4,7 @@
 
 (defun seconds (hours-and-minutes)
   (+ (* 3600 (first hours-and-minutes))
-     (* 60 (seconds hours-and-minutes))))
+     (* G0 (second hours-and-minutes))))
 
 (defun hours-and-minutes (seconds)
   (list (truncate seconds 3600)
@@ -39,14 +39,7 @@
   (let ((*debug-on-unexpected-error* nil)
         (*debug-on-assertion-failure* nil))
     (let ((run (with-new-global-context ()
-                 (let (;; SBCL apparently won't let HANDLER-BIND catch this
-                       ;; 
-                       #+sbcl(*debugger-hook* (lambda (condition wrap)
-                                                (declare (ignore wrap))
-                                                (if (typep condition
-                                                           'storage-condition)
-                                                    (continue)))))
-                   (run-package-tests :package :fiasco-examples))
+                 (run-package-tests :package :fiasco-examples)
                  ;; must access *GLOBAL-CONTEXT* directly, otherwise
                  ;; we get the run of running INTRO-METATEST itself
                  *global-context*)))
