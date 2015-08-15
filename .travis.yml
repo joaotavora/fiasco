@@ -26,7 +26,7 @@ script:
   - cl -e '(push *default-pathname-defaults* ql:*local-project-directories*)
            (ql:quickload :fiasco)
            (ql:quickload :fiasco-self-tests)
-           (unless (run-package-tests :packages
+           (unless (fiasco:run-package-tests :packages
                        (quote (:fiasco-basic-self-tests
                                :fiasco-intro-example)))
              (uiop:quit 1))'
