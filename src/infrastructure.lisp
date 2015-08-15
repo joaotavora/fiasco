@@ -370,8 +370,8 @@ and continue by invoking the first CONTINUE restart~@:>")))
                (continue))
               :report-function (lambda (stream)
                                  (format stream "~
-~@<Do not stop at~ failed assertions for the rest of this test session~
-and continue by~ invoking the first CONTINUE restart~@:>")))
+~@<Do not stop at failed assertions for the rest of this test session~
+and continue by invoking the first CONTINUE restart~@:>")))
             (abort-testing
              (lambda ()
                (return-from restart-wrapper))
@@ -487,7 +487,7 @@ CONDITION."
            (continue ()
              :report (lambda (stream)
                        (format stream "~
-~@<Skip the rest of the innermost WITH-EXPECTED-FAILURES body and~
+~@<Skip the rest of the innermost WITH-EXPECTED-FAILURES body and ~
 continue by returning (values)~@:>"))
              (values)))))))
 
