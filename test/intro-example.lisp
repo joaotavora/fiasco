@@ -1,4 +1,5 @@
-(defpackage #:example-time (:export #:seconds #:hours-and-minutes))
+(defpackage #:example-time (:use #:cl)
+            (:export #:seconds #:hours-and-minutes))
 (in-package #:example-time)
 
 (defun seconds (hours-and-minutes)
@@ -38,7 +39,14 @@
   (let ((*debug-on-unexpected-error* nil)
         (*debug-on-assertion-failure* nil))
     (let ((run (with-new-global-context ()
-                 (run-package-tests :package :fiasco-examples)
+                 (let (;; SBCL apparently won't let HANDLER-BIND catch this
+                       ;; 
+                       #+sbcl(*debugger-hook* (lambda (condition wrap)
+                                                (declare (ignore wrap))
+                                                (if (typep condition
+                                                           'storage-condition)
+                                                    (continue)))))
+                   (run-package-tests :package :fiasco-examples))
                  ;; must access *GLOBAL-CONTEXT* directly, otherwise
                  ;; we get the run of running INTRO-METATEST itself
                  *global-context*)))

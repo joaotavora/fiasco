@@ -128,7 +128,13 @@ docstring."
                        (zerop (length (failure-descriptions-of
                                        *last-test-result*))))
              (describe-failed-tests :stream stream))
-        collect *last-test-result*))
+        collect *last-test-result* into results
+        finally
+           (return (values (every #'zerop
+                                  (mapcar
+                                   (alexandria:compose #'length #'failure-descriptions-of)
+                                   results))
+                           results))))
 
 (defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
   (let ((*debug-on-unexpected-error* interactive)
