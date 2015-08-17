@@ -1,29 +1,18 @@
 Fiasco
 ======
 
-Fiasco is a simple and powerful test framework for Common Lisp.
+Fiasco is a simple and powerful test framework for Common Lisp, with
+a focus on interactive debugging.
 
-It's a fork of the great, but slightly abandoned, [Stefil][stefil]
-by Attila Lendvai, Tamás Borbély and Levente Mészáros.
-
+It's a fork of the abandoned [Stefil][stefil] by Attila Lendvai, Tamás 
+Borbély and Levente Mészáros.
 
 Up and running
 --------------
 
-This assumes you're using a recent version of [quicklisp][quicklisp]
-
-```lisp
-(ql:quickload :fiasco)
-```
-
-or alternatively, just use [asdf][asdf]
-
-```lisp
-(push "path/to/fiascos/dir" asdf:*central-registry*)
-(asdf:require-system :fiasco)
-```
-
-now create some Lisp file with
+Assuming you're using [quicklisp][quicklisp], type 
+`(ql:quickload :fiasco)` somewhere in your REPL and create some Lisp 
+file with:
 
 ```lisp
 (defpackage #:example-time (:export #:seconds #:hours-and-minutes))
