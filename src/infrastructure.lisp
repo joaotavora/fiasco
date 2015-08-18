@@ -49,11 +49,12 @@ the toplevel entry point to any test.")
               :documentation "Controls whether to automatically call
 this test when its parent suite is invoked. Enabled by default.")))
 
-(defprint-object (self testable :identity nil :type nil)
-  (format t "test ~S" (name-of self))
-  (let* ((children (count-tests self)))
-    (unless (zerop children)
-      (format t " :tests ~S" children))))
+(defmethod print-object ((self testable) s)
+  (print-unreadable-object (self s :type nil :identity nil)
+    (format s "test ~s" (name-of self))
+    (let* ((children (count-tests self)))
+      (unless (zerop children) (format s " :tests ~s" children))))
+  self)
 
 (defvar *ignore-package-suite-mismatch* nil)
 
@@ -104,37 +105,95 @@ missing (in-root-suite)?"
                 :summing (count-tests child)))))
 
 
+;;; The object that represents a particular test run.
+;;;
+;;; Curiously called a "context"
+;;;
+(defvar *context*)
+(setf (documentation '*context* 'variable)
+      "Status and progress info for a particular test run.")
+
+(defvar *current-test* nil
+  "Current singleton instance of TEST executing its associated DEFTEST lambda.")
+
+(defclass context (assertion-recorder)
+  ((test :accessor test-of :initarg :test)
+   (internal-realtime-spent-with-test
+    :initform nil
+    :accessor internal-realtime-spent-with-test-of
+    :initarg :internal-realtime-spent-with-test)
+   (test-arguments :accessor test-arguments-of :initarg :test-arguments)
+   (parent-context
+    :initarg :parent-context :initform nil :accessor parent-context-of)))
+
+(defmethod print-object ((self context) s)
+  (print-unreadable-object (self s :identity nil :type nil)
+    (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
+            (name-of (test-of self))
+            (let* ((result (lambda-list-to-funcall-list
+                            (lambda-list-of (test-of self)))))
+              (mapcar (lambda (arg-cell)
+                        (setf result (substitute (cdr arg-cell)
+                                                 (car arg-cell)
+                                                 result :test #'eq)))
+                      (test-arguments-of self))
+              result))))
+
+(defgeneric real-time-spent-in-seconds (context)
+  (:method ((self context))
+    (let* ((time-spent (internal-realtime-spent-with-test-of self)))
+      (when time-spent
+        (coerce (/ time-spent
+                   internal-time-units-per-second)
+                'float)))))
+
+
 ;;; Conditions
-;;; 
+;;;
+
+(defmacro check-required (sym) `(error "Must provide ~a" ,sym))
+
+(define-condition test-assertion ()
+  ((form :initarg :form
+         :initform (check-required 'form)
+         :accessor form-of)
+   (message :initarg :message
+            :initform (check-required 'message)
+            :accessor message-of)
+   (message-args :initarg :message-args
+                 :initform (check-required 'message-args)
+                 :accessor message-args-of)))
+
 (define-condition test-related-condition ()
-  ((test :initform nil :accessor test-of :initarg :test)))
+  ((test :initform (check-required 'test) :accessor test-of :initarg :test)))
 
 (define-condition test-started (test-related-condition) ())
 
-(define-condition test-style-warning
-    (style-warning test-related-condition simple-warning)
+(define-condition test-style-warning (style-warning test-related-condition
+                                      simple-warning)
   ())
 
-(define-condition failure (test-related-condition)
+(define-condition failure ()
   ((progress-char :initform #\X :accessor progress-char-of
                   :initarg :progress-char :allocation :class)))
 
-(define-condition assertion-failed (failure)
+(define-condition failed-assertion (failure)
   ((form :accessor form-of :initarg :form)
    (format-control :accessor format-control-of :initarg :format-control)
    (format-arguments :initform nil :accessor format-arguments-of
                      :initarg :format-arguments)))
 
-(defmethod describe-object ((self assertion-failed) stream)
+(defmethod describe-object ((self failed-assertion) stream)
   (let ((*print-circle* nil))
     (apply #'format stream (format-control-of self)
            (format-arguments-of self))))
 
-(defprint-object (self assertion-failed :identity nil :type nil)
-  (format t "failure ~S backtrace: ~{~A~^,~}"
-          (form-of self)
-          (mapcar (compose #'name-of #'test-of)
-                  (reverse (list "TODO" "TODO")))))
+(defmethod print-object ((self failed-assertion) stream)
+  (print-unreadable-object (self stream :identity nil :type nil)
+    (format t "failure ~S backtrace: ~{~A~^,~}"
+            (form-of self)
+            (mapcar (compose #'name-of #'test-of)
+                    (reverse (list "TODO" "TODO"))))))
 
 (define-condition missing-condition (failure)
   ((expected-type :initarg :expected-type :accessor expected-type-of)))
@@ -162,11 +221,12 @@ missing (in-root-suite)?"
 (defmethod describe-object ((self unexpected-error) stream)
   (format stream "~a" (error-of self)))
 
-(defprint-object (self unexpected-error :identity nil :type nil)
-  (format t "error ~{~A~^,~}: ~S"
-          (mapcar (compose #'name-of #'test-of)
-                  (reverse (list)))
-          (error-of self)))
+(defmethod print-object ((self unexpected-error) stream)
+  (print-unreadable-object (self stream :identity nil :type nil)
+    (format t "error ~{~A~^,~}: ~S"
+            (mapcar (compose #'name-of #'test-of)
+                    (reverse (list)))
+            (error-of self))))
 
 
 ;;; Test repository
@@ -268,9 +328,9 @@ compiled lambda functions")))
 (defun extract-test-run-statistics (global-context)
   (let* ((failure-descriptions (failure-descriptions-of global-context))
          (failed-assertion-count (count-if (of-type '(or
-                                                      assertion-failed
+                                                      failed-assertion
                                                       missing-condition
-                                                      extra-condition))
+                                                      unwanted-condition))
                                            failure-descriptions))
          (unexpected-error-count (count-if (of-type 'unexpected-error)
                                            failure-descriptions))
@@ -283,36 +343,37 @@ compiled lambda functions")))
           :number-of-failed-assertions failed-assertion-count
           :number-of-unexpected-errors unexpected-error-count)))
 
-(defprint-object (self global-context :identity nil :type nil)
-  (destructuring-bind (&key number-of-tests-run
-                            number-of-assertions
-                            number-of-failures
-                            number-of-failed-assertions
-                            number-of-unexpected-errors
-                            number-of-expected-failures
-                            &allow-other-keys)
-      (extract-test-run-statistics self)
-    (format t "test-run: ~A test~:P, ~A assertion~:P, ~A failure~:P in~
- ~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
-            number-of-tests-run
-            number-of-assertions
-            number-of-failures
-            (let* ((toplevel-context (toplevel-context-of self))
-                   (real-time-spent-in-seconds
-                     (when toplevel-context
-                       (real-time-spent-in-seconds toplevel-context))))
-              (if (and toplevel-context
-                       real-time-spent-in-seconds)
-                  real-time-spent-in-seconds
-                  "?"))
-            number-of-failures ; index in the ~[] conditional
-            number-of-failed-assertions
-            number-of-unexpected-errors
-            (cond ((= number-of-expected-failures number-of-failures)
-                   "all")
-                  ((zerop number-of-expected-failures)
-                   "none")
-                  (t number-of-expected-failures)))))
+(defmethod print-object ((self global-context) stream)
+  (print-unreadable-object (self stream :identity nil :type nil)
+    (destructuring-bind (&key number-of-tests-run
+                           number-of-assertions
+                           number-of-failures
+                           number-of-failed-assertions
+                           number-of-unexpected-errors
+                           number-of-expected-failures
+                         &allow-other-keys)
+        (extract-test-run-statistics self)
+      (format t "test-run: ~A test~:P, ~A assertion~:P, ~A failure~:P in ~
+~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
+              number-of-tests-run
+              number-of-assertions
+              number-of-failures
+              (let* ((toplevel-context (toplevel-context-of self))
+                     (real-time-spent-in-seconds
+                       (when toplevel-context
+                         (real-time-spent-in-seconds toplevel-context))))
+                (if (and toplevel-context
+                         real-time-spent-in-seconds)
+                    real-time-spent-in-seconds
+                    "?"))
+              number-of-failures ; index in the ~[] conditional
+              number-of-failed-assertions
+              number-of-unexpected-errors
+              (cond ((= number-of-expected-failures number-of-failures)
+                     "all")
+                    ((zerop number-of-expected-failures)
+                     "none")
+                    (t number-of-expected-failures))))))
 
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
@@ -334,7 +395,7 @@ compiled lambda functions")))
                (continue))
               :report-function (lambda (stream)
                                  (format stream "~
-~@<Turn off debugging for this test session and invoke the first~
+~@<Turn off debugging for this test session and invoke the first ~
 CONTINUE restart~@:>")))
             (continue-without-debugging-errors
              (lambda ()
@@ -370,40 +431,6 @@ test session~@:>"))))
   (declare (type testable test))
   (and (gethash test (run-tests-of *global-context*))
        (not (eq (current-test-of *global-context*) test))))
-
-(defvar *context*)
-(setf (documentation '*context* 'variable)
-      "Status and progress info for a particular test run.")
-
-(defclass context (assertion-recorder)
-  ((test :accessor test-of :initarg :test)
-   (internal-realtime-spent-with-test
-    :initform nil
-    :accessor internal-realtime-spent-with-test-of
-    :initarg :internal-realtime-spent-with-test)
-   (test-arguments :accessor test-arguments-of :initarg :test-arguments)
-   (parent-context
-    :initarg :parent-context :initform nil :accessor parent-context-of)))
-
-(defprint-object (self context :identity nil :type nil)
-  (format t "test-run ~@<(~S~{~^ ~S~})~@:>"
-          (name-of (test-of self))
-          (let* ((result (lambda-list-to-funcall-list
-                          (lambda-list-of (test-of self)))))
-            (mapcar (lambda (arg-cell)
-                      (setf result (substitute (cdr arg-cell)
-                                               (car arg-cell)
-                                               result :test #'eq)))
-                    (test-arguments-of self))
-            result)))
-
-(defgeneric real-time-spent-in-seconds (context)
-  (:method ((self context))
-    (let* ((time-spent (internal-realtime-spent-with-test-of self)))
-      (when time-spent
-        (coerce (/ time-spent
-                   internal-time-units-per-second)
-                'float)))))
 
 (defmacro run-failed-tests (&optional (test-result-place '*last-test-result*))
   `(with-new-global-context ()
@@ -441,7 +468,7 @@ CONDITION."
              (handler-bind ((serious-condition
                              ;; TODO comment on why it's needed here...
                              (lambda (error)
-                               (record-unexpected-error error)
+                               (record-failure 'unexpected-error :error error)
                                (return-from ,with-expected-failures-block
                                  (values)))))
                (multiple-value-prog1

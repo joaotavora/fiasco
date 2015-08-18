@@ -39,10 +39,10 @@
 (defun call-with-test-handlers (function)
   ;; NOTE: the order of the bindings in this handler-bind is important
   (handler-bind
-      ((assertion-failed
+      ((failed-assertion
         (lambda (c)
           (declare (ignore c))
-          (unless (debug-on-assertion-failure-p *global-context*)
+          (unless *debug-on-assertion-failure*
             (continue))))
        (serious-condition
         (lambda (c)
@@ -135,7 +135,7 @@ returning (values)~@:>" (name-of test)))
                                                    timeout &allow-other-keys)
         (ensure-list name)
       (remove-from-plistf test-args :in)
-      (with-unique-names (test global-context toplevel-p body-sym)
+      (with-unique-names (global-context toplevel-p body-sym)
         `(progn
            (eval-when (:load-toplevel :execute)
              (ensure-test ',name
@@ -150,7 +150,7 @@ returning (values)~@:>" (name-of test)))
            (defun ,name ,args
              ,@(when documentation (list documentation))
              ,@declarations
-             (let* ((,test (find-test ',name))
+             (let* ((*current-test* (find-test ',name))
                     (,toplevel-p (not (boundp '*global-context*)))
                     (,global-context (unless ,toplevel-p *global-context*)))
                ;; for convenience we define a function in a LABELS
@@ -158,7 +158,7 @@ returning (values)~@:>" (name-of test)))
                ;; backtrace
                (labels ((,name () ,@remaining-forms)
                         (,body-sym ()
-                          (run-test-body ,test
+                          (run-test-body *current-test*
                                          #',name
                                          ,(lambda-list-to-value-list-expression
                                            args)

@@ -110,25 +110,10 @@
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))
 
-(defun record-unexpected-error (condition)
-  (assert (not (typep condition 'assertion-failed)))
-  (record-failure 'unexpected-error
-                  :error condition))
-
 (defun record-failure (condition-type &rest args)
+  (assert (subtypep condition-type 'failure))
   (let ((failure (apply #'make-condition condition-type args)))
     (error failure)))
-
-(define-condition test-assertion ()
-  ((form :initarg :form
-         :initform (error "Must provide ~S" 'form)
-         :accessor form-of)
-   (message :initarg :message
-            :initform (error "Must provide ~S" 'message)
-            :accessor message-of)
-   (message-args :initarg :message-args
-                 :initform (error "Must provide ~S" 'message-args)
-                 :accessor message-args-of)))
 
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
