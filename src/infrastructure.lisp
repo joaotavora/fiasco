@@ -6,6 +6,9 @@
 
 (in-package :fiasco)
 
+
+;;; Special variables
+;;;
 ;; Warning: setf-ing these variables in not a smart idea because other
 ;; systems may rely on their default value.  It's smarter to rebind
 ;; them in an :around method from your .asd or shadow fiasco:deftest
@@ -19,11 +22,9 @@
 (defvar *debug-on-assertion-failure* t)
 (defvar *test-result-history* '())
 (defvar *last-test-result* nil)
-(defvar *failures-and-errors-are-expected* nil)
 (defvar *always-show-failed-sexp* nil)
 (defvar *warn-about-test-redefinitions* nil)
 
-;; TODO introduce *progress-output*
 (defvar *test-run-standard-output* '*standard-output*
   "*STANDARD-OUTPUT* is bound to (eval *test-run-standard-output*) at
 the toplevel entry point to any test.")
@@ -35,29 +36,9 @@ the toplevel entry point to any test.")
           (*debug-on-assertion-failure* nil))
     ,@body))
 
-;;;;;;
-;;; conditions
-
-(define-condition test-related-condition ()
-  ((test :initform nil :accessor test-of :initarg :test)))
-
-(define-condition test-style-warning
-    (style-warning test-related-condition simple-warning)
-  ())
-
-;; assertion-failed is not a serious-condition by design, so that
-;; handler-bind's can have bindings for serious-condition without
-;; being concerned about failed assertions signalled using #'error to
-;; bring up the debugger.
-(define-condition assertion-failed (test-related-condition)
-  ((failure-description :accessor failure-description-of
-                        :initarg :failure-description))
-  (:report (lambda (c stream)
-             (format stream "Test assertion failed:~%~%")
-             (describe (failure-description-of c) stream))))
-
-;;;;;;
-;;; some classes
+
+;;; Testable class
+;;; 
 (defclass testable ()
   ((name :accessor name-of :initarg :name :type symbol)
    (parent :initform nil :accessor parent-of :type (or null testable))
@@ -122,17 +103,25 @@ missing (in-root-suite)?"
                 :for child :being :the :hash-values :of (children-of self)
                 :summing (count-tests child)))))
 
-(defclass failure-description ()
-  ((test-context-backtrace :accessor test-context-backtrace-of
+
+;;; Conditions
+;;; 
+(define-condition test-related-condition ()
+  ((test :initform nil :accessor test-of :initarg :test)))
+
+(define-condition test-style-warning
+    (style-warning test-related-condition simple-warning)
+  ())
+
+(define-condition failure (test-related-condition)
+  ((form :accessor form-of :initarg :form)
+   (test-context-backtrace :accessor test-context-backtrace-of
                            :initarg :test-context-backtrace)
    (progress-char :initform #\X :accessor progress-char-of
-                  :initarg :progress-char :allocation :class)
-   (expected :initform *failures-and-errors-are-expected* :accessor expected-p
-             :initarg :expected :type boolean)))
+                  :initarg :progress-char :allocation :class)))
 
-(defclass failed-assertion (failure-description)
-  ((form :accessor form-of :initarg :form)
-   (format-control :accessor format-control-of :initarg :format-control)
+(define-condition failed-assertion (failure)
+  ((format-control :accessor format-control-of :initarg :format-control)
    (format-arguments :initform nil :accessor format-arguments-of
                      :initarg :format-arguments)))
 
@@ -147,30 +136,25 @@ missing (in-root-suite)?"
           (mapcar (compose #'name-of #'test-of)
                   (test-context-backtrace-of self))))
 
-(defclass failure-description/condition (failure-description)
-  ((form :accessor form-of :initarg :form)
-   (condition :accessor condition-of :initarg :condition)))
-
-(defclass missing-condition (failure-description/condition)
-  ())
+(define-condition missing-condition (failure)
+  ((expected-type :initarg :expected-type :accessor expected-type-of)))
 
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
-    (format stream "~S failed to signal condition ~S" (form-of self)
-            (condition-of self))))
+    (format stream "~S failed to signal a condition of type ~S" (form-of self)
+            (expected-type-of self))))
 
-(defclass extra-condition (failure-description/condition)
-  ())
+(define-condition unwanted-condition (failure)
+  ((expected-type :initarg :expected-type :accessor expected-type-of)
+   (observed-condition :initarg :observed-condition :accessor observed-condition-of)))
 
-(defmethod describe-object ((self extra-condition) stream)
+(defmethod describe-object ((self unwanted-condition) stream)
   (let ((*print-circle* nil))
     (format stream "~S signaled an unwanted condition ~S"
-            (form-of self) (condition-of self))))
+            (form-of self) (observed-condition-of self))))
 
-
-
-(defclass unexpected-error (failure-description)
-  ((condition :accessor condition-of :initarg :condition)
+(define-condition unexpected-error (failure)
+  ((error :accessor error-of :initarg :condition)
    (progress-char :initform #\E :accessor progress-char-of
                   :initarg :progress-char :allocation :class)))
 
@@ -184,9 +168,9 @@ missing (in-root-suite)?"
           (condition-of self)))
 
 
-;;;;;;
-;;; test repository
-
+
+;;; Test repository
+;;; 
 (defun find-test (name &key (otherwise :error))
   (multiple-value-bind (test found-p)
       (if (typep name 'testable)
@@ -244,30 +228,18 @@ and has no parent")
 If this variable is unbound
 ")
 
-(defun assert-global-context () (assert (boundp '*global-context*)))
-
 (defclass assertion-recorder ()
-  ((failure-descriptions :initform (make-array 8 :adjustable t :fill-pointer 0)
+  ((failure-descriptions :initform nil
                          :accessor failure-descriptions-of
                          :initarg :failure-descriptions)
    (assertion-count :initform 0 :accessor assertion-count-of
                     :initarg :assertion-count)))
 
-(defclass global-context (assertion-recorder)
+(defclass global-context ()
   ((progress-char-count :initform 0 :accessor progress-char-count-of
                         :initarg :progress-char-count)
-   (print-test-run-progress-p :initform *print-test-run-progress*
-                              :accessor print-test-run-progress-p
-                              :initarg :print-test-run-progress-p
-                              :type boolean)
-   (debug-on-unexpected-error-p :initform *debug-on-unexpected-error*
-                                :accessor debug-on-unexpected-error-p
-                                :initarg :debug-on-unexpected-error-p
-                                :type boolean)
-   (debug-on-assertion-failure-p :initform *debug-on-assertion-failure*
-                                 :accessor debug-on-assertion-failure-p
-                                 :initarg :debug-on-assertion-failure-p
-                                 :type boolean)
+   (bindings :initarg :bindings :initform
+             :accessor bindings-of)
    (toplevel-context :initform nil :accessor toplevel-context-of
                      :initarg :toplevel-context)
    (current-test :initform nil :accessor current-test-of :initarg :current-test)
@@ -280,6 +252,14 @@ associated CONTEXT objects.")
                  :accessor test-lambdas-of :initarg :test-lambdas
                  :documentation "A mapping of TEST objects to their~
 compiled lambda functions")))
+
+(defmethod failure-descriptions-of ((context global-context))
+  (loop for context being the hash-values of (run-tests-of context)
+        append (failure-descriptions-of context)))
+
+(defmethod assertion-count-of ((context global-context))
+  (loop for context being the hash-values of (run-tests-of context)
+        count (assertion-count-of context)))
 
 (defmacro with-new-global-context ((&rest initargs) &body forms)
   `(let* ((*global-context* (make-instance 'global-context ,@initargs))
@@ -447,21 +427,13 @@ test session~@:>"))))
 environment, which may affect their behaviour!")
   (with-toplevel-restarts
     (loop
-      :for failure :across (failure-descriptions-of
-                            global-context-to-be-processed)
+      :for failure in (failure-descriptions-of
+                       global-context-to-be-processed)
       :for context = (elt (test-context-backtrace-of failure) 0)
       :do (apply (name-of (test-of context))
                  (mapcar #'cdr (test-arguments-of context))))
     (when (print-test-run-progress-p *global-context*)
       (terpri *debug-io*))))
-
-(defmacro runs-without-failure? (&body body)
-  (with-unique-names (old-failure-count)
-    `(let* ((,old-failure-count (length
-                                 (failure-descriptions-of *global-context*))))
-       ,@body
-       (= ,old-failure-count (length
-                              (failure-descriptions-of *global-context*))))))
 
 (defmacro with-expected-failures* (&whole whole condition &body body)
   "Run BODY and registering failure conditions as expected failure iff

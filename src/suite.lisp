@@ -186,7 +186,7 @@ docstring."
                            (run-test-body-in-handlers test function)))
            (failures (failure-descriptions-of *context*)))
       (unless (suite-p)
-        (pp (if failures " OK " "FAIL")
+        (pp (if failures "FAIL" " OK ")
             "~&~A" (fiasco::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
@@ -218,11 +218,11 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
     (cond ((zerop (length descs))
            (format stream "~&~%[no failures!]"))
           (t
-           (dotimes (i (length descs))
-             (let* ((desc (aref descs i)))
-               (format stream "~%  Failure ~A: ~A when running ~S~%"
-                       (1+ i)
-                       (type-of desc)
-                       (name-of (test-of
-                                 (first (test-context-backtrace-of desc)))))
-               (indented-format 4 stream "~a" (describe-object desc nil))))))))
+           (loop for desc in descs
+                 for i from 1
+                 do (format stream "~%  Failure ~A: ~A when running ~S~%"
+                            (1+ i)
+                            (type-of desc)
+                            (name-of (test-of
+                                      (first (test-context-backtrace-of desc)))))
+                    (indented-format 4 stream "~a" (describe-object desc nil)))))))

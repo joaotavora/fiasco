@@ -54,44 +54,36 @@
   (declare (type test test)
            (type function function))
   (register-test-being-run test)
-  (let ((saved-failure-descriptions (copy-array (failure-descriptions-of *context*))))
-    (labels ((run-test-body ()
-               (call-with-test-handlers
-                (lambda ()
-                  (restart-case
-                      (let* ((*package* (package-of test))
-                             (*readtable* (copy-readtable))
-                             (start-time (get-internal-run-time)))
-                        (multiple-value-prog1
-                            (funcall function)
-                          (setf (internal-realtime-spent-with-test-of *context*)
-                                (- (get-internal-run-time) start-time))))
-                    (continue ()
-                      :report (lambda (stream)
-                                (format stream "~
+  (labels ((run-test-body ()
+             (call-with-test-handlers
+              (lambda ()
+                (restart-case
+                    (let* ((*package* (package-of test))
+                           (*readtable* (copy-readtable))
+                           (start-time (get-internal-run-time)))
+                      (multiple-value-prog1
+                          (funcall function)
+                        (setf (internal-realtime-spent-with-test-of *context*)
+                              (- (get-internal-run-time) start-time))))
+                  (continue ()
+                    :report (lambda (stream)
+                              (format stream "~
 ~@<Skip the rest of the test ~S and continue by~
 returning (values)~@:>" (name-of test)))
-                      (values))
-                    (retest ()
-                      :report (lambda (stream)
-                                (format stream "~@<Rerun the test ~S~@:>"
-                                        (name-of test)))
-                      ;; Restore the global context. JT@15/08/14:
-                      ;; TODO, this is very brittle, there are
-                      ;; probably many other things that may need to
-                      ;; be restored.
-                      ;; 
-                      (setf (failure-descriptions-of *global-context*)
-                            saved-failure-descriptions)
-                      ;; Make a new pristine *CONTEXT* binding
-                      ;;
-                      (setf *context*
-                            (make-instance 'context
-                                           :test (test-of *context*)
-                                           :test-arguments (test-arguments-of *context*)
-                                           :parent-context (parent-context-of *context*)))
-                      (return-from run-test-body (run-test-body))))))))
-      (run-test-body))))
+                    (values))
+                  (retest ()
+                    :report (lambda (stream)
+                              (format stream "~@<Rerun the test ~S~@:>"
+                                      (name-of test)))
+                    ;; Make a new pristine *CONTEXT* binding
+                    ;;
+                    (setf *context*
+                          (make-instance 'context
+                                         :test (test-of *context*)
+                                         :test-arguments (test-arguments-of *context*)
+                                         :parent-context (parent-context-of *context*)))
+                    (return-from run-test-body (run-test-body))))))))
+    (run-test-body)))
 
 (defvar *run-test-function* #'run-test-body-in-handlers)
 
@@ -111,7 +103,15 @@ returning (values)~@:>" (name-of test)))
                  (setf (toplevel-context-of *global-context*) *context*))
                (setf result-values
                      (multiple-value-list
-                      (funcall *run-test-function* test function))))))
+                      (handler-bind ((test-assertion
+                                       (lambda (a)
+                                         ;; probably we could do
+                                         ;; something with the
+                                         ;; assertion
+                                         (declare (ignore a)) 
+                                         (incf (assertion-count-of *context*)))))
+                        (funcall *run-test-function* test function)))))
+             ))
       (if toplevel-p
           (with-toplevel-restarts
             (body))

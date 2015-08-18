@@ -111,23 +111,11 @@
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))
 
-(defun register-assertion ()
-  (when (boundp '*global-context*)
-    ;; JT@15/08/14: TODO: Abtract this away to a single
-    ;; (add-failure-description *context*)
-    ;; 
-    (loop for recorder in (list *global-context* *context*)
-          do (incf (assertion-count-of recorder)))))
-
 (defun record-unexpected-error (condition)
   (assert (not (typep condition 'assertion-failed)))
-  (record-failure* 'unexpected-error
-                   :description-initargs (list :condition condition)
-                   :signal-assertion-failed nil)
-  (when (or (debug-on-unexpected-error-p *global-context*)
-            #+sbcl(typep condition 'sb-kernel::control-stack-exhausted))
-    (invoke-debugger condition))
-  (values))
+  (error 'unexpected-error
+         :description-initargs (list :condition condition)
+         :signal-assertion-failed nil))
 
 (defun record-failure (failure-description-type &rest args)
   (record-failure* failure-description-type :description-initargs args))
@@ -148,8 +136,8 @@
           ;; JT@15/08/14: TODO: Abtract this away to a single
           ;; (add-failure-description *context*)
           ;;
-          (loop for recorder in (list *global-context* *context*)
-                do (vector-push-extend description (failure-descriptions-of recorder)))
+          (loop for recorder in (list *context*)
+                do (push description (failure-descriptions-of recorder)))
           (write-progress-char (progress-char-of description))
           (when signal-assertion-failed
             (restart-case
@@ -170,6 +158,17 @@
                   (format stream
                           "~@<Ignore the failure and continue~@:>")))))))))
 
+(define-condition test-assertion ()
+  ((form :initarg :form
+         :initform (error "Must provide ~S" 'form)
+         :accessor form-of)
+   (message :initarg :message
+            :initform (error "Must provide ~S" 'message)
+            :accessor message-of)
+   (message-args :initarg :message-args
+                 :initform (error "Must provide ~S" 'message-args)
+                 :accessor message-args-of)))
+
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
   (multiple-value-bind (bindings expression
@@ -178,7 +177,10 @@
       (extract-assert-expression-and-message form)
     (with-unique-names (result format-control format-arguments)
       `(progn
-         (register-assertion)
+         (signal 'test-assertion
+                 :form ,form
+                 :message ,message
+                 :message-args ,message-args)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)
