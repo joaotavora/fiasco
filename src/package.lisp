@@ -1,6 +1,6 @@
 ;;; -*- mode: Lisp; -*-
 ;;;
-;;; Copyright (c) 2006 by the authors.
+;;; Copyright (c) 2006 by the authors, 2014 João Távora
 ;;;
 ;;; See LICENCE for details.
 
@@ -17,13 +17,8 @@
            #:not-signals
            #:finishes
            #:with-expected-failures
-           #:with-expected-failures*
            #:root-suite
            #:defsuite
-           #:-run-child-tests-
-           #:-body-
-           #:-here-
-           #:runs-without-failure?
            #:without-debugging
            #:without-test-progress-printing
            #:funcall-test-with-feedback-message

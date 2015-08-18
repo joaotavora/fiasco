@@ -1,12 +1,13 @@
 ;;; -*- mode: Lisp; -*-
 ;;;
-;;; Copyright (c) 2006 by the authors.
+;;; Copyright (c) 2006 by the authors,
+;;; 2014-2015 João Távora
 ;;;
 ;;; See LICENCE for details.
 
 (defsystem :fiasco
-  :description "A Common Lisp test framework that treasures your failures. A logical continuation of the Stefil test framework."
-  :author "capitaomorte <https://github.com/capitaomorte>"
+  :description "A Common Lisp test framework that treasures your failures, logical continuation of Stefil."
+  :author "João Távora <https://github.com/capitaomorte>"
   :license "BSD 2-clause"
   :depends-on (:alexandria)
   :components
@@ -14,7 +15,6 @@
     :serial t
     :components
     ((:file "package")
-     (:file "utils")
      (:file "infrastructure")
      (:file "asserts")
      (:file "test")
@@ -30,3 +30,7 @@
                 ((:file "basic")
                  (:file "intro-example")))))
 
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

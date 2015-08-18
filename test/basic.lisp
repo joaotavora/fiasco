@@ -14,15 +14,14 @@
                 #:delete-test
                 #:count-tests
 
-                #:*global-context*
-                #:print-test-run-progress-p
-                #:debug-on-assertion-failure-p
-                #:debug-on-unexpected-error-p
-                #:failure-descriptions-of
-                #:assertion-count-of
-                #:print-test-run-progress-p
-                #:debug-on-assertion-failure-p
-                #:debug-on-unexpected-error-p
+                #:failures-of
+                #:assertions-of
+
+                #:expected-p
+                #:children-contexts-of
+                #:parent-context-of
+
+                #:*context*
 
                 #:lambda-list-to-value-list-expression
                 #:lambda-list-to-funcall-expression
@@ -96,44 +95,47 @@
                 (is (not (= 42 42)))                         ; fails
                 (is (true-macro))
                 (is (not (false-macro)))
+
+                (signals serious-condition (error "foo"))
+                (signals serious-condition 'not)             ; fails
+
+                (not-signals warning (warn "foo"))           ; fails
+                (not-signals warning 'not)
+                
                 (with-expected-failures
                   (ignore-errors
                     (finishes (error "expected failure"))))  ; fails
                 (finishes 42)
                 (ignore-errors                               ; fails
-                  (finishes (error "foo")))
-                (signals serious-condition (error "foo"))
-                (signals serious-condition 'not)             ; fails
-                (not-signals warning (warn "foo"))           ; fails
-                (not-signals warning 'not)))
+                  (finishes (error "foo")))))
     (progn
       ;; this uglyness here is due to testing the test framework which is inherently
       ;; not nestable, so we need to backup and restore some state
-      (let* ((context *global-context*)
-             (old-assertion-count (assertion-count-of context))
-             (old-failure-description-count (length (failure-descriptions-of context)))
-             (old-debug-on-unexpected-error (debug-on-unexpected-error-p context))
-             (old-debug-on-assertion-failure (debug-on-assertion-failure-p context))
-             (old-print-test-run-progress-p (print-test-run-progress-p context)))
+      (let* ((context *context*)
+             (old-assertion-count (length (assertions-of context)))
+             (old-failure-description-count (length (failures-of context))))
         (unwind-protect
              (progn
-               (setf (debug-on-unexpected-error-p context) nil)
-               (setf (debug-on-assertion-failure-p context) nil)
-               (setf (print-test-run-progress-p context) nil)
-               (funcall test-name))
-          (setf (debug-on-unexpected-error-p context) old-debug-on-unexpected-error)
-          (setf (debug-on-assertion-failure-p context) old-debug-on-assertion-failure)
-          (setf (print-test-run-progress-p context) old-print-test-run-progress-p))
-        (is (= (assertion-count-of context)
+               (let ((*debug-on-unexpected-error* nil)
+                     (*debug-on-assertion-failure* nil)
+                     (*print-test-run-progress* nil))
+                 (funcall test-name))))
+        (is (= (length (assertions-of context))
                (+ old-assertion-count 13))) ; also includes the current assertion
-        (is (= (length (failure-descriptions-of context))
+        (is (= (length (failures-of context))
                (+ old-failure-description-count 6)))
-        (is (= 1 (count-if 'fiasco::expected-p (failure-descriptions-of context))))
-        (dotimes (i (- (length (failure-descriptions-of context))
-                       old-failure-description-count))
-          ;; drop failures registered by the test-test
-          (vector-pop (failure-descriptions-of context))))
-      (delete-test test-name :otherwise nil)))
+        (is (= 1 (count-if 'expected-p (failures-of context))))
+        (is (= 1 (length (children-contexts-of context))))
+        ;; drop the subtest by the test-test
+        ;; 
+        (setf (parent-context-of (first (children-contexts-of context))) nil)
+        (is (= 0 (length (children-contexts-of context)))))
+      ;; Take this occasion to test some deleting, too
+      ;;
+      (delete-test test-name :otherwise nil)
+      (signals error (delete-test test-name :otherwise :error))
+      (is (not (find-test test-name :otherwise nil)))
+      ))
   (values))
 
 (deftest lambda-list-processing ()
@@ -172,3 +174,7 @@
                    (&aux a &body body)))
     (signals error
       (lambda-list-to-variable-name-list entry :macro t))))
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

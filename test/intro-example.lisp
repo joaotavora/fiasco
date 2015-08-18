@@ -1,6 +1,6 @@
-(defpackage #:example-time (:use #:cl)
+(defpackage #:fiasco-example-time (:use #:cl)
             (:export #:seconds #:hours-and-minutes))
-(in-package #:example-time)
+(in-package #:fiasco-example-time)
 
 (defun seconds (hours-and-minutes)
   (+ (* 3600 (first hours-and-minutes))
@@ -11,7 +11,7 @@
         (truncate seconds 60)))
 
 (fiasco:define-test-package #:fiasco-examples
-  (:use #:example-time))
+  (:use #:fiasco-example-time))
 (in-package #:fiasco-examples)
 
 (deftest test-conversion-to-hours-and-minutes ()
@@ -28,37 +28,39 @@
 
 
 (fiasco:define-test-package #:fiasco-intro-example
-  (:import-from #:fiasco
-                #:with-new-global-context
-                #:*global-context*))
+  (:import-from #:fiasco))
 (in-package #:fiasco-intro-example)
 
 ;; define a metatest to test the other tests
 ;;
 (deftest intro-metatest ()
-  (let ((*debug-on-unexpected-error* nil)
-        (*debug-on-assertion-failure* nil))
-    (let ((run (with-new-global-context ()
-                 (run-package-tests :package :fiasco-examples)
-                 ;; must access *GLOBAL-CONTEXT* directly, otherwise
-                 ;; we get the run of running INTRO-METATEST itself
-                 *global-context*)))
-      (destructuring-bind (&key number-of-tests-run
-                                number-of-assertions
-                                number-of-failures
-                                number-of-failed-assertions
-                                number-of-unexpected-errors
-                                number-of-expected-failures
-                            &allow-other-keys)
-          (extract-test-run-statistics run)
-        ;; Remember that the suite itself counts as a test and so it's
-        ;; an assertion. FIXME: this is confusing as hell
-        (is (= 4 number-of-assertions))
-        (is (= 4 number-of-tests-run))
-        (is (= 3 number-of-failures))
-        (is (= 1 number-of-failed-assertions))
-        (is (= 2 number-of-unexpected-errors))
-        (is (= 0 number-of-expected-failures))))))
+  (multiple-value-bind (success runs)
+      (run-package-tests :package :fiasco-examples)
+    (is (not success))
+    (is (= 1 (length runs)))
+    (destructuring-bind (&key number-of-tests-run
+                              number-of-assertions
+                              number-of-failures
+                              number-of-failed-assertions
+                              number-of-unexpected-errors
+                              number-of-expected-failures
+                              &allow-other-keys)
+                        (extract-test-run-statistics (first runs))
+                        ;; There are 4 = 6 - 2 assertions because the
+                        ;; last IS of TEST-CONVERSION-TO-SECONDS and
+                        ;; DOUBLE-CONVERSION don't get to execute because
+                        ;; of the unexpected errors in the previous IS.
+                        ;; 
+                        (is (= 4 number-of-assertions))
+                        ;; Remember that the suite itself counts as a
+                        ;; test. FIXME: this is confusing as hell
+                        ;; 
+                        (is (= 4 number-of-tests-run))
+                        (is (= 3 number-of-failures))
+                        (is (= 1 number-of-failed-assertions))
+                        (is (= 2 number-of-unexpected-errors))
+                        (is (= 0 number-of-expected-failures)))
+    (values)))
   
 #+nil
 (defun seconds (hours-and-minutes)
@@ -68,3 +70,7 @@
 (defun hours-and-minutes (seconds)
   (list (truncate seconds 3600)
         (/ (rem seconds 3600) 60)))
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

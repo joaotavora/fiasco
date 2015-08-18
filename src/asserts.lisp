@@ -92,83 +92,38 @@
              (values '() input-form "Expression ~A evaluated to false."
                      (list `(quote ,input-form))))))))
 
+
+(defvar *progress-char-count* 0)
+
 (defun write-progress-char (char)
-  (let* ((global-context (and (boundp '*global-context*)
-                              *global-context*)))
-    (when (and global-context
-               (print-test-run-progress-p global-context))
-      (when (and (not (zerop (progress-char-count-of global-context)))
-                 (zerop (mod (progress-char-count-of global-context)
+  (when *print-test-run-progress*
+      (when (and (not (zerop *progress-char-count*))
+                 (zerop (mod *progress-char-count*
                              *test-progress-print-right-margin*)))
         (terpri *debug-io*))
-      (incf (progress-char-count-of global-context)))
-    (when (or (and global-context
-                   (print-test-run-progress-p global-context))
-              (and (not global-context)
-                   *print-test-run-progress*))
-      (write-char char *debug-io*))))
+      (incf *progress-char-count*)
+      (write-char char *debug-io*)))
 
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))
 
-(defun register-assertion ()
-  (when (boundp '*global-context*)
-    ;; JT@15/08/14: TODO: Abtract this away to a single
-    ;; (add-failure-description *context*)
-    ;; 
-    (loop for recorder in (list *global-context* *context*)
-          do (incf (assertion-count-of recorder)))))
-
-(defun record-unexpected-error (condition)
-  (assert (not (typep condition 'assertion-failed)))
-  (record-failure* 'unexpected-error
-                   :description-initargs (list :condition condition)
-                   :signal-assertion-failed nil)
-  (when (or (debug-on-unexpected-error-p *global-context*)
-            #+sbcl(typep condition 'sb-kernel::control-stack-exhausted))
-    (invoke-debugger condition))
-  (values))
-
-(defun record-failure (failure-description-type &rest args)
-  (record-failure* failure-description-type :description-initargs args))
-
-(defun record-failure* (failure-description-type
-                        &key (signal-assertion-failed t) description-initargs)
-  (let* ((description (apply #'make-instance failure-description-type
-                             :test-context-backtrace
-                             (when (boundp '*context*)
-                               (loop
-                                 :for context = *context*
-                                   :then (parent-context-of context)
-                                 :while context
-                                 :collect context))
-                             description-initargs)))
-    (if (boundp '*global-context*)
-        (progn
-          ;; JT@15/08/14: TODO: Abtract this away to a single
-          ;; (add-failure-description *context*)
-          ;;
-          (loop for recorder in (list *global-context* *context*)
-                do (vector-push-extend description (failure-descriptions-of recorder)))
-          (write-progress-char (progress-char-of description))
-          (when signal-assertion-failed
-            (restart-case
-                (error 'assertion-failed
-                       :test (test-of *context*)
-                       :failure-description description)
-              (continue ()
-                :report (lambda (stream)
-                          (format stream "~@<Roger, go on testing...~@:>"))))))
-        (progn
-          (describe description *debug-io*)
-          (when *debug-on-assertion-failure* ; we have no *global-context*
-            (restart-case (error 'assertion-failed
-                                 :failure-description description)
-              (continue ()
-                :report
-                (lambda (stream)
-                  (format stream
-                          "~@<Ignore the failure and continue~@:>")))))))))
+(defun record-failure (condition-type &rest args)
+  (assert (subtypep condition-type 'failure))
+  (let ((failure (apply #'make-condition condition-type args)))
+    ;; Remember that FIASCO:IS might be called in any context
+    ;; and so *CONTEXT* might be nil.
+    ;;
+    (when *context*
+      (push failure (slot-value *context* 'self-failures)))
+    (write-progress-char (progress-char-of failure))
+    (unless (eq condition-type 'unexpected-error)
+      (restart-case
+       (error failure)
+       (continue ()
+                 :report (lambda (stream)
+                           (if *context*
+                               (format stream "~@<Roger, go on testing...~@:>")                               
+                               (format stream "~@<Ignore the failure and continue~@:>"))))))))
 
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
@@ -178,7 +133,7 @@
       (extract-assert-expression-and-message form)
     (with-unique-names (result format-control format-arguments)
       `(progn
-         (register-assertion)
+         (warn 'is-assertion :form ',form :message ,message :message-args ,message-args)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)
@@ -199,12 +154,13 @@
            (values-list ,result))))))
 
 (defmacro signals (&whole whole what &body body)
+  (declare (ignore whole))
   (let* ((condition-type what))
     (unless (symbolp condition-type)
-      (error "SIGNALS expects a symbol as condition-type!~
-(Is there a superfulous quote at ~S?)" condition-type))
+      (error "SIGNALS expects a symbol as condition-type! (Is ~
+there a superfulous quote at ~S?)" condition-type))
     `(progn
-      (register-assertion)
+      (warn 'signals-assertion :expected-condition-type ',what)
       (block test-block
         (handler-bind ((,condition-type
                         (lambda (c)
@@ -212,24 +168,24 @@
                           (return-from test-block c))))
           ,@body)
         (record-failure 'missing-condition
-                        :form ',whole
-                        :condition ',condition-type)
+                        :expected-condition-type 'what)
         (values)))))
 
 (defmacro not-signals (&whole whole what &body body)
+  (declare (ignore whole))
   (let* ((condition-type what))
     (unless (symbolp condition-type)
-      (error "SIGNALS expects a symbol as condition-type!~
-(Is there a superfulous quote at ~S?)" condition-type))
+      (error "SIGNALS expects a symbol as condition-type! (Is ~
+there a superfulous quote at ~S?)" condition-type))
     `(progn
-       (register-assertion)
+       (warn 'not-signals-assertion :expected-condition-type ',what)
        (block test-block
          (multiple-value-prog1
              (handler-bind ((,condition-type
                              (lambda (c)
-                               (record-failure 'extra-condition
-                                               :form ',whole
-                                               :condition c)
+                               (record-failure 'unwanted-condition
+                                               :expected-condition-type ',what
+                                               :observed-condition c)
                                (return-from test-block c))))
                ,@body)
            (register-assertion-was-successful))))))
@@ -237,10 +193,13 @@
 (defmacro finishes (&whole whole_ &body body)
   ;; could be `(not-signals t ,@body), but that would register a
   ;; confusing failed-assertion
-  (with-unique-names (success? whole)
+  (with-unique-names (success? whole ;; context
+                               )
     `(let* ((,success? nil)
-            (,whole ',whole_))
-       (register-assertion)
+            (,whole ',whole_)
+            ;; (,context *context*)
+            )
+       (warn 'finishes-assertion)
        (unwind-protect
             (multiple-value-prog1
                 (progn
@@ -250,9 +209,14 @@
          (unless ,success?
            ;; TODO painfully broken: when we don't finish due to a restart, then
            ;; we don't want this here to be triggered...
+           ;;
            (record-failure 'failed-assertion
                            :form ,whole
                            :format-control "FINISHES block did not finish: ~S"
                            :format-arguments ,whole))))))
 
 
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

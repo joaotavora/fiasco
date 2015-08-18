@@ -12,7 +12,7 @@
 (defun make-suite (name &rest args &key &allow-other-keys)
   (apply #'make-instance 'test :name name args))
 
-(defmacro defsuite (name-or-name-with-args &optional args &body body)
+(defmacro defsuite (name-or-name-with-args &optional args)
   (destructuring-bind (name &rest deftest-args)
       (ensure-list name-or-name-with-args)
     (let ((bind-to-package (getf deftest-args :bind-to-package)))
@@ -25,30 +25,16 @@
         `(progn
            (deftest (,name ,@deftest-args) ,args
              (let* ((,test (find-test ',name)))
-               (labels ((-run-child-tests- ()
-                          (loop
-                            :for subtest :being :the :hash-values
-                              :of (children-of ,test)
-                            :when (and (auto-call? subtest)
-                                       (or (zerop (length
-                                                   (lambda-list-of subtest)))
-                                           (member (first
-                                                    (lambda-list-of subtest))
-                                                   '(&rest &key &optional))))
-                              :do (funcall (name-of subtest))))
-                        (run-child-tests ()
-                          ;; TODO delme eventually?
-                          ;; (simple-style-warning "~S is obsolete,
-                          ;; use ~S to invoke child tests in a
-                          ;; testsuite!" 'run-child-tests
-                          ;; '-run-child-tests-)
-                          (-run-child-tests-)))
-                 (declare (ignorable #'run-child-tests))
-                 ,@(or body
-                       `((if (test-was-run-p ,test)
-                             (warn "~
-Skipped executing already run tests suite ~S" (name-of ,test))
-                             (-run-child-tests-))))))
+               (loop
+                 :for subtest :being :the :hash-values
+                   :of (children-of ,test)
+                 :when (and (auto-call? subtest)
+                            (or (zerop (length
+                                        (lambda-list-of subtest)))
+                                (member (first
+                                         (lambda-list-of subtest))
+                                        '(&rest &key &optional))))
+                   :do (funcall (name-of subtest))))
              (values))
            (let ((suite (find-test ',name)))
              ,(when bind-to-package
@@ -117,23 +103,23 @@ docstring."
                                                    packages
                                                    package))
         for suite = (find-suite-for-package (find-package package))
-        do
-           (assert suite nil "Can't find a test suite for package ~a" package)
-           (run-suite-tests suite
-                            :verbose verbose
-                            :stream stream
-                            :interactive interactive)
-           (unless (or interactive
-                       (null describe-failures)
-                       (zerop (length (failure-descriptions-of
-                                       *last-test-result*))))
-             (describe-failed-tests :stream stream))
-        collect *last-test-result* into results
+        for result = (progn
+                       (assert suite nil "Can't find a test suite for package ~a" package)
+                       (run-suite-tests suite
+                                        :verbose verbose
+                                        :stream stream
+                                        :interactive interactive)
+                       *last-test-result*)
+        collect result into results
+        do (unless (or interactive
+                       (not describe-failures)
+                       (zerop (length (failures-of result))))
+             (describe-failed-tests :result result :stream stream))
+
         finally
            (return (values (every #'zerop
-                                  (mapcar
-                                   (alexandria:compose #'length #'failure-descriptions-of)
-                                   results))
+                                  (mapcar #'length
+                                          (mapcar #'failures-of results)))
                            results))))
 
 (defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
@@ -142,11 +128,13 @@ docstring."
         (*print-test-run-progress* nil)
         (*pretty-log-stream* stream)
         (*pretty-log-verbose-p* verbose)
-        (*run-test-function* #'pretty-run-test))
+        (*run-test-function* #'pretty-run-test)
+        (*context* nil))
     (funcall (etypecase suite-designator
                (symbol suite-designator)
                (test (name-of suite-designator))))
-    (terpri stream)))
+    (terpri stream)
+    (values)))
 
 (defvar *within-non-suite-test* nil
   "True within the scope of a non-suite test. Used to suppress printing test
@@ -184,9 +172,9 @@ docstring."
     (let* ((*within-non-suite-test* (not (suite-p)))
            (retval-v-list (multiple-value-list
                            (run-test-body-in-handlers test function)))
-           (failures (failure-descriptions-of *context*)))
+           (failures (failures-of *context*)))
       (unless (suite-p)
-        (pp (if failures " OK " "FAIL")
+        (pp (if failures "FAIL" " OK ")
             "~&~A" (fiasco::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
@@ -195,7 +183,7 @@ docstring."
                   "no docstring for this test"))
           (pp nil
               "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
-              (assertion-count-of *context*)
+              (length (assertions-of *context*))
               (count-if (alexandria:rcurry #'typep 'failed-assertion) failures)
               (count-if (alexandria:rcurry #'typep 'unexpected-error) failures)
               (count-if 'expected-p failures))))
@@ -212,17 +200,21 @@ docstring."
   "Prints out a report for RESULT in STREAM.
 
 RESULT defaults to `*last-test-result*' and STREAM defaults to t"
-  (format stream "~&~%Fiasco! (~a failures)~%"
-          (length (failure-descriptions-of result)))
-  (let ((descs (failure-descriptions-of result)))
-    (cond ((zerop (length descs))
+  (let* ((failures (failures-of result))
+         (nfailures (length failures)))
+    (format stream "~&~%Fiasco! (~a failures)~%" nfailures)
+    (cond ((zerop nfailures)
            (format stream "~&~%[no failures!]"))
           (t
-           (dotimes (i (length descs))
-             (let* ((desc (aref descs i)))
-               (format stream "~%  Failure ~A: ~A when running ~S~%"
-                       (1+ i)
-                       (type-of desc)
-                       (name-of (test-of
-                                 (first (test-context-backtrace-of desc)))))
-               (indented-format 4 stream "~a" (describe-object desc nil))))))))
+           (loop for failure in failures
+                 for i from 1
+                 do (format stream "~%  Failure ~A: ~A when running ~S~%"
+                            (1+ i)
+                            (type-of failure)
+                            (name-of (test-of (context-of failure))))
+                    (indented-format 4 stream "~a" (describe-object failure nil)))))))
+
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:
