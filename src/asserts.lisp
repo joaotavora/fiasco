@@ -95,15 +95,14 @@
 (defun write-progress-char (char)
   (let* ((global-context (and (boundp '*global-context*)
                               *global-context*)))
-    (when (and global-context
-               (print-test-run-progress-p global-context))
+    (when *print-test-run-progress*
       (when (and (not (zerop (progress-char-count-of global-context)))
                  (zerop (mod (progress-char-count-of global-context)
                              *test-progress-print-right-margin*)))
         (terpri *debug-io*))
       (incf (progress-char-count-of global-context)))
     (when (or (and global-context
-                   (print-test-run-progress-p global-context))
+                   *print-test-run-progress*)
               (and (not global-context)
                    *print-test-run-progress*))
       (write-char char *debug-io*))))
@@ -113,50 +112,12 @@
 
 (defun record-unexpected-error (condition)
   (assert (not (typep condition 'assertion-failed)))
-  (error 'unexpected-error
-         :description-initargs (list :condition condition)
-         :signal-assertion-failed nil))
+  (record-failure 'unexpected-error
+                  :error condition))
 
-(defun record-failure (failure-description-type &rest args)
-  (record-failure* failure-description-type :description-initargs args))
-
-(defun record-failure* (failure-description-type
-                        &key (signal-assertion-failed t) description-initargs)
-  (let* ((description (apply #'make-instance failure-description-type
-                             :test-context-backtrace
-                             (when (boundp '*context*)
-                               (loop
-                                 :for context = *context*
-                                   :then (parent-context-of context)
-                                 :while context
-                                 :collect context))
-                             description-initargs)))
-    (if (boundp '*global-context*)
-        (progn
-          ;; JT@15/08/14: TODO: Abtract this away to a single
-          ;; (add-failure-description *context*)
-          ;;
-          (loop for recorder in (list *context*)
-                do (push description (failure-descriptions-of recorder)))
-          (write-progress-char (progress-char-of description))
-          (when signal-assertion-failed
-            (restart-case
-                (error 'assertion-failed
-                       :test (test-of *context*)
-                       :failure-description description)
-              (continue ()
-                :report (lambda (stream)
-                          (format stream "~@<Roger, go on testing...~@:>"))))))
-        (progn
-          (describe description *debug-io*)
-          (when *debug-on-assertion-failure* ; we have no *global-context*
-            (restart-case (error 'assertion-failed
-                                 :failure-description description)
-              (continue ()
-                :report
-                (lambda (stream)
-                  (format stream
-                          "~@<Ignore the failure and continue~@:>")))))))))
+(defun record-failure (condition-type &rest args)
+  (let ((failure (apply #'make-condition condition-type args)))
+    (error failure)))
 
 (define-condition test-assertion ()
   ((form :initarg :form
@@ -194,10 +155,16 @@
 
              (if (first ,result)
                  (register-assertion-was-successful)
-                 (record-failure 'failed-assertion
-                                 :form ',whole
-                                 :format-control ,format-control
-                                 :format-arguments ,format-arguments)))
+                 (restart-case
+                     (record-failure 'failed-assertion
+                                     :form ',whole
+                                     :format-control ,format-control
+                                     :format-arguments ,format-arguments)
+                   (continue ()
+                     :report (lambda (stream)
+                               (if (boundp '*global-context*)
+                                   (format stream "~@<Roger, go on testing...~@:>")                               
+                                   (format stream "~@<Ignore the failure and continue~@:>")))))))
            (values-list ,result))))))
 
 (defmacro signals (&whole whole what &body body)

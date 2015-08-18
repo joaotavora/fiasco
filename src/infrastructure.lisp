@@ -109,32 +109,32 @@ missing (in-root-suite)?"
 (define-condition test-related-condition ()
   ((test :initform nil :accessor test-of :initarg :test)))
 
+(define-condition test-started (test-related-condition) ())
+
 (define-condition test-style-warning
     (style-warning test-related-condition simple-warning)
   ())
 
 (define-condition failure (test-related-condition)
-  ((form :accessor form-of :initarg :form)
-   (test-context-backtrace :accessor test-context-backtrace-of
-                           :initarg :test-context-backtrace)
-   (progress-char :initform #\X :accessor progress-char-of
+  ((progress-char :initform #\X :accessor progress-char-of
                   :initarg :progress-char :allocation :class)))
 
-(define-condition failed-assertion (failure)
-  ((format-control :accessor format-control-of :initarg :format-control)
+(define-condition assertion-failed (failure)
+  ((form :accessor form-of :initarg :form)
+   (format-control :accessor format-control-of :initarg :format-control)
    (format-arguments :initform nil :accessor format-arguments-of
                      :initarg :format-arguments)))
 
-(defmethod describe-object ((self failed-assertion) stream)
+(defmethod describe-object ((self assertion-failed) stream)
   (let ((*print-circle* nil))
     (apply #'format stream (format-control-of self)
            (format-arguments-of self))))
 
-(defprint-object (self failed-assertion :identity nil :type nil)
+(defprint-object (self assertion-failed :identity nil :type nil)
   (format t "failure ~S backtrace: ~{~A~^,~}"
           (form-of self)
           (mapcar (compose #'name-of #'test-of)
-                  (test-context-backtrace-of self))))
+                  (reverse (list "TODO" "TODO")))))
 
 (define-condition missing-condition (failure)
   ((expected-type :initarg :expected-type :accessor expected-type-of)))
@@ -154,19 +154,19 @@ missing (in-root-suite)?"
             (form-of self) (observed-condition-of self))))
 
 (define-condition unexpected-error (failure)
-  ((error :accessor error-of :initarg :condition)
+  ((error :accessor error-of :initform (error "Must provide ~S" 'error)
+          :initarg :error)
    (progress-char :initform #\E :accessor progress-char-of
                   :initarg :progress-char :allocation :class)))
 
 (defmethod describe-object ((self unexpected-error) stream)
-  (format stream "~a" (condition-of self)))
+  (format stream "~a" (error-of self)))
 
 (defprint-object (self unexpected-error :identity nil :type nil)
   (format t "error ~{~A~^,~}: ~S"
           (mapcar (compose #'name-of #'test-of)
-                  (reverse (test-context-backtrace-of self)))
-          (condition-of self)))
-
+                  (reverse (list)))
+          (error-of self)))
 
 
 ;;; Test repository
@@ -238,8 +238,7 @@ If this variable is unbound
 (defclass global-context ()
   ((progress-char-count :initform 0 :accessor progress-char-count-of
                         :initarg :progress-char-count)
-   (bindings :initarg :bindings :initform
-             :accessor bindings-of)
+   (bindings :initarg :bindings :initform nil :accessor bindings-of)
    (toplevel-context :initform nil :accessor toplevel-context-of
                      :initarg :toplevel-context)
    (current-test :initform nil :accessor current-test-of :initarg :current-test)
@@ -269,13 +268,14 @@ compiled lambda functions")))
 (defun extract-test-run-statistics (global-context)
   (let* ((failure-descriptions (failure-descriptions-of global-context))
          (failed-assertion-count (count-if (of-type '(or
-                                                      failed-assertion
+                                                      assertion-failed
                                                       missing-condition
                                                       extra-condition))
                                            failure-descriptions))
          (unexpected-error-count (count-if (of-type 'unexpected-error)
                                            failure-descriptions))
-         (expected-count (count-if 'expected-p failure-descriptions)))
+         (expected-count 0;; (count-if 'expected-p failure-descriptions)
+                         ))
     (list :number-of-tests-run (hash-table-count (run-tests-of global-context))
           :number-of-assertions (assertion-count-of global-context)
           :number-of-failures (length failure-descriptions)
@@ -316,12 +316,12 @@ compiled lambda functions")))
 
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
-    `(let ((,old-state (print-test-run-progress-p *global-context*)))
+    `(let ((,old-state *print-test-run-progress*))
       (unwind-protect
            (progn
-             (setf (print-test-run-progress-p *global-context*) nil)
+             (setf *print-test-run-progress* nil)
              ,@body)
-        (setf (print-test-run-progress-p *global-context*) ,old-state)))))
+        (setf *print-test-run-progress* ,old-state)))))
 
 (defmacro with-toplevel-restarts (&body body)
   (with-unique-names (with-toplevel-restarts/body)
@@ -329,8 +329,8 @@ compiled lambda functions")))
        (restart-bind
            ((continue-without-debugging
              (lambda ()
-               (setf (debug-on-unexpected-error-p *global-context*) nil)
-               (setf (debug-on-assertion-failure-p *global-context*) nil)
+               (setf *debug-on-unexpected-error* nil
+                     *debug-on-assertion-failure* nil)
                (continue))
               :report-function (lambda (stream)
                                  (format stream "~
@@ -338,7 +338,7 @@ compiled lambda functions")))
 CONTINUE restart~@:>")))
             (continue-without-debugging-errors
              (lambda ()
-               (setf (debug-on-unexpected-error-p *global-context*) nil)
+               (setf *debug-on-unexpected-error* nil)
                (continue))
               :report-function (lambda (stream)
                                  (format stream "~
@@ -346,7 +346,7 @@ CONTINUE restart~@:>")))
 and continue by invoking the first CONTINUE restart~@:>")))
             (continue-without-debugging-assertions
              (lambda ()
-               (setf (debug-on-assertion-failure-p *global-context*) nil)
+               (setf *debug-on-assertion-failure* nil)
                (continue))
               :report-function (lambda (stream)
                                  (format stream "~
@@ -370,11 +370,6 @@ test session~@:>"))))
   (declare (type testable test))
   (and (gethash test (run-tests-of *global-context*))
        (not (eq (current-test-of *global-context*) test))))
-
-(defun register-test-being-run (test)
-  (declare (type testable test))
-  (setf (gethash test (run-tests-of *global-context*)) *context*)
-  (setf (current-test-of *global-context*) test))
 
 (defvar *context*)
 (setf (documentation '*context* 'variable)
@@ -429,10 +424,9 @@ environment, which may affect their behaviour!")
     (loop
       :for failure in (failure-descriptions-of
                        global-context-to-be-processed)
-      :for context = (elt (test-context-backtrace-of failure) 0)
-      :do (apply (name-of (test-of context))
-                 (mapcar #'cdr (test-arguments-of context))))
-    (when (print-test-run-progress-p *global-context*)
+      :do (apply (name-of (test-of failure))
+                 (error "TODO!")))
+    (when *print-test-run-progress*
       (terpri *debug-io*))))
 
 (defmacro with-expected-failures* (&whole whole condition &body body)

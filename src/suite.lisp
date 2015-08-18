@@ -223,6 +223,5 @@ RESULT defaults to `*last-test-result*' and STREAM defaults to t"
                  do (format stream "~%  Failure ~A: ~A when running ~S~%"
                             (1+ i)
                             (type-of desc)
-                            (name-of (test-of
-                                      (first (test-context-backtrace-of desc)))))
+                            (name-of (test-of desc)))
                     (indented-format 4 stream "~a" (describe-object desc nil)))))))

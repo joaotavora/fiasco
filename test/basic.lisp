@@ -15,14 +15,8 @@
                 #:count-tests
 
                 #:*global-context*
-                #:print-test-run-progress-p
-                #:debug-on-assertion-failure-p
-                #:debug-on-unexpected-error-p
                 #:failure-descriptions-of
                 #:assertion-count-of
-                #:print-test-run-progress-p
-                #:debug-on-assertion-failure-p
-                #:debug-on-unexpected-error-p
 
                 #:lambda-list-to-value-list-expression
                 #:lambda-list-to-funcall-expression

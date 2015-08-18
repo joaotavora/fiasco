@@ -22,7 +22,7 @@
            #:defsuite
            #:-run-child-tests-
            #:-body-
-           #:-here-
+           #:-here-p
            #:without-debugging
            #:without-test-progress-printing
            #:funcall-test-with-feedback-message

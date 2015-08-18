@@ -53,7 +53,7 @@
 (defun run-test-body-in-handlers (test function)
   (declare (type test test)
            (type function function))
-  (register-test-being-run test)
+  (signal 'test-started :test test)
   (labels ((run-test-body ()
              (call-with-test-handlers
               (lambda ()
@@ -109,16 +109,19 @@ returning (values)~@:>" (name-of test)))
                                          ;; something with the
                                          ;; assertion
                                          (declare (ignore a)) 
-                                         (incf (assertion-count-of *context*)))))
-                        (funcall *run-test-function* test function)))))
-             ))
+                                         (incf (assertion-count-of *context*))))
+                                     (test-started
+                                       (lambda (c)
+                                         (setf (gethash (test-of c) (run-tests-of *global-context*)) *context*)
+                                         (setf (current-test-of *global-context*) (test-of c)))))
+                        (funcall *run-test-function* test function)))))))
       (if toplevel-p
           (with-toplevel-restarts
             (body))
           (body))
       (if toplevel-p
           (progn
-            (when (print-test-run-progress-p *global-context*)
+            (when *print-test-run-progress*
               (terpri *debug-io*))
             (if result-values
                 (values-list (append result-values (list *global-context*)))
