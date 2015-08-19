@@ -125,18 +125,32 @@ missing (in-root-suite)?"
    (test-arguments :accessor test-arguments-of :initarg :test-arguments)
    ;; recording
    ;; 
-   (failures :initform nil
-             :accessor failures-of
-             :initarg :failure)
-   (assertions :initform nil
-               :initarg assertions
-               :accessor assertions-of)
+   (self-failures :initform '())
+   (self-assertions :initform '())
    ;; tree structure
    ;; 
    (parent-context
     :initarg :parent-context :initform nil :accessor parent-context-of)
    (children-contexts
     :initform nil :accessor children-contexts-of)))
+
+(defmethod failures-of ((context context))
+  (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-failures)
+                           (all-test-runs-of context))))
+
+(defmethod assertions-of ((context context))
+  (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-assertions)
+                           (all-test-runs-of context))))
+
+(defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
+  (setf (parent-context-of obj) parent-context))
+
+(defmethod (setf parent-context-of) :after ((obj context) new-parent)
+  (push obj (children-contexts-of new-parent))
+  (let ((ex-parent (parent-context-of obj)))
+    (when ex-parent
+      (setf (children-contexts-of ex-parent)
+            (remove obj (children-contexts-of ex-parent))))))
 
 (defmethod print-object ((self context) s)
   (print-unreadable-object (self s :identity nil :type nil)
@@ -200,7 +214,7 @@ missing (in-root-suite)?"
              (if (context-of c)
                  (format stream "Test assertion failed when running ~a:~%~%"
                          (name-of (test-of (context-of c))))
-                 (format stream "Test assertion failed~a:~%~%"))
+                 (format stream "Test assertion failed:~%~%"))
              (describe c stream))))
 
 (defmethod describe-object ((self failed-assertion) stream)
@@ -239,7 +253,7 @@ missing (in-root-suite)?"
              (if (context-of c)
                  (format stream "Unexpected error when running ~a:~%~%"
                          (name-of (test-of (context-of c))))
-                 (format stream "Unexpected error~a:~%~%"))
+                 (format stream "Unexpected error:~%~%"))
              (describe c stream))))
 
 (defmethod describe-object ((self unexpected-error) stream)
@@ -311,12 +325,6 @@ and has no parent")
   (cons context
         (loop for context in (children-contexts-of context)
                 append (all-test-runs-of context))))
-
-(defmethod all-failures-of ((context context))
-  (reduce #'append (mapcar #'failures-of (all-test-runs-of context))))
-
-(defmethod all-assertions-of ((context context))
-  (reduce #'append (mapcar #'assertions-of (all-test-runs-of context))))
 
 (defun extract-test-run-statistics (context)
   (let* ((all-failures (all-failures-of context))
@@ -405,9 +413,6 @@ and continue by invoking the first CONTINUE restart~@:>")))
                                (format stream "~@<Abort the entire ~
 test session~@:>"))))
        ,@body)))
-
-(defun test-was-run-p (test)
-  (error "TODO, not implemented"))
 
 (defmacro run-failed-tests (&optional (test-run '*last-test-result*))
   (error "TODO, not implemented"))

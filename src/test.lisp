@@ -28,14 +28,13 @@
   ;; NOTE: the order of the bindings in this handler-bind is important
   (handler-bind
       ((failed-assertion
-        (lambda (c)
-          (push c (failures-of *context*))
-          (unless *debug-on-assertion-failure*
-            (continue))))
+         (lambda (c)
+           (declare (ignore c))
+           (unless *debug-on-assertion-failure* (continue))))
        (serious-condition
-        (lambda (c)
-          (record-failure 'unexpected-error :error c)
-          (return-from call-with-test-handlers))))
+         (lambda (c)
+           (record-failure 'unexpected-error :error c)
+           (return-from call-with-test-handlers))))
     (funcall function)))
 
 (defun run-test-body-in-handlers (test function)
@@ -98,8 +97,8 @@ returning (values)~@:>" (name-of test)))
              ,@(when documentation (list documentation))
              ,@declarations
              (let* ((*current-test* (find-test ',name))
-                    (*previous-context* (and (boundp '*context*)
-                                             *context*))
+                    (parent-context (and (boundp '*context*)
+                                         *context*))
                     (*context* nil))
                (labels ((,name () ,@remaining-forms) ; for clarity in debugger
                         (,body-sym ()
@@ -108,16 +107,17 @@ returning (values)~@:>" (name-of test)))
                                  'context
                                  :test *current-test*
                                  :test-arguments ,(lambda-list-to-value-list-expression args)
-                                 :parent-context *previous-context*))
+                                 :parent-context parent-context))
+                          
                           (handler-bind
                               ((test-assertion
-                                 (lambda (a) (push a (assertions-of *context*))))
+                                 (lambda (a) (push a (slot-value *context* 'self-assertions))))
                                (test-started
                                  (lambda (c) (declare (ignore c)))))
                             (when ,timeout
                               (error "TODO: timeouts are not implemented yet in Fiasco."))
                             (funcall *run-test-function* *current-test* #',name))))
-                 (if *previous-context*
+                 (if parent-context
                      (,body-sym)
                      (with-toplevel-restarts
                          (let ((*standard-output* (eval *test-run-standard-output*))
@@ -125,12 +125,16 @@ returning (values)~@:>" (name-of test)))
                                (*debug-on-unexpected-error*  *debug-on-unexpected-error*)
                                (*print-test-run-progress*    *print-test-run-progress*)
                                (*progress-char-count*        *progress-char-count*))
-                           (let ((results (multiple-value-list (,body-sym))))
-                             (multiple-value-prog1
-                                 (values-list
-                                  (append results
-                                          (list *context*)))
-                               (when *print-test-run-progress*
-                                 (terpri *debug-io*))
-                               (push *context* *test-result-history*)
-                               (setq *last-test-result* *context*))))))))))))))
+                           (unwind-protect
+                                (let ((results (multiple-value-list (,body-sym))))
+                                  (multiple-value-prog1
+                                      (values-list
+                                       (append results
+                                               (list *context*)))
+                                    (when *print-test-run-progress*
+                                      (terpri *debug-io*))))
+                             (push *context* *test-result-history*)
+                             (setq *last-test-result* *context*)))))))))))))
+
+
+

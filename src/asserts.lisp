@@ -110,7 +110,10 @@
 (defun record-failure (condition-type &rest args)
   (assert (subtypep condition-type 'failure))
   (let ((failure (apply #'make-condition condition-type args)))
-    (error failure)))
+    (push failure (slot-value *context* 'self-failures))
+    (unless (and (eq condition-type 'unexpected-error)
+                 (not *debug-on-unexpected-error*))
+      (error failure))))
 
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
@@ -120,10 +123,7 @@
       (extract-assert-expression-and-message form)
     (with-unique-names (result format-control format-arguments)
       `(progn
-         (signal 'test-assertion
-                 :form ,form
-                 :message ,message
-                 :message-args ,message-args)
+         (signal 'test-assertion :form ,form :message ,message :message-args ,message-args)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)
@@ -152,10 +152,10 @@
 (defmacro signals (&whole whole what &body body)
   (let* ((condition-type what))
     (unless (symbolp condition-type)
-      (error "SIGNALS expects a symbol as condition-type!~
-(Is there a superfulous quote at ~S?)" condition-type))
+      (error "SIGNALS expects a symbol as condition-type! (Is ~
+there a superfulous quote at ~S?)" condition-type))
     `(progn
-      (register-assertion)
+      (signal 'test-assertion :form '(signals ,what))
       (block test-block
         (handler-bind ((,condition-type
                         (lambda (c)
@@ -170,8 +170,8 @@
 (defmacro not-signals (&whole whole what &body body)
   (let* ((condition-type what))
     (unless (symbolp condition-type)
-      (error "SIGNALS expects a symbol as condition-type!~
-(Is there a superfulous quote at ~S?)" condition-type))
+      (error "SIGNALS expects a symbol as condition-type! (Is ~
+there a superfulous quote at ~S?)" condition-type))
     `(progn
        (register-assertion)
        (block test-block
