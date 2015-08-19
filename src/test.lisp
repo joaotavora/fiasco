@@ -24,29 +24,17 @@
         (apply #'reinitialize-instance test args)
         (apply #'make-instance 'test :name name args))))
 
-(defgeneric get-test-lambda (test global-context)
-  (:method ((test test) (context global-context))
-    (multiple-value-bind (test-lambda found-p)
-        (gethash test (test-lambdas-of context))
-      (unless found-p
-        (setf test-lambda (let* ((*package* (package-of test))
-                                 (*readtable* (copy-readtable)))
-                            (compile nil `(lambda ,(lambda-list-of test)
-                                            ,@(body-of test)))))
-        (setf (gethash test (test-lambdas-of context)) test-lambda))
-      test-lambda)))
-
 (defun call-with-test-handlers (function)
   ;; NOTE: the order of the bindings in this handler-bind is important
   (handler-bind
       ((failed-assertion
         (lambda (c)
-          (declare (ignore c))
+          (push c (failures-of *context*))
           (unless *debug-on-assertion-failure*
             (continue))))
        (serious-condition
         (lambda (c)
-          (record-unexpected-error c)
+          (record-failure 'unexpected-error :error c)
           (return-from call-with-test-handlers))))
     (funcall function)))
 
@@ -68,7 +56,7 @@
                   (continue ()
                     :report (lambda (stream)
                               (format stream "~
-~@<Skip the rest of the test ~S and continue by~
+~@<Skip the rest of the test ~S and continue by ~
 returning (values)~@:>" (name-of test)))
                     (values))
                   (retest ()
@@ -87,47 +75,6 @@ returning (values)~@:>" (name-of test)))
 
 (defvar *run-test-function* #'run-test-body-in-handlers)
 
-(defun run-test-body (test function arguments toplevel-p timeout)
-  (declare (type test test))
-  (when timeout
-    (error "TODO: timeouts are not implemented yet in Fiasco."))
-  (let* ((result-values '()))
-    (flet ((body ()
-             (let ((*context*
-                     (make-instance 'context
-                                    :test test
-                                    :test-arguments arguments
-                                    :parent-context (when (boundp '*context*)
-                                                      *context*))))
-               (when toplevel-p
-                 (setf (toplevel-context-of *global-context*) *context*))
-               (setf result-values
-                     (multiple-value-list
-                      (handler-bind ((test-assertion
-                                       (lambda (a)
-                                         ;; probably we could do
-                                         ;; something with the
-                                         ;; assertion
-                                         (declare (ignore a)) 
-                                         (incf (assertion-count-of *context*))))
-                                     (test-started
-                                       (lambda (c)
-                                         (setf (gethash (test-of c) (run-tests-of *global-context*)) *context*)
-                                         (setf (current-test-of *global-context*) (test-of c)))))
-                        (funcall *run-test-function* test function)))))))
-      (if toplevel-p
-          (with-toplevel-restarts
-            (body))
-          (body))
-      (if toplevel-p
-          (progn
-            (when *print-test-run-progress*
-              (terpri *debug-io*))
-            (if result-values
-                (values-list (append result-values (list *global-context*)))
-                *global-context*))
-          (values-list result-values)))))
-
 (defmacro deftest (&whole whole name args &body body)
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
@@ -135,7 +82,7 @@ returning (values)~@:>" (name-of test)))
                                                    timeout &allow-other-keys)
         (ensure-list name)
       (remove-from-plistf test-args :in)
-      (with-unique-names (global-context toplevel-p body-sym)
+      (with-unique-names (body-sym)
         `(progn
            (eval-when (:load-toplevel :execute)
              (ensure-test ',name
@@ -151,23 +98,39 @@ returning (values)~@:>" (name-of test)))
              ,@(when documentation (list documentation))
              ,@declarations
              (let* ((*current-test* (find-test ',name))
-                    (,toplevel-p (not (boundp '*global-context*)))
-                    (,global-context (unless ,toplevel-p *global-context*)))
-               ;; for convenience we define a function in a LABELS
-               ;; with the test name, so the debugger shows it in the
-               ;; backtrace
-               (labels ((,name () ,@remaining-forms)
+                    (*previous-context* (and (boundp '*context*)
+                                             *context*))
+                    (*context* nil))
+               (labels ((,name () ,@remaining-forms) ; for clarity in debugger
                         (,body-sym ()
-                          (run-test-body *current-test*
-                                         #',name
-                                         ,(lambda-list-to-value-list-expression
-                                           args)
-                                         ,toplevel-p
-                                         ,timeout)))
-                 (if ,toplevel-p
-                     (with-new-global-context ()
-                       (setf ,global-context *global-context*)
-                       (push ,global-context *test-result-history*)
-                       (setf *last-test-result* ,global-context)
-                       (,body-sym))
-                     (,body-sym))))))))))
+                          (setq *context*
+                                (make-instance
+                                 'context
+                                 :test *current-test*
+                                 :test-arguments ,(lambda-list-to-value-list-expression args)
+                                 :parent-context *previous-context*))
+                          (handler-bind
+                              ((test-assertion
+                                 (lambda (a) (push a (assertions-of *context*))))
+                               (test-started
+                                 (lambda (c) (declare (ignore c)))))
+                            (when ,timeout
+                              (error "TODO: timeouts are not implemented yet in Fiasco."))
+                            (funcall *run-test-function* *current-test* #',name))))
+                 (if *previous-context*
+                     (,body-sym)
+                     (with-toplevel-restarts
+                         (let ((*standard-output* (eval *test-run-standard-output*))
+                               (*debug-on-assertion-failure* *debug-on-assertion-failure*)
+                               (*debug-on-unexpected-error*  *debug-on-unexpected-error*)
+                               (*print-test-run-progress*    *print-test-run-progress*)
+                               (*progress-char-count*        *progress-char-count*))
+                           (let ((results (multiple-value-list (,body-sym))))
+                             (multiple-value-prog1
+                                 (values-list
+                                  (append results
+                                          (list *context*)))
+                               (when *print-test-run-progress*
+                                 (terpri *debug-io*))
+                               (push *context* *test-result-history*)
+                               (setq *last-test-result* *context*))))))))))))))

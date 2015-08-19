@@ -28,9 +28,7 @@
 
 
 (fiasco:define-test-package #:fiasco-intro-example
-  (:import-from #:fiasco
-                #:with-new-global-context
-                #:*global-context*))
+  (:import-from #:fiasco))
 (in-package #:fiasco-intro-example)
 
 ;; define a metatest to test the other tests
@@ -38,18 +36,18 @@
 (deftest intro-metatest ()
   (let ((*debug-on-unexpected-error* nil)
         (*debug-on-assertion-failure* nil))
-    (let ((run (with-new-global-context ()
+    (let ((run (progn
                  (run-package-tests :package :fiasco-examples)
-                 ;; must access *GLOBAL-CONTEXT* directly, otherwise
+                 ;; must access *CONTEXT* directly, otherwise
                  ;; we get the run of running INTRO-METATEST itself
-                 *global-context*)))
+                 fiasco::*context*)))
       (destructuring-bind (&key number-of-tests-run
                                 number-of-assertions
                                 number-of-failures
                                 number-of-failed-assertions
                                 number-of-unexpected-errors
                                 number-of-expected-failures
-                            &allow-other-keys)
+                           &allow-other-keys)
           (extract-test-run-statistics run)
         ;; Remember that the suite itself counts as a test and so it's
         ;; an assertion. FIXME: this is confusing as hell

@@ -92,20 +92,17 @@
              (values '() input-form "Expression ~A evaluated to false."
                      (list `(quote ,input-form))))))))
 
+
+(defvar *progress-char-count* 0)
+
 (defun write-progress-char (char)
-  (let* ((global-context (and (boundp '*global-context*)
-                              *global-context*)))
-    (when *print-test-run-progress*
-      (when (and (not (zerop (progress-char-count-of global-context)))
-                 (zerop (mod (progress-char-count-of global-context)
+  (when *print-test-run-progress*
+      (when (and (not (zerop *progress-char-count*))
+                 (zerop (mod *progress-char-count*
                              *test-progress-print-right-margin*)))
         (terpri *debug-io*))
-      (incf (progress-char-count-of global-context)))
-    (when (or (and global-context
-                   *print-test-run-progress*)
-              (and (not global-context)
-                   *print-test-run-progress*))
-      (write-char char *debug-io*))))
+      (incf *progress-char-count*)
+      (write-char char *debug-io*)))
 
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))
@@ -147,7 +144,7 @@
                                      :format-arguments ,format-arguments)
                    (continue ()
                      :report (lambda (stream)
-                               (if (boundp '*global-context*)
+                               (if *context*
                                    (format stream "~@<Roger, go on testing...~@:>")                               
                                    (format stream "~@<Ignore the failure and continue~@:>")))))))
            (values-list ,result))))))
