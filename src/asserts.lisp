@@ -110,9 +110,12 @@
 (defun record-failure (condition-type &rest args)
   (assert (subtypep condition-type 'failure))
   (let ((failure (apply #'make-condition condition-type args)))
-    ;; Remember that FIASCO:IS might be called in any context.
+    ;; Remember that FIASCO:IS might be called in any context
+    ;; and so *CONTEXT* might be nil.
+    ;;
     (when *context*
       (push failure (slot-value *context* 'self-failures)))
+    (write-progress-char (progress-char-of failure))
     (unless (eq condition-type 'unexpected-error)
       (restart-case
        (error failure)

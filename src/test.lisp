@@ -44,37 +44,31 @@
            (type function function))
   (signal 'test-started :test test)
   (labels ((run-test-body ()
-             (call-with-test-handlers
-              (lambda ()
-                (restart-case
-                    (let* ((*package* (package-of test))
-                           (*readtable* (copy-readtable))
-                           (start-time (get-internal-run-time)))
-                      (multiple-value-prog1
-                          (funcall function)
-                        (setf (internal-realtime-spent-with-test-of *context*)
-                              (- (get-internal-run-time) start-time))))
-                  (continue ()
-                    :report (lambda (stream)
-                              (format stream "~
+             (restart-case
+              (let* ((*package* (package-of test))
+                     (*readtable* (copy-readtable))
+                     (start-time (get-internal-run-time)))
+                (multiple-value-prog1
+                    (funcall function)
+                  (setf (internal-realtime-spent-with-test-of *context*)
+                        (- (get-internal-run-time) start-time))))
+              (continue ()
+                        :report (lambda (stream)
+                                  (format stream "~
 ~@<Skip the rest of the test ~S and continue by ~
 returning (values)~@:>" (name-of test)))
-                    (values))
-                  (retest ()
-                    :report (lambda (stream)
-                              (format stream "~@<Rerun the test ~S~@:>"
-                                      (name-of test)))
-                    ;; Make a new pristine *CONTEXT* binding
-                    ;;
-                    (setf *context*
-                          (make-instance 'context
-                                         :test (test-of *context*)
-                                         :test-arguments (test-arguments-of *context*)
-                                         :parent-context (parent-context-of *context*)))
-                    (return-from run-test-body (run-test-body))))))))
-    (run-test-body)))
+                        (values))
+              (retest ()
+                      :report (lambda (stream)
+                                (format stream "~@<Rerun the test ~S~@:>"
+                                        (name-of test)))
+                      (reinitialize-instance *context*)
+                      (return-from run-test-body (run-test-body))))))
+    (call-with-test-handlers
+     (lambda ()
+       (run-test-body)))))
 
-(defvar *run-test-function* #'run-test-body-in-handlers)
+(defvar *run-test-function* 'run-test-body-in-handlers)
 
 (defmacro deftest (&whole whole name args &body body)
   (multiple-value-bind (remaining-forms declarations documentation)
@@ -104,11 +98,12 @@ returning (values)~@:>" (name-of test)))
                (labels ((,name () ,@remaining-forms) ; for clarity in debugger
                         (,body-sym ()
                           (setq *context*
-                                (make-instance
+                                (progn
+                                  (make-instance
                                     'context
                                   :test *current-test*
-                                  :test-arguments ,(lambda-list-to-value-list-expression args)
-                                  :parent-context parent-context))
+                                  :actual-test-arguments ,(lambda-list-to-value-list-expression args)
+                                  :parent-context parent-context)))
                           (handler-bind
                               ((test-assertion
                                  (lambda (a)

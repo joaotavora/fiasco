@@ -123,11 +123,13 @@ missing (in-root-suite)?"
     :initform nil
     :accessor internal-realtime-spent-with-test-of
     :initarg :internal-realtime-spent-with-test)
-   (test-arguments :accessor test-arguments-of :initarg :test-arguments)
+   (actual-test-arguments :accessor actual-test-arguments-of
+                          :initarg :actual-test-arguments
+                          :initform (check-required 'actual-test-arguments))
    ;; recording
    ;; 
-   (self-failures :initform '())
-   (self-assertions :initform '())
+   (self-failures :initform nil)
+   (self-assertions :initform nil)
    ;; tree structure
    ;; 
    (parent-context
@@ -146,7 +148,6 @@ missing (in-root-suite)?"
 (defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
   (setf (parent-context-of obj) parent-context))
 
-
 (defmethod (setf parent-context-of) :before (new-parent (obj context))
   (declare (ignore new-parent))
   (let ((ex-parent (parent-context-of obj)))
@@ -157,6 +158,12 @@ missing (in-root-suite)?"
 (defmethod (setf parent-context-of) :after (new-parent (obj context))
   (when new-parent
     (push obj (children-contexts-of new-parent))))
+
+(defmethod shared-initialize ((obj context) slots &rest args)
+  (declare (ignore slots args))
+  (call-next-method)
+  (with-slots (self-failures self-assertions children-contexts) obj
+    (setq self-failures nil self-assertions nil children-contexts nil)))
 
 (defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
@@ -243,7 +250,7 @@ missing (in-root-suite)?"
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
     (format stream "~S failed to signal a condition of type ~S" (form-of self)
-            (expected-type-of self))))
+            (expected-condition-type-of self))))
 
 (define-condition unwanted-condition (failure)
   ((expected-condition-type :initarg :expected-condition-type :accessor expected-condition-type-of)
@@ -424,19 +431,14 @@ and continue by invoking the first CONTINUE restart~@:>")))
 test session~@:>"))))
        ,@body)))
 
-(defmacro run-failed-tests (&optional (test-run '*last-test-result*))
-  (declare (ignore test-run))
-  (error "TODO, not implemented"))
-
-(defun %run-failed-tests (context-to-be-processed)
+(defun run-failed-tests (&optional (test-run *last-test-result*))
   (warn "Re-running failed tests without considering their dynamic
 environment, which may affect their behaviour!")
   (with-toplevel-restarts
     (loop
-      :for failure in (failures-of
-                       context-to-be-processed)
-      :do (apply (name-of (test-of failure))
-                 (error "TODO!")))
+     :for failure in (failures-of test-run)
+     :do (apply (name-of (test-of (context-of failure)))
+                (actual-test-arguments-of (context-of failure))))
     (when *print-test-run-progress*
       (terpri *debug-io*))))
 
