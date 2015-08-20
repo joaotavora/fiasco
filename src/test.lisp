@@ -27,14 +27,16 @@
 (defun call-with-test-handlers (function)
   ;; NOTE: the order of the bindings in this handler-bind is important
   (handler-bind
-      ((failed-assertion
+      ((failure
          (lambda (c)
            (declare (ignore c))
-           (unless *debug-on-assertion-failure* (continue))))
+           (unless *debug-on-assertion-failure*
+             (continue))))
        (serious-condition
          (lambda (c)
            (record-failure 'unexpected-error :error c)
-           (return-from call-with-test-handlers))))
+           (unless *debug-on-unexpected-error*
+             (return-from call-with-test-handlers)))))
     (funcall function)))
 
 (defun run-test-body-in-handlers (test function)
@@ -97,21 +99,21 @@ returning (values)~@:>" (name-of test)))
              ,@(when documentation (list documentation))
              ,@declarations
              (let* ((*current-test* (find-test ',name))
-                    (parent-context (and (boundp '*context*)
-                                         *context*))
+                    (parent-context *context*)
                     (*context* nil))
                (labels ((,name () ,@remaining-forms) ; for clarity in debugger
                         (,body-sym ()
                           (setq *context*
                                 (make-instance
-                                 'context
-                                 :test *current-test*
-                                 :test-arguments ,(lambda-list-to-value-list-expression args)
-                                 :parent-context parent-context))
-                          
+                                    'context
+                                  :test *current-test*
+                                  :test-arguments ,(lambda-list-to-value-list-expression args)
+                                  :parent-context parent-context))
                           (handler-bind
                               ((test-assertion
-                                 (lambda (a) (push a (slot-value *context* 'self-assertions))))
+                                 (lambda (a)
+                                   (push a (slot-value *context* 'self-assertions))
+                                   (muffle-warning)))
                                (test-started
                                  (lambda (c) (declare (ignore c)))))
                             (when ,timeout
@@ -120,21 +122,25 @@ returning (values)~@:>" (name-of test)))
                  (if parent-context
                      (,body-sym)
                      (with-toplevel-restarts
-                         (let ((*standard-output* (eval *test-run-standard-output*))
-                               (*debug-on-assertion-failure* *debug-on-assertion-failure*)
-                               (*debug-on-unexpected-error*  *debug-on-unexpected-error*)
-                               (*print-test-run-progress*    *print-test-run-progress*)
-                               (*progress-char-count*        *progress-char-count*))
-                           (unwind-protect
-                                (let ((results (multiple-value-list (,body-sym))))
-                                  (multiple-value-prog1
-                                      (values-list
-                                       (append results
-                                               (list *context*)))
-                                    (when *print-test-run-progress*
-                                      (terpri *debug-io*))))
-                             (push *context* *test-result-history*)
-                             (setq *last-test-result* *context*)))))))))))))
+                       (let ((*standard-output* (eval *test-run-standard-output*))
+                             (*debug-on-assertion-failure* *debug-on-assertion-failure*)
+                             (*debug-on-unexpected-error*  *debug-on-unexpected-error*)
+                             (*print-test-run-progress*    *print-test-run-progress*)
+                             (*progress-char-count*        *progress-char-count*))
+                         (unwind-protect
+                              (let ((results (multiple-value-list (,body-sym))))
+                                (multiple-value-prog1
+                                    (values-list
+                                     (append results
+                                             (list *context*)))
+                                  (when *print-test-run-progress*
+                                    (terpri *debug-io*))))
+                           (push *context* *test-result-history*)
+                           (setq *last-test-result* *context*)))))))))))))
 
 
 
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

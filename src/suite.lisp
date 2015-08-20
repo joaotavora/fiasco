@@ -128,10 +128,11 @@ docstring."
         (*print-test-run-progress* nil)
         (*pretty-log-stream* stream)
         (*pretty-log-verbose-p* verbose)
-        (*run-test-function* #'pretty-run-test))
+        (*run-test-function* #'pretty-run-test)
+        (*context* nil))
     (funcall (etypecase suite-designator
-                      (symbol suite-designator)
-                      (test (name-of suite-designator))))
+               (symbol suite-designator)
+               (test (name-of suite-designator))))
     (terpri stream)
     (values)))
 

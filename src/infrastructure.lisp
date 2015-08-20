@@ -24,6 +24,7 @@
 (defvar *last-test-result* nil)
 (defvar *always-show-failed-sexp* nil)
 (defvar *warn-about-test-redefinitions* nil)
+(defvar *failures-and-errors-are-expected* nil)
 
 (defvar *test-run-standard-output* '*standard-output*
   "*STANDARD-OUTPUT* is bound to (eval *test-run-standard-output*) at
@@ -109,9 +110,9 @@ missing (in-root-suite)?"
 ;;;
 ;;; Curiously called a "context"
 ;;;
-(defvar *context*)
-(setf (documentation '*context* 'variable)
-      "Status and progress info for a particular test run.")
+(defvar *context* nil
+  "Status and progress info for a particular test run.")
+
 
 (defvar *current-test* nil
   "Current singleton instance of TEST executing its associated DEFTEST lambda.")
@@ -171,7 +172,11 @@ missing (in-root-suite)?"
 
 (defmacro check-required (sym) `(error "Must provide ~a" ,sym))
 
-(define-condition test-assertion ()
+(define-condition test-assertion (warning)
+  ()
+  (:documentation "Signalled when an assertion such as IS is encountered"))
+
+(define-condition is-assertion (test-assertion)
   ((form :initarg :form
          :initform (check-required 'form)
          :accessor form-of)
@@ -181,6 +186,16 @@ missing (in-root-suite)?"
    (message-args :initarg :message-args
                  :initform (check-required 'message-args)
                  :accessor message-args-of)))
+
+(define-condition signals-assertion (test-assertion)
+  ((expected-condition-type :initarg :expected-condition-type
+                            :accessor expected-condition-type-of)))
+
+(define-condition not-signals-assertion (test-assertion)
+  ((expected-condition-type :initarg :expected-condition-type
+                            :accessor expected-condition-type-of)))
+
+(define-condition finishes-assertion (test-assertion) ())
 
 (define-condition test-related-condition ()
   ((test :initform (check-required 'test) :accessor test-of :initarg :test)))
@@ -195,7 +210,9 @@ missing (in-root-suite)?"
   ((context :initform *context* :accessor context-of
             :documentation "Might perfectly well be NIL") 
    (progress-char :initform #\X :accessor progress-char-of
-                  :initarg :progress-char :allocation :class)))
+                  :initarg :progress-char :allocation :class)
+   (expected :initarg :expected :initform *failures-and-errors-are-expected*
+             :accessor expected-p)))
 
 (define-condition failed-assertion (failure)
   ((form :accessor form-of :initarg :form)
@@ -220,7 +237,8 @@ missing (in-root-suite)?"
            (format-arguments-of self))))
 
 (define-condition missing-condition (failure)
-  ((expected-type :initarg :expected-type :accessor expected-type-of)))
+  ((expected-condition-type :initarg :expected-condition-type
+                            :accessor expected-condition-type-of)))
 
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
@@ -228,7 +246,7 @@ missing (in-root-suite)?"
             (expected-type-of self))))
 
 (define-condition unwanted-condition (failure)
-  ((expected-type :initarg :expected-type :accessor expected-type-of)
+  ((expected-condition-type :initarg :expected-condition-type :accessor expected-condition-type-of)
    (observed-condition :initarg :observed-condition :accessor observed-condition-of)))
 
 (defmethod describe-object ((self unwanted-condition) stream)
@@ -327,8 +345,7 @@ and has no parent")
                                            failures))
          (unexpected-error-count (count-if (of-type 'unexpected-error)
                                            failures))
-         (expected-count 0;; (count-if 'expected-p failures)
-                         ))
+         (expected-count (count-if 'expected-p failures)))
     (list :number-of-tests-run (length (all-test-runs-of context))
           :number-of-assertions (length (assertions-of context))
           :number-of-failures (length failures)
@@ -408,6 +425,7 @@ test session~@:>"))))
        ,@body)))
 
 (defmacro run-failed-tests (&optional (test-run '*last-test-result*))
+  (declare (ignore test-run))
   (error "TODO, not implemented"))
 
 (defun %run-failed-tests (context-to-be-processed)
@@ -689,3 +707,7 @@ This function is ideal for ASDF:TEST-OP's."
 For more details run it from the REPL."
             test-function result)
     result))
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:

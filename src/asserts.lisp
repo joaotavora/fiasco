@@ -110,10 +110,17 @@
 (defun record-failure (condition-type &rest args)
   (assert (subtypep condition-type 'failure))
   (let ((failure (apply #'make-condition condition-type args)))
-    (push failure (slot-value *context* 'self-failures))
-    (unless (and (eq condition-type 'unexpected-error)
-                 (not *debug-on-unexpected-error*))
-      (error failure))))
+    ;; Remember that FIASCO:IS might be called in any context.
+    (when *context*
+      (push failure (slot-value *context* 'self-failures)))
+    (unless (eq condition-type 'unexpected-error)
+      (restart-case
+       (error failure)
+       (continue ()
+                 :report (lambda (stream)
+                           (if *context*
+                               (format stream "~@<Roger, go on testing...~@:>")                               
+                               (format stream "~@<Ignore the failure and continue~@:>"))))))))
 
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
@@ -123,7 +130,7 @@
       (extract-assert-expression-and-message form)
     (with-unique-names (result format-control format-arguments)
       `(progn
-         (signal 'test-assertion :form ,form :message ,message :message-args ,message-args)
+         (warn 'is-assertion :form ',form :message ,message :message-args ,message-args)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)
@@ -137,25 +144,20 @@
 
              (if (first ,result)
                  (register-assertion-was-successful)
-                 (restart-case
-                     (record-failure 'failed-assertion
-                                     :form ',whole
-                                     :format-control ,format-control
-                                     :format-arguments ,format-arguments)
-                   (continue ()
-                     :report (lambda (stream)
-                               (if *context*
-                                   (format stream "~@<Roger, go on testing...~@:>")                               
-                                   (format stream "~@<Ignore the failure and continue~@:>")))))))
+                 (record-failure 'failed-assertion
+                                 :form ',whole
+                                 :format-control ,format-control
+                                 :format-arguments ,format-arguments)))
            (values-list ,result))))))
 
 (defmacro signals (&whole whole what &body body)
+  (declare (ignore whole))
   (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is ~
 there a superfulous quote at ~S?)" condition-type))
     `(progn
-      (signal 'test-assertion :form '(signals ,what))
+      (warn 'signals-assertion :expected-condition-type ',what)
       (block test-block
         (handler-bind ((,condition-type
                         (lambda (c)
@@ -163,24 +165,24 @@ there a superfulous quote at ~S?)" condition-type))
                           (return-from test-block c))))
           ,@body)
         (record-failure 'missing-condition
-                        :form ',whole
-                        :condition ',condition-type)
+                        :expected-condition-type 'what)
         (values)))))
 
 (defmacro not-signals (&whole whole what &body body)
+  (declare (ignore whole))
   (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is ~
 there a superfulous quote at ~S?)" condition-type))
     `(progn
-       (register-assertion)
+       (warn 'not-signals-assertion :expected-condition-type ',what)
        (block test-block
          (multiple-value-prog1
              (handler-bind ((,condition-type
                              (lambda (c)
-                               (record-failure 'extra-condition
-                                               :form ',whole
-                                               :condition c)
+                               (record-failure 'unwanted-condition
+                                               :expected-condition-type ',what
+                                               :observed-condition c)
                                (return-from test-block c))))
                ,@body)
            (register-assertion-was-successful))))))
@@ -188,10 +190,13 @@ there a superfulous quote at ~S?)" condition-type))
 (defmacro finishes (&whole whole_ &body body)
   ;; could be `(not-signals t ,@body), but that would register a
   ;; confusing failed-assertion
-  (with-unique-names (success? whole)
+  (with-unique-names (success? whole ;; context
+                               )
     `(let* ((,success? nil)
-            (,whole ',whole_))
-       (register-assertion)
+            (,whole ',whole_)
+            ;; (,context *context*)
+            )
+       (warn 'finishes-assertion)
        (unwind-protect
             (multiple-value-prog1
                 (progn
@@ -201,9 +206,14 @@ there a superfulous quote at ~S?)" condition-type))
          (unless ,success?
            ;; TODO painfully broken: when we don't finish due to a restart, then
            ;; we don't want this here to be triggered...
+           ;;
            (record-failure 'failed-assertion
                            :form ,whole
                            :format-control "FINISHES block did not finish: ~S"
                            :format-arguments ,whole))))))
 
 
+
+;; Local Variables:
+;; coding: utf-8-unix
+;; End:
