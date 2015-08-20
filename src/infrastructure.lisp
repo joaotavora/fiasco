@@ -145,25 +145,17 @@ missing (in-root-suite)?"
 (defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
   (setf (parent-context-of obj) parent-context))
 
-(defmethod (setf parent-context-of) :after ((obj context) new-parent)
-  (push obj (children-contexts-of new-parent))
+
+(defmethod (setf parent-context-of) :before (new-parent (obj context))
+  (declare (ignore new-parent))
   (let ((ex-parent (parent-context-of obj)))
     (when ex-parent
       (setf (children-contexts-of ex-parent)
             (remove obj (children-contexts-of ex-parent))))))
 
-(defmethod print-object ((self context) s)
-  (print-unreadable-object (self s :identity nil :type nil)
-    (format s "test-run ~@<(~S~{~^ ~S~})~@:>"
-            (name-of (test-of self))
-            (let* ((result (lambda-list-to-funcall-list
-                            (lambda-list-of (test-of self)))))
-              (mapcar (lambda (arg-cell)
-                        (setf result (substitute (cdr arg-cell)
-                                                 (car arg-cell)
-                                                 result :test #'eq)))
-                      (test-arguments-of self))
-              result))))
+(defmethod (setf parent-context-of) :after (new-parent (obj context))
+  (when new-parent
+    (push obj (children-contexts-of new-parent))))
 
 (defgeneric real-time-spent-in-seconds (context)
   (:method ((self context))
@@ -327,19 +319,19 @@ and has no parent")
                 append (all-test-runs-of context))))
 
 (defun extract-test-run-statistics (context)
-  (let* ((all-failures (all-failures-of context))
+  (let* ((failures (failures-of context))
          (failed-assertion-count (count-if (of-type '(or
                                                       failed-assertion
                                                       missing-condition
                                                       unwanted-condition))
-                                           all-failures))
+                                           failures))
          (unexpected-error-count (count-if (of-type 'unexpected-error)
-                                           all-failures))
-         (expected-count 0;; (count-if 'expected-p all-failures)
+                                           failures))
+         (expected-count 0;; (count-if 'expected-p failures)
                          ))
     (list :number-of-tests-run (length (all-test-runs-of context))
-          :number-of-assertions (length (all-assertions-of context))
-          :number-of-failures (length all-failures)
+          :number-of-assertions (length (assertions-of context))
+          :number-of-failures (length failures)
           :number-of-expected-failures expected-count
           :number-of-failed-assertions failed-assertion-count
           :number-of-unexpected-errors unexpected-error-count)))
@@ -354,8 +346,9 @@ and has no parent")
                            number-of-expected-failures
                          &allow-other-keys)
         (extract-test-run-statistics self)
-      (format stream "test-run: ~A test~:P, ~A assertion~:P, ~A failure~:P in ~
+      (format stream "test-run of ~a: ~A test~:P, ~A assertion~:P, ~A failure~:P in ~
 ~A sec~[~:; (~A failed assertion~:P, ~A error~:P, ~A expected)~]"
+              (name-of (test-of self))
               number-of-tests-run
               number-of-assertions
               number-of-failures
@@ -422,7 +415,7 @@ test session~@:>"))))
 environment, which may affect their behaviour!")
   (with-toplevel-restarts
     (loop
-      :for failure in (all-failures-of
+      :for failure in (failures-of
                        context-to-be-processed)
       :do (apply (name-of (test-of failure))
                  (error "TODO!")))
@@ -435,7 +428,7 @@ CONDITION."
   (with-unique-names (with-expected-failures-block starting-failure-count)
     `(let* ((*failures-and-errors-are-expected* ,condition)
             (,starting-failure-count
-              (length (all-failures-of *context*))))
+              (length (failures-of *context*))))
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
@@ -447,7 +440,7 @@ CONDITION."
                (multiple-value-prog1
                    (progn ,@body)
                  (unless (< ,starting-failure-count
-                            (length (all-failures-of *context*)))
+                            (length (failures-of *context*)))
                    (warn "The following ~S block ran without any failures: ~S"
                          'with-expected-failures* ',whole))))
            (continue ()
