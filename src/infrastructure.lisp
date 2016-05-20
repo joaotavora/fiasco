@@ -140,13 +140,15 @@ missing (in-root-suite)?"
    (children-contexts
     :initform nil :accessor children-contexts-of)))
 
-(defmethod failures-of ((context context))
-  (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-failures)
-                           (all-test-runs-of context))))
+(defgeneric failures-of (context)
+  (:method ((context context))
+    (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-failures)
+                             (all-test-runs-of context)))))
 
-(defmethod assertions-of ((context context))
-  (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-assertions)
-                           (all-test-runs-of context))))
+(defgeneric assertions-of (context)
+  (:method ((context context))
+    (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-assertions)
+                             (all-test-runs-of context)))))
 
 (defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
   (setf (parent-context-of obj) parent-context))
