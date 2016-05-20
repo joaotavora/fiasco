@@ -118,6 +118,8 @@ missing (in-root-suite)?"
 (defvar *current-test* nil
   "Current singleton instance of TEST executing its associated DEFTEST lambda.")
 
+(defmacro check-required (sym) `(error "Must provide ~a" ,sym))
+
 (defclass context ()
   ((test :accessor test-of :initarg :test)
    (internal-realtime-spent-with-test
@@ -177,8 +179,6 @@ missing (in-root-suite)?"
 
 ;;; Conditions
 ;;;
-
-(defmacro check-required (sym) `(error "Must provide ~a" ,sym))
 
 (define-condition test-assertion (warning)
   ()
