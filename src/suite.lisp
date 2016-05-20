@@ -86,19 +86,27 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
                                verbose
                                (stream *standard-output*)
                                interactive)
-  "Execute test suite associated with PACKAGE.
-PACKAGE defaults to the current package.
+  "Execute test suite(s) associated with PACKAGE or PACKAGES.
+
+Returns two values:
+
+1. A boolean indicating whether all tests were successful, and
+2. A list of objects containing test results for each executed suite.
+
+PACKAGE defaults to the current package. Don't supply both both
+PACKAGE and PACKAGES.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
-errors and unexpected assertion failures.
+errors and unexpected assertion failures. 
 
 With optional DESCRIBE-FAILURES, T by default, describe failures to
-optional STREAM, which defaults to *STANDARD-OUTPUT*.  With optional
-VERBOSE print more information about each test run, like its
-docstring."
+optional STREAM, which defaults to *STANDARD-OUTPUT*.
+
+With optional VERBOSE print more information about each test run, like
+its docstring."
   (assert (not (and packages-supplied-p package-supplied-p))
           nil
-          "Provide either :PACKAGE or :PACKAGES, not both")
+          "Supply either :PACKAGE or :PACKAGES, not both")
   (loop for package in (alexandria:ensure-list (if packages-supplied-p
                                                    packages
                                                    package))
