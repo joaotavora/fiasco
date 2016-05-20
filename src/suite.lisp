@@ -196,20 +196,29 @@ docstring."
         (loop for line = (read-line s nil nil) until (null line)
               do (format stream "~A~A~%" line-prefix line))))))
 
-(defun describe-failed-tests (&key (result *last-test-result*) (stream t))
+(defun describe-failed-tests (&key (result *last-test-result* result-provided-p)
+                                   (stream t))
   "Prints out a report for RESULT in STREAM.
 
 RESULT defaults to `*last-test-result*' and STREAM defaults to t"
+  (check-type result (or null context))
+  ;; Check if there was a last run.
+  (when (null result)
+    (unless result-provided-p
+      (format stream "~&~%No tests have been run yet.~%"))
+    (return-from describe-failed-tests))
+
+  ;; Guaranteed that RESULT is an object of type CONTEXT.
   (let* ((failures (failures-of result))
          (nfailures (length failures)))
-    (format stream "~&~%Fiasco! (~a failures)~%" nfailures)
     (cond ((zerop nfailures)
-           (format stream "~&~%[no failures!]"))
+           (format stream "~&~%Test run had no failures.~%"))
           (t
+           (format stream "~&~%Test run had ~D failure~:P:~%" nfailures)
            (loop for failure in failures
-                 for i from 1
+                 for test-num from 1
                  do (format stream "~%  Failure ~A: ~A when running ~S~%"
-                            (1+ i)
+                            test-num
                             (type-of failure)
                             (name-of (test-of (context-of failure))))
                     (indented-format 4 stream "~a" (describe-object failure nil)))))))
