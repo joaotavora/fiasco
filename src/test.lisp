@@ -19,10 +19,9 @@
          :initarg :body)))
 
 (defun ensure-test (name &rest args &key &allow-other-keys)
-  (let ((test (find-test name :otherwise nil)))
-    (if test
-        (apply #'reinitialize-instance test args)
-        (apply #'make-instance 'test :name name args))))
+  (if-let ((test (find-test name :otherwise nil)))
+    (apply #'reinitialize-instance test args)
+    (apply #'make-instance 'test :name name args)))
 
 (defun call-with-test-handlers (function)
   ;; NOTE: the order of the bindings in this handler-bind is important
