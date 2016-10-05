@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/capitaomorte/fiasco.svg?branch=master)](https://travis-ci.org/capitaomorte/fiasco)
+[![Build Status](https://travis-ci.org/joaotavora/fiasco.svg?branch=master)](https://travis-ci.org/joaotavora/fiasco)
 
 Fiasco
 ======
