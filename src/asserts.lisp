@@ -133,7 +133,7 @@
       (extract-assert-expression-and-message form)
     (with-unique-names (result format-control format-arguments)
       `(progn
-         (warn 'is-assertion :form ',form :message ,message :message-args ,message-args)
+         (warn 'is-assertion :form ',form :message ,message :message-args ',message-args)
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)

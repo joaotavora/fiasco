@@ -94,6 +94,7 @@
                 (is (= 1 42))                                ; fails
                 (is (not (= 42 42)))                         ; fails
                 (is (true-macro))
+                (is (true-macro) "Oh yes, glad that it's ~a" "true")
                 (is (not (false-macro)))
 
                 (signals serious-condition (error "foo"))
@@ -121,7 +122,7 @@
                      (*print-test-run-progress* nil))
                  (funcall test-name))))
         (is (= (length (assertions-of context))
-               (+ old-assertion-count 13))) ; also includes the current assertion
+               (+ old-assertion-count 14))) ; also includes the current assertion
         (is (= (length (failures-of context))
                (+ old-failure-description-count 6)))
         (is (= 1 (count-if 'expected-p (failures-of context))))
