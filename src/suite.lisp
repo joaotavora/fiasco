@@ -55,7 +55,7 @@ Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
 (defun all-tests ()
   "Run all currently defined tests."
-  (fiasco-suites::all-tests))
+  (run-package-tests :package (find-test 'fiasco-suites::all-tests)))
 
 (defmacro define-test-package (name &body package-options)
   "Defines package NAME and binds to it a new suite test suite.
@@ -110,7 +110,9 @@ its docstring."
   (loop for package in (alexandria:ensure-list (if packages-supplied-p
                                                    packages
                                                    package))
-        for suite = (find-suite-for-package (find-package package))
+        for suite = (if (eql (type-of package) 'test)
+		        package
+			(find-suite-for-package (find-package package)))
         for result = (progn
                        (assert suite nil "Can't find a test suite for package ~a" package)
                        (run-suite-tests suite
