@@ -110,9 +110,9 @@ its docstring."
   (loop for package in (alexandria:ensure-list (if packages-supplied-p
                                                    packages
                                                    package))
-        for suite = (if (eql (type-of package) 'test)
-		        package
-			(find-suite-for-package (find-package package)))
+        for suite = (typecase package
+		      (test package)
+		      (otherwise (find-suite-for-package (find-package package))))
         for result = (progn
                        (assert suite nil "Can't find a test suite for package ~a" package)
                        (run-suite-tests suite
