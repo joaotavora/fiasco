@@ -94,7 +94,8 @@ Returns two values:
 2. A list of objects containing test results for each executed suite.
 
 PACKAGE defaults to the current package. Don't supply both both
-PACKAGE and PACKAGES.
+PACKAGE and PACKAGES. It's possible to supply objects of type TEST
+rather than packages here, if needed.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
 errors and unexpected assertion failures. 
