@@ -55,7 +55,7 @@ Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
 (defun all-tests ()
   "Run all currently defined tests."
-  (run-package-tests :package (find-test 'fiasco-suites::all-tests)))
+  (run-tests 'fiasco-suites::all-tests))
 
 (defmacro define-test-package (name &body package-options)
   "Defines package NAME and binds to it a new suite test suite.
@@ -94,8 +94,9 @@ Returns two values:
 
 TEST-OR-PACKAGE can be
 1. a test,
-2. a symbol associated with either a test or a package, or
-3. a list composed of any combination of the above.
+2. a package associated with a test,
+3. a symbol associated with either of the above, or
+4. a list composed of any combination of the above.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
 errors and unexpected assertion failures. 
@@ -108,6 +109,7 @@ its docstring."
   (loop for test-container in (alexandria:ensure-list test-or-package)
      for suite = (etypecase test-container
 		   (test test-container)
+		   (package (find-suite-for-package test-container))
 		   (symbol (let ((test (find-test test-container :otherwise nil)))
 			     (or test
 				 (find-suite-for-package (find-package test-container))))))
@@ -139,16 +141,16 @@ its docstring."
                                verbose
                                (stream *standard-output*)
                                interactive)
-  "Execute test suite(s) associated with PACKAGE or PACKAGES.
+  "Execute the test suite associated with the current package.
 
 Returns two values:
 
 1. A boolean indicating whether all tests were successful, and
 2. A list of objects containing test results for each executed suite.
 
-PACKAGE defaults to the current package. Don't supply both both
-PACKAGE and PACKAGES. It's possible to supply objects of type TEST
-rather than packages here, if needed.
+PACKAGE and PACKAGES are mostly here for backward compatibility.
+If you need to run multiple packages/suites or to run one that is not
+the current package, it is recommended to just use run-tests instead.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
 errors and unexpected assertion failures. 
@@ -161,30 +163,13 @@ its docstring."
   (assert (not (and packages-supplied-p package-supplied-p))
           nil
           "Supply either :PACKAGE or :PACKAGES, not both")
-  (loop for package in (alexandria:ensure-list (if packages-supplied-p
-                                                   packages
-                                                   package))
-        for suite = (typecase package
-		      (test package)
-		      (otherwise (find-suite-for-package (find-package package))))
-        for result = (progn
-                       (assert suite nil "Can't find a test suite for package ~a" package)
-                       (run-suite-tests suite
-                                        :verbose verbose
-                                        :stream stream
-                                        :interactive interactive)
-                       *last-test-result*)
-        collect result into results
-        do (unless (or interactive
-                       (not describe-failures)
-                       (zerop (length (failures-of result))))
-             (describe-failed-tests :result result :stream stream))
-
-        finally
-           (return (values (every #'zerop
-                                  (mapcar #'length
-                                          (mapcar #'failures-of results)))
-                           results))))
+  (run-tests (if packages-supplied-p
+		 packages
+		 package)
+	     :describe-failures describe-failures
+	     :verbose verbose
+	     :stream stream
+	     :interactive interactive))
 
 (defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
   (let ((*debug-on-unexpected-error* interactive)
