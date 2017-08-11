@@ -57,25 +57,31 @@ Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
   "Run all currently defined tests."
   (run-tests 'fiasco-suites::all-tests))
 
-(defmacro define-test-package (name &body package-options)
-  "Defines package NAME and binds to it a new suite test suite.
+(defmacro define-test-package (name-or-name-with-args &body package-options)
+  "Defines a new package and binds to it a new test suite.
 
 The binding between package and suite means that tests defined under
-the package NAME are automatically added to the bounded suite. The
+the package are automatically added to the bounded suite. The
 function RUN-PACKAGE-TESTS is the preferred way to execute the
 suite.
 
+NAME-OR-NAME-WITH-ARGS is either simply the name of the new package, or
+an expression consisting of the name and the keyword parameter IN.
+IN designates the parent suite and defaults to FIASCO-SUITES::ALL-TESTS.
+
 Package NAME is defined via normal `defpackage', and in addition to processing
-PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
-  (unless (find-package name)
-    (make-package name :use nil))
-  (let ((suite-sym (intern (string name) :fiasco-suites)))
-    `(progn
-       (defpackage ,name
-         ,@(append `((:use :fiasco :cl))
-                   package-options))
-       (defsuite (,suite-sym :bind-to-package ,name
-                             :in fiasco-suites::all-tests)))))
+PACKAGE-OPTIONS, automatically USES the :FIASCO and :CL packages."
+  (destructuring-bind (name &key (in 'fiasco-suites::all-tests))
+      (alexandria:ensure-list name-or-name-with-args)
+    (unless (find-package name)
+      (make-package name :use nil))
+    (let ((suite-sym (intern (string name) :fiasco-suites)))
+      `(progn
+	 (defpackage ,name
+	   ,@(append `((:use :fiasco :cl))
+		     package-options))
+	 (defsuite (,suite-sym :bind-to-package ,name
+			       :in ,in))))))
 
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
