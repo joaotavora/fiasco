@@ -80,6 +80,59 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
 
+(defun run-tests (test-or-package &key
+				    (describe-failures t)
+				    verbose
+				    (stream *standard-output*)
+				    interactive)
+  "Execute test suite(s) associated with TEST-OR-PACKAGE.
+
+Returns two values:
+
+1. A boolean indicating whether all tests were successful, and
+2. A list of objects containing test results for each executed suite.
+
+TEST-OR-PACKAGE can be
+1. a test,
+2. a symbol associated with either a test or a package, or
+3. a list composed of any combination of the above.
+
+With optional INTERACTIVE, run tests interactively, i.e. break on
+errors and unexpected assertion failures. 
+
+With optional DESCRIBE-FAILURES, T by default, describe failures to
+optional STREAM, which defaults to *STANDARD-OUTPUT*.
+
+With optional VERBOSE print more information about each test run, like
+its docstring."
+  (loop for test-container in (alexandria:ensure-list test-or-package)
+     for suite = (etypecase test-container
+		   (test test-container)
+		   (symbol (let ((test (find-test test-container :otherwise nil)))
+			     (or test
+				 (find-suite-for-package (find-package test-container))))))
+     for result = (progn
+		    (assert suite
+			    nil
+			    "Can't find a test suite for symbol ~a"
+			    test-or-package)
+		    (run-suite-tests suite
+				     :verbose verbose
+				     :stream stream
+				     :interactive interactive)
+		    *last-test-result*)
+     collect result into results
+     do (unless (or interactive
+		    (not describe-failures)
+		    (zerop (length (failures-of result))))
+	  (describe-failed-tests :result result :stream stream))
+
+     finally
+       (return (values (every #'zerop
+			      (mapcar #'length
+				      (mapcar #'failures-of results)))
+		       results))))
+
 (defun run-package-tests (&key (package *package* package-supplied-p)
                                (packages (list *package*) packages-supplied-p)
                                (describe-failures t)
