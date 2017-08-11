@@ -38,7 +38,7 @@
            #:*warn-about-test-redefinitions*
            #:all-tests
            #:define-test-package
-	   #:run-tests
+           #:run-tests
            #:run-package-tests
            #:describe-failed-tests
            #:run-suite-tests))

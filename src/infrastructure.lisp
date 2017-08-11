@@ -291,6 +291,10 @@ missing (in-root-suite)?"
 ;;; Test repository
 ;;; 
 (defun find-test (name &key (otherwise :error))
+  "Find and return test associated with NAME.
+
+If no such thing is found, OTHERWISE says what do to: if :ERROR,
+signal error; if a function, call it; else return OTHERWISE."
   (multiple-value-bind (test found-p)
       (if (typep name 'testable)
           (values name t)
