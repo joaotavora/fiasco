@@ -55,7 +55,7 @@ Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 
 (defun all-tests ()
   "Run all currently defined tests."
-  (fiasco-suites::all-tests))
+  (run-tests 'fiasco-suites::all-tests))
 
 (defmacro define-test-package (name &body package-options)
   "Defines package NAME and binds to it a new suite test suite.
@@ -80,21 +80,77 @@ PACKAGE-OPTIONS, automatically USEs the :FIASCO and :CL packages."
 (defvar *pretty-log-stream* nil)
 (defvar *pretty-log-verbose-p* nil)
 
-(defun run-package-tests (&key (package *package* package-supplied-p)
-                               (packages (list *package*) packages-supplied-p)
-                               (describe-failures t)
-                               verbose
-                               (stream *standard-output*)
-                               interactive)
-  "Execute test suite(s) associated with PACKAGE or PACKAGES.
+(defun run-tests (test-or-package &key
+				    (describe-failures t)
+				    verbose
+				    (stream *standard-output*)
+				    interactive)
+  "Execute test suite(s) associated with TEST-OR-PACKAGE.
 
 Returns two values:
 
 1. A boolean indicating whether all tests were successful, and
 2. A list of objects containing test results for each executed suite.
 
-PACKAGE defaults to the current package. Don't supply both both
-PACKAGE and PACKAGES.
+TEST-OR-PACKAGE can be
+1. a test,
+2. a package associated with a test,
+3. a symbol associated with either of the above, or
+4. a list composed of any combination of the above.
+
+With optional INTERACTIVE, run tests interactively, i.e. break on
+errors and unexpected assertion failures. 
+
+With optional DESCRIBE-FAILURES, T by default, describe failures to
+optional STREAM, which defaults to *STANDARD-OUTPUT*.
+
+With optional VERBOSE print more information about each test run, like
+its docstring."
+  (loop for test-container in (alexandria:ensure-list test-or-package)
+     for suite = (etypecase test-container
+		   (test test-container)
+		   (package (find-suite-for-package test-container))
+		   (symbol (let ((test (find-test test-container :otherwise nil)))
+			     (or test
+				 (find-suite-for-package (find-package test-container))))))
+     for result = (progn
+		    (assert suite
+			    nil
+			    "Can't find a test suite for symbol ~a"
+			    test-or-package)
+		    (run-suite-tests suite
+				     :verbose verbose
+				     :stream stream
+				     :interactive interactive)
+		    *last-test-result*)
+     collect result into results
+     do (unless (or interactive
+		    (not describe-failures)
+		    (zerop (length (failures-of result))))
+	  (describe-failed-tests :result result :stream stream))
+
+     finally
+       (return (values (every #'zerop
+			      (mapcar #'length
+				      (mapcar #'failures-of results)))
+		       results))))
+
+(defun run-package-tests (&key (package *package* package-supplied-p)
+                               (packages (list *package*) packages-supplied-p)
+                               (describe-failures t)
+                               verbose
+                               (stream *standard-output*)
+                               interactive)
+  "Execute the test suite associated with the current package.
+
+Returns two values:
+
+1. A boolean indicating whether all tests were successful, and
+2. A list of objects containing test results for each executed suite.
+
+PACKAGE and PACKAGES are mostly here for backward compatibility.
+If you need to run multiple packages/suites or to run one that is not
+the current package, it is recommended to just use run-tests instead.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
 errors and unexpected assertion failures. 
@@ -107,28 +163,13 @@ its docstring."
   (assert (not (and packages-supplied-p package-supplied-p))
           nil
           "Supply either :PACKAGE or :PACKAGES, not both")
-  (loop for package in (alexandria:ensure-list (if packages-supplied-p
-                                                   packages
-                                                   package))
-        for suite = (find-suite-for-package (find-package package))
-        for result = (progn
-                       (assert suite nil "Can't find a test suite for package ~a" package)
-                       (run-suite-tests suite
-                                        :verbose verbose
-                                        :stream stream
-                                        :interactive interactive)
-                       *last-test-result*)
-        collect result into results
-        do (unless (or interactive
-                       (not describe-failures)
-                       (zerop (length (failures-of result))))
-             (describe-failed-tests :result result :stream stream))
-
-        finally
-           (return (values (every #'zerop
-                                  (mapcar #'length
-                                          (mapcar #'failures-of results)))
-                           results))))
+  (run-tests (if packages-supplied-p
+		 packages
+		 package)
+	     :describe-failures describe-failures
+	     :verbose verbose
+	     :stream stream
+	     :interactive interactive))
 
 (defun run-suite-tests (suite-designator &key verbose (stream t) interactive)
   (let ((*debug-on-unexpected-error* interactive)
