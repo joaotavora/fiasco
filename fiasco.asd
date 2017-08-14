@@ -28,7 +28,8 @@
                 :serial t
                 :components
                 ((:file "basic")
-                 (:file "intro-example")))))
+                 (:file "intro-example")
+                 (:file "suite-tests")))))
 
 
 ;; Local Variables:

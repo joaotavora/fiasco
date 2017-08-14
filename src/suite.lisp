@@ -60,17 +60,20 @@ Namespace for Fiasco suites defined via DEFINE-TEST-PACKAGE."))
 (defmacro define-test-package (name-or-name-with-args &body package-options)
   "Defines a new package and binds to it a new test suite.
 
-The binding between package and suite means that tests defined under
-the package are automatically added to the bounded suite. The
-function RUN-PACKAGE-TESTS is the preferred way to execute the
-suite.
+The binding between package and suite means that tests defined while
+inside this package are automatically added to the associated
+suite. Inside the new package, the function RUN-PACKAGE-TESTS is the
+preferred way to execute the suite. To run the tests from outside, use
+RUN-TESTS.
 
-NAME-OR-NAME-WITH-ARGS is either simply the name of the new package, or
-an expression consisting of the name and the keyword parameter IN.
-IN designates the parent suite and defaults to FIASCO-SUITES::ALL-TESTS.
+NAME-OR-NAME-WITH-ARGS names the package and suite to create. It is
+either a single symbol NAME, or a list (NAME :IN PARENT-SUITE) where
+PARENT-SUITE designated the Fiasco suite previously created with
+DEFSUITE that should parent the newly created suite.
 
-Package NAME is defined via normal `defpackage', and in addition to processing
-PACKAGE-OPTIONS, automatically USES the :FIASCO and :CL packages."
+Package NAME is defined via normal `defpackage', and in addition to
+processing PACKAGE-OPTIONS, automatically USES the :FIASCO and :CL
+packages."
   (destructuring-bind (name &key (in 'fiasco-suites::all-tests))
       (alexandria:ensure-list name-or-name-with-args)
     (unless (find-package name)
@@ -103,7 +106,7 @@ FIND-TEST, or a package designator for a package associated with a
 test suite, or a list composed of any combination of the above.
 
 With optional INTERACTIVE, run tests interactively, i.e. break on
-errors and unexpected assertion failures. 
+errors and unexpected assertion failures.
 
 With optional DESCRIBE-FAILURES, T by default, describe failures to
 optional STREAM, which defaults to *STANDARD-OUTPUT*.
@@ -123,7 +126,7 @@ its docstring."
         for result = (progn
                        (assert suite
                                nil
-                               "Can't find anything testsable designated by ~a"
+                               "Can't find anything testable designated by ~a"
                                thing)
                        (run-suite-tests suite
                                         :verbose verbose
