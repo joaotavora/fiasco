@@ -27,8 +27,9 @@
 (defvar *warn-about-test-redefinitions* nil)
 
 ;; TODO introduce *progress-output*
-(defvar *test-run-standard-output* (make-synonym-stream '*standard-output*)
-  "Bind *STANDARD-OUTPUT* to this at the toplevel entry point to any test.")
+(defvar *test-run-standard-output* '*standard-output*
+  "*STANDARD-OUTPUT* is bound to (eval *test-run-standard-output*) at
+the toplevel entry point to any test.")
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 

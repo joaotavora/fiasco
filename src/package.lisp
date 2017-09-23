@@ -25,7 +25,6 @@
            #:run-failed-tests
            #:extract-test-run-statistics
 
-           #:*test-run-standard-output*
            #:*test-progress-print-right-margin*
            #:*test-result-history*
            #:*last-test-result*
