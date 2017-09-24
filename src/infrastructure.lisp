@@ -27,9 +27,8 @@
 (defvar *warn-about-test-redefinitions* nil)
 
 ;; TODO introduce *progress-output*
-(defvar *test-run-standard-output* '*standard-output*
-  "*STANDARD-OUTPUT* is bound to (eval *test-run-standard-output*) at
-the toplevel entry point to any test.")
+(defvar *fiasco-output* (make-synonym-stream '*standard-output*)
+  "The stream fiasco writes its output to.")
 
 (defvar *tests* (make-hash-table :test 'eql)) ; this is not thread-safe, but...
 
@@ -703,12 +702,12 @@ continue by returning (values)~@:>"))
             env-variable-name)))
 
 (defun funcall-test-with-feedback-message (test-function &rest args)
-  "Run TEST non-interactively and print results to *STANDARD-OUTPUT*.
+  "Run TEST non-interactively and print results to *FIASCO-OUTPUT*.
 This function is ideal for ASDF:TEST-OP's."
-  (let* ((*test-run-standard-output* (make-broadcast-stream))
+  (let* ((*fiasco-output* (make-broadcast-stream))
          (result (without-debugging (apply test-function args)))
          (*package* (find-package :common-lisp)))
-    (format *standard-output*
+    (format *fiasco-output*
 "The result of ~S is:
 
   ~A

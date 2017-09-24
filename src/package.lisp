@@ -25,6 +25,7 @@
            #:run-failed-tests
            #:extract-test-run-statistics
 
+           #:*fiasco-output*
            #:*test-progress-print-right-margin*
            #:*test-result-history*
            #:*last-test-result*
