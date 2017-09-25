@@ -23,9 +23,7 @@
 
                 #:*context*
 
-                #:lambda-list-to-value-list-expression
-                #:lambda-list-to-funcall-expression
-                #:lambda-list-to-variable-name-list))
+                #:lambda-list-to-value-list-expression))
 (in-package #:fiasco-basic-self-tests)
 
 (deftest lifecycle ()
@@ -142,39 +140,7 @@
 (deftest lambda-list-processing ()
   (is (equal (lambda-list-to-value-list-expression '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
              '(list (cons 'p1 p1) (cons 'p2 p2) (cons 'o1 o1) (cons 'o2 o2) (cons 'k1 k1)
-               (cons 'k2 k2))))
-  (is (equal (lambda-list-to-funcall-expression 'foo '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
-             '(FUNCALL FOO P1 P2 O1 O2 :K1 K1 :K2 K2)))
-  (is (equal (lambda-list-to-funcall-expression 'foo '(&optional &key &allow-other-keys))
-             '(FUNCALL FOO)))
-  (is (equal (lambda-list-to-funcall-expression 'foo '(&optional &rest args &key &allow-other-keys))
-             '(APPLY FOO args)))
-  (is (equal (lambda-list-to-funcall-expression 'foo '(p1 p2 &optional o1 (o2 "o2") &rest args &key k1 (k2 "k2") &allow-other-keys))
-             '(APPLY FOO P1 P2 O1 O2 :K1 K1 :K2 K2 ARGS)))
-  (is (equal (lambda-list-to-variable-name-list '(&whole whole p1 p2 &optional o1 (o2 "o2") &body body)
-                                                :macro t :include-specials t)
-             '(WHOLE P1 P2 O1 O2 BODY)))
-  (is (equal (multiple-value-list
-              (lambda-list-to-variable-name-list '(&whole whole &environment env p1 p2 &optional o1 (o2 "o2") &body body)
-                                                 :macro t :include-specials nil))
-             '((P1 P2 O1 O2)
-               BODY
-               WHOLE
-               ENV)))
-  (dolist (entry '((p1 &whole)
-                   (&allow-other-keys)
-                   (&key k1 &optional o1)
-                   (&aux x1 &key k1)))
-    (signals error
-      (lambda-list-to-variable-name-list entry)))
-  (dolist (entry '((p1 &whole)
-                   (&allow-other-keys)
-                   (&key k1 &optional o1)
-                   (&aux x1 &key k1)
-                   (a &rest rest &body body)
-                   (&aux a &body body)))
-    (signals error
-      (lambda-list-to-variable-name-list entry :macro t))))
+               (cons 'k2 k2)))))
 
 ;; Local Variables:
 ;; coding: utf-8-unix
