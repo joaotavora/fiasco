@@ -248,7 +248,8 @@ missing (in-root-suite)?"
 
 (define-condition missing-condition (failure)
   ((expected-condition-type :initarg :expected-condition-type
-                            :accessor expected-condition-type-of)))
+                            :accessor expected-condition-type-of)
+   (form :accessor form-of :initarg :form)))
 
 (defmethod describe-object ((self missing-condition) stream)
   (let ((*print-circle* nil))
@@ -257,7 +258,8 @@ missing (in-root-suite)?"
 
 (define-condition unwanted-condition (failure)
   ((expected-condition-type :initarg :expected-condition-type :accessor expected-condition-type-of)
-   (observed-condition :initarg :observed-condition :accessor observed-condition-of)))
+   (observed-condition :initarg :observed-condition :accessor observed-condition-of)
+   (form :accessor form-of :initarg :form)))
 
 (defmethod describe-object ((self unwanted-condition) stream)
   (let ((*print-circle* nil))

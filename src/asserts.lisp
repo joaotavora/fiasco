@@ -168,7 +168,8 @@ there a superfulous quote at ~S?)" condition-type))
                           (return-from test-block c))))
           ,@body)
         (record-failure 'missing-condition
-                        :expected-condition-type 'what)
+                        :expected-condition-type ',what
+                        :form ',body)
         (values)))))
 
 (defmacro not-signals (&whole whole what &body body)
@@ -185,7 +186,8 @@ there a superfulous quote at ~S?)" condition-type))
                              (lambda (c)
                                (record-failure 'unwanted-condition
                                                :expected-condition-type ',what
-                                               :observed-condition c)
+                                               :observed-condition c
+                                               :form ',body)
                                (return-from test-block c))))
                ,@body)
            (register-assertion-was-successful))))))
