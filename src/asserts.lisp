@@ -137,13 +137,13 @@
          (let* (,@bindings
                 (,result (multiple-value-list ,expression)))
            (multiple-value-bind (,format-control ,format-arguments)
-               (if (and ,message-p *always-show-failed-sexp*)
-                   (values (format nil "~A~%~%~A" ,message ,expression-message)
-                           (list ,@message-args ,@expression-message-args))
-                   ,(if message-p
-                        `(values ,message (list ,@message-args))
-                        `(values ,expression-message
-                                 (list ,@expression-message-args))))
+               ,(if message-p
+		    `(if *always-show-failed-sexp*
+			 (values (format nil "~A~%~%~A" ,message ,expression-message)
+				 (list ,@message-args ,@expression-message-args))
+			 (values ,message (list ,@message-args)))
+		    `(values ,expression-message
+			     (list ,@expression-message-args)))
 
              (if (first ,result)
                  (register-assertion-was-successful)
