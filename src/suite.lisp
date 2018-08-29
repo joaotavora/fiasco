@@ -186,6 +186,16 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
   "True within the scope of a non-suite test. Used to suppress printing test
   status for recursive test calls.")
 
+(defun make-dots-string (length)
+  ;; A nice-looking string suitable for eye-tracking to the right margin.
+  (check-type length (integer 0))
+  (let ((dots (make-string length :initial-element #\Space))
+        (dotp (if (oddp length) #'oddp #'evenp)))
+    (loop :for i :from 1 :below length
+          :when (funcall dotp i)
+            :do (setf (char dots i) #\.))
+    dots))
+
 (defun pretty-run-test (test function)
   ;; HACK: until printing of recursive tests is implemented nicely we avoid
   ;; reporting non-toplevel tests altogether.
@@ -205,23 +215,25 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
            (if suffix
                (format *pretty-log-stream* "~&~A~A[~A]~%"
                        body
-                       (make-string (max 1 (- *test-progress-print-right-margin*
-                                              (length body)
-                                              (length "[XXXX]")))
-                                    :initial-element #\space)
+                       (make-dots-string
+                        (max 1 (- *test-progress-print-right-margin*
+                                  (length body)
+                                  (length "[XXXX]"))))
                        suffix)
                (format *pretty-log-stream* "~&~A" body))))
        (suite-p ()
          (not (zerop (hash-table-count (children-of test))))))
     (when (suite-p)
       (pp nil "~&~A (Suite)" (name-of test)))
+    (pp nil "~&Starting ~A~%" (fiasco::name-of test))
+    (finish-output *pretty-log-stream*) ; Print so we know test has started.
     (let* ((*within-non-suite-test* (not (suite-p)))
            (retval-v-list (multiple-value-list
                            (run-test-body-in-handlers test function)))
            (failures (failures-of *context*)))
       (unless (suite-p)
         (pp (if failures "FAIL" " OK ")
-            "~&~A" (fiasco::name-of test))
+            "~&Finished ~A" (fiasco::name-of test))
         (when *pretty-log-verbose-p*
           (pp nil
               "    (~A)"

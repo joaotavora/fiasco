@@ -17,7 +17,9 @@
 (defvar *root-suite*)
 (defvar *package-bound-suites* (make-hash-table))
 (defvar *print-test-run-progress* t)
-(defvar *test-progress-print-right-margin* 80)
+;;; 79 and not 80 to account for a line overflow \ in some editors and
+;;; terminals
+(defvar *test-progress-print-right-margin* 79)
 (defvar *debug-on-unexpected-error* t)
 (defvar *debug-on-assertion-failure* t)
 (defvar *test-result-history* '())
