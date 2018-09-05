@@ -172,7 +172,8 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
   (let ((*debug-on-unexpected-error* interactive)
         (*debug-on-assertion-failure* interactive)
         (*print-test-run-progress* nil)
-        (*pretty-log-stream* stream)
+        (*pretty-log-stream*
+          (make-instance 'column-counting-output-stream  :understream stream))
         (*pretty-log-verbose-p* verbose)
         (*run-test-function* #'pretty-run-test)
         (*context* nil))
@@ -197,38 +198,35 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
            (loop while (setf context (parent-context-of context))
                  do (incf depth))
            depth))
-       (pp (suffix format-control &rest format-args)
+       (pp (format-control &rest format-args)
          (let* ((depth (depth-of *context*))
                 (body (format nil "~A~A"
                               (make-string (* depth 2) :initial-element #\space)
                               (apply #'format nil format-control format-args))))
-           (if suffix
-               (format *pretty-log-stream* "~&~A~A[~A]~%"
-                       body
-                       (make-string (max 1 (- *test-progress-print-right-margin*
-                                              (length body)
-                                              (length "[XXXX]")))
-                                    :initial-element #\space)
-                       suffix)
-               (format *pretty-log-stream* "~&~A" body))))
+           (format *pretty-log-stream* "~&~A" body)))
        (suite-p ()
          (not (zerop (hash-table-count (children-of test))))))
-    (when (suite-p)
-      (pp nil "~&~A (Suite)" (name-of test)))
-    (let* ((*within-non-suite-test* (not (suite-p)))
+    (if (suite-p)
+        (pp "~&~A (Suite)" (name-of test))
+        (pp "~&~A" (name-of test)))
+    (let* ((*error-output* *pretty-log-stream*)
+           (*standard-output* *pretty-log-stream*)
+           (*within-non-suite-test* (not (suite-p)))
            (retval-v-list (multiple-value-list
                            (run-test-body-in-handlers test function)))
            (failures (failures-of *context*)))
       (unless (suite-p)
-        (pp (if failures "FAIL" " OK ")
-            "~&~A" (fiasco::name-of test))
+        (format *pretty-log-stream* "~A[~A]~%"
+                (make-string (max 1 (- *test-progress-print-right-margin*
+                                       (output-column *pretty-log-stream*)
+                                       (length "[XXXX]")))
+                             :initial-element #\space)
+                (if failures "FAIL" " OK "))
         (when *pretty-log-verbose-p*
-          (pp nil
-              "    (~A)"
+          (pp "    (~A)"
               (or (documentation (name-of test) 'function)
                   "no docstring for this test"))
-          (pp nil
-              "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
+          (pp "    (~A assertions, ~A failed, ~A errors, ~A expected)~%"
               (length (assertions-of *context*))
               (count-if (alexandria:rcurry #'typep 'failed-assertion) failures)
               (count-if (alexandria:rcurry #'typep 'unexpected-error) failures)
