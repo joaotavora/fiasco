@@ -9,12 +9,13 @@
   :description "A Common Lisp test framework that treasures your failures, logical continuation of Stefil."
   :author "João Távora <https://github.com/capitaomorte>"
   :license "BSD 2-clause"
-  :depends-on (#:alexandria)
+  :depends-on (#:alexandria #:trivial-gray-streams)
   :components
   ((:module "src"
     :serial t
     :components
     ((:file "package")
+     (:file "streams")
      (:file "infrastructure")
      (:file "asserts")
      (:file "test")
