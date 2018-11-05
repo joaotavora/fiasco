@@ -199,16 +199,15 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
                  do (incf depth))
            depth))
        (pp (format-control &rest format-args)
-         (let* ((depth (depth-of *context*))
-                (body (format nil "~A~A"
-                              (make-string (* depth 2) :initial-element #\space)
-                              (apply #'format nil format-control format-args))))
-           (format *pretty-log-stream* "~&~A" body)))
+         ;; format magic courtesy of Robert Smith (github #24)
+         (format *pretty-log-stream* "~&~v@{~C~:*~}"
+                 (* (depth-of *context*) 2) #\Space)
+         (apply #'format *pretty-log-stream* format-control format-args))
        (suite-p ()
          (not (zerop (hash-table-count (children-of test))))))
     (if (suite-p)
-        (pp "~&~A (Suite)" (name-of test))
-        (pp "~&~A" (name-of test)))
+        (pp "~A (Suite)" (name-of test))
+        (pp "~A" (name-of test)))
     (let* ((*error-output* *pretty-log-stream*)
            (*standard-output* *pretty-log-stream*)
            (*within-non-suite-test* (not (suite-p)))
@@ -216,12 +215,12 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
                            (run-test-body-in-handlers test function)))
            (failures (failures-of *context*)))
       (unless (suite-p)
-        (format *pretty-log-stream* "~A[~A]~%"
-                (make-string (max 1 (- *test-progress-print-right-margin*
-                                       (output-column *pretty-log-stream*)
-                                       (length "[XXXX]")))
-                             :initial-element #\space)
-                (if failures "FAIL" " OK "))
+        (format *pretty-log-stream* "~v@{~C~:*~}"
+                (max 1 (- *test-progress-print-right-margin*
+                          (output-column *pretty-log-stream*)
+                          (length "[XXXX]")))
+                #\.)
+        (format *pretty-log-stream* "[~A]~%" (if failures "FAIL" " OK "))
         (when *pretty-log-verbose-p*
           (pp "    (~A)"
               (or (documentation (name-of test) 'function)

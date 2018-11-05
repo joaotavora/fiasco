@@ -17,12 +17,12 @@
 (defmethod trivial-gray-streams:stream-start-line-p
     ((s column-counting-output-stream))
   "Tell if stream S is already at start of fresh new line."
-  (eql (output-column s) 0))
+  (zerop (output-column s)))
 
 (defmethod trivial-gray-streams:stream-write-char
     ((s column-counting-output-stream) char)
   "Write CHAR to stream S."
-  (if (eq char #\Newline)
+  (if (char= char #\Newline)
       (setf (output-column s) 0)
       (incf (output-column s)))
   (write-char char (slot-value s 'understream)))
