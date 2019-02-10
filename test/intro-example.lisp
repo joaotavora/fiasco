@@ -4,7 +4,7 @@
 
 (defun seconds (hours-and-minutes)
   (+ (* 3600 (first hours-and-minutes))
-     (* G0 (second hours-and-minutes))))
+     (* 60 (second hours-and-minutes))))
 
 (defun hours-and-minutes (seconds)
   (list (truncate seconds 3600)
