@@ -26,6 +26,12 @@
   (is (= 3600 (seconds (hours-and-minutes 3600))))
   (is (= 1234 (seconds (hours-and-minutes 1234)))))
 
+(deftest test-skip-test ()
+  (skip)
+  ;; These should not affect the test statistics below.
+  (is (= 1 1))
+  (is (= 1 2)))
+
 
 (fiasco:define-test-package #:fiasco-intro-example
   (:import-from #:fiasco))
@@ -39,27 +45,29 @@
     (is (not success))
     (is (= 1 (length runs)))
     (destructuring-bind (&key number-of-tests-run
-                              number-of-assertions
-                              number-of-failures
-                              number-of-failed-assertions
-                              number-of-unexpected-errors
-                              number-of-expected-failures
-                              &allow-other-keys)
-                        (extract-test-run-statistics (first runs))
-                        ;; There are 4 = 6 - 2 assertions because the
-                        ;; last IS of TEST-CONVERSION-TO-SECONDS and
-                        ;; DOUBLE-CONVERSION don't get to execute because
-                        ;; of the unexpected errors in the previous IS.
-                        ;; 
-                        (is (= 4 number-of-assertions))
-                        ;; Remember that the suite itself counts as a
-                        ;; test. FIXME: this is confusing as hell
-                        ;; 
-                        (is (= 4 number-of-tests-run))
-                        (is (= 3 number-of-failures))
-                        (is (= 1 number-of-failed-assertions))
-                        (is (= 2 number-of-unexpected-errors))
-                        (is (= 0 number-of-expected-failures)))
+                           number-of-assertions
+                           number-of-failures
+                           number-of-failed-assertions
+                           number-of-unexpected-errors
+                           number-of-expected-failures
+                           number-of-skips
+                         &allow-other-keys)
+        (extract-test-run-statistics (first runs))
+      ;; There are 4 = 6 - 2 assertions because the
+      ;; last IS of TEST-CONVERSION-TO-SECONDS and
+      ;; DOUBLE-CONVERSION don't get to execute because
+      ;; of the unexpected errors in the previous IS.
+      ;;
+      (is (= 4 number-of-assertions))
+      ;; Remember that the suite itself counts as a
+      ;; test. FIXME: this is confusing as hell
+      ;;
+      (is (= 5 number-of-tests-run))
+      (is (= 3 number-of-failures))
+      (is (= 1 number-of-failed-assertions))
+      (is (= 2 number-of-unexpected-errors))
+      (is (= 0 number-of-expected-failures))
+      (is (= 1 number-of-skips)))
     (values)))
   
 #+nil

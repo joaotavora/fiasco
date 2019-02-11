@@ -133,6 +133,7 @@ missing (in-root-suite)?"
    ;; 
    (self-failures :initform nil)
    (self-assertions :initform nil)
+   (self-skipped :initform nil :accessor skipped)
    ;; tree structure
    ;; 
    (parent-context
@@ -149,6 +150,11 @@ missing (in-root-suite)?"
   (:method ((context context))
     (reduce #'append (mapcar (alexandria:rcurry #'slot-value 'self-assertions)
                              (all-test-runs-of context)))))
+
+(defgeneric skips-of (context)
+  (:method ((context context))
+    (count t (mapcar (alexandria:rcurry #'slot-value 'self-skipped)
+                     (all-test-runs-of context)))))
 
 (defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
   (setf (parent-context-of obj) parent-context))
@@ -361,13 +367,15 @@ and has no parent")
                                            failures))
          (unexpected-error-count (count-if (of-type 'unexpected-error)
                                            failures))
-         (expected-count (count-if 'expected-p failures)))
+         (expected-count (count-if 'expected-p failures))
+         (skips-count (skips-of context)))
     (list :number-of-tests-run (length (all-test-runs-of context))
           :number-of-assertions (length (assertions-of context))
           :number-of-failures (length failures)
           :number-of-expected-failures expected-count
           :number-of-failed-assertions failed-assertion-count
-          :number-of-unexpected-errors unexpected-error-count)))
+          :number-of-unexpected-errors unexpected-error-count
+          :number-of-skips skips-count)))
 
 (defmethod print-object ((self context) stream)
   (print-unreadable-object (self stream :identity nil :type nil)
@@ -718,6 +726,13 @@ This function is ideal for ASDF:TEST-OP's."
 For more details run it from the REPL."
             test-function result)
     result))
+
+(define-condition test-skipped (warning)
+  ()
+  (:documentation "Signalled when test is skipped"))
+
+(defun skip ()
+  (warn 'test-skipped))
 
 ;; Local Variables:
 ;; coding: utf-8-unix
