@@ -96,6 +96,19 @@ After that, you'll see a nice
       DOUBLE-CONVERSION                                                             [ OK ]
     #<test-run: 4 tests, 6 assertions, 0 failures in 0.0 sec>
 
+You can conditionally skip tests with `fiasco:skip` and `fiasco:skip-unless`
+
+``` lisp
+(deftest test-a-platform-specific-test ()
+  (when (wrong-platform)
+    (skip))
+  (is ...))
+;; or using skip-unless
+(deftest test-a-platform-specific-test ()
+  (skip-unless (correct-platform))
+  (is ...))
+```
+
 Support
 -------
 
