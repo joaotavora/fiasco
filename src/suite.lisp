@@ -219,13 +219,13 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
         (format *pretty-log-stream* "~v@{~C~:*~}"
                 (max 1 (- *test-progress-print-right-margin*
                           (output-column *pretty-log-stream*)
-                          (length "[SKIPPED]")))
+                          (length "[FAIL]")))
                 #\.)
         (format *pretty-log-stream* "[~A]~%"
                 (cond
-                  (skipped  "SKIPPED")
-                  (failures "  FAIL ")
-                  (t        "   OK  ")))
+                  (skipped  "SKIP")
+                  (failures "FAIL")
+                  (t        " OK ")))
         (when (and *pretty-log-verbose-p* (not skipped))
           (pp "    (~A)"
               (or (documentation (name-of test) 'function)
