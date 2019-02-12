@@ -15,6 +15,7 @@
            #:is
            #:signals
            #:not-signals
+           #:skip
            #:finishes
            #:with-expected-failures
            #:root-suite
@@ -24,7 +25,6 @@
            #:funcall-test-with-feedback-message
            #:run-failed-tests
            #:extract-test-run-statistics
-           #:skip
 
            #:*test-progress-print-right-margin*
            #:*test-result-history*

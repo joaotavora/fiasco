@@ -295,6 +295,10 @@ missing (in-root-suite)?"
                           while context collect context))
             (error-of self))))
 
+(define-condition test-skipped (warning)
+  ()
+  (:documentation "Signalled when test is skipped"))
+
 
 ;;; Test repository
 ;;; 
@@ -727,12 +731,7 @@ For more details run it from the REPL."
             test-function result)
     result))
 
-(define-condition test-skipped (warning)
-  ()
-  (:documentation "Signalled when test is skipped"))
 
-(defun skip ()
-  (warn 'test-skipped))
 
 ;; Local Variables:
 ;; coding: utf-8-unix
