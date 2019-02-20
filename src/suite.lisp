@@ -216,12 +216,12 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
            (failures (failures-of *context*))
            (skipped (skipped-p *context*)))
       (unless (suite-p)
-        (format *pretty-log-stream* "~v@{~C~:*~}"
+        (format *pretty-log-stream* " ~v@{~C~:*~}"
                 (max 1 (- *test-progress-print-right-margin*
                           (output-column *pretty-log-stream*)
                           (length "[FAIL]")))
                 #\.)
-        (format *pretty-log-stream* "[~A]~%"
+        (format *pretty-log-stream* "[~A]"
                 (cond
                   (skipped  "SKIP")
                   (failures "FAIL")
