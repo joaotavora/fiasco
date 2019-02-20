@@ -294,7 +294,7 @@ missing (in-root-suite)?"
                           while context collect context))
             (error-of self))))
 
-(define-condition test-skipped (warning)
+(define-condition test-skipped ()
   ()
   (:documentation "Signalled when test is skipped"))
 
