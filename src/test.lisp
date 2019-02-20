@@ -108,7 +108,6 @@ returning (values)~@:>" (name-of test)))
                               ((test-skipped
                                  (lambda (condition)
                                    (setf (skipped-p *context*) t)
-                                   (muffle-warning)
                                    (continue condition)))
                                (test-assertion
                                  (lambda (a)
