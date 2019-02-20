@@ -15,6 +15,7 @@
            #:is
            #:signals
            #:not-signals
+           #:skip
            #:finishes
            #:with-expected-failures
            #:root-suite

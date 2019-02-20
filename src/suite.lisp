@@ -213,15 +213,20 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
            (*within-non-suite-test* (not (suite-p)))
            (retval-v-list (multiple-value-list
                            (run-test-body-in-handlers test function)))
-           (failures (failures-of *context*)))
+           (failures (failures-of *context*))
+           (skipped (skipped *context*)))
       (unless (suite-p)
         (format *pretty-log-stream* "~v@{~C~:*~}"
                 (max 1 (- *test-progress-print-right-margin*
                           (output-column *pretty-log-stream*)
-                          (length "[XXXX]")))
+                          (length "[FAIL]")))
                 #\.)
-        (format *pretty-log-stream* "[~A]~%" (if failures "FAIL" " OK "))
-        (when *pretty-log-verbose-p*
+        (format *pretty-log-stream* "[~A]~%"
+                (cond
+                  (skipped  "SKIP")
+                  (failures "FAIL")
+                  (t        " OK ")))
+        (when (and *pretty-log-verbose-p* (not skipped))
           (pp "    (~A)"
               (or (documentation (name-of test) 'function)
                   "no docstring for this test"))

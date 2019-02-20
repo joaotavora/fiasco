@@ -217,7 +217,11 @@ there a superfulous quote at ~S?)" condition-type))
                            :format-control "FINISHES block did not finish: ~S"
                            :format-arguments ,whole))))))
 
+(defun skip ()
+  (warn 'test-skipped))
 
+(defmacro skip-unless (condition)
+  `(unless ,condition (skip)))
 
 ;; Local Variables:
 ;; coding: utf-8-unix

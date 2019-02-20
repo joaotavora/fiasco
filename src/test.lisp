@@ -105,7 +105,12 @@ returning (values)~@:>" (name-of test)))
                                   :actual-test-arguments ,(lambda-list-to-value-list-expression args)
                                   :parent-context parent-context)))
                           (handler-bind
-                              ((test-assertion
+                              ((test-skipped
+                                 (lambda (thing)
+                                   (declare (ignore thing))
+                                   (setf (skipped *context*) t)
+                                   (return-from ,name)))
+                               (test-assertion
                                  (lambda (a)
                                    (push a (slot-value *context* 'self-assertions))
                                    (muffle-warning)))
