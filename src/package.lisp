@@ -16,6 +16,7 @@
            #:signals
            #:not-signals
            #:skip
+           #:skip-unless
            #:finishes
            #:with-expected-failures
            #:root-suite

@@ -96,6 +96,9 @@ After that, you'll see a nice
       DOUBLE-CONVERSION                                                             [ OK ]
     #<test-run: 4 tests, 6 assertions, 0 failures in 0.0 sec>
 
+Skipping tests
+--------------
+
 You can conditionally skip tests with `fiasco:skip` and `fiasco:skip-unless`
 
 ``` lisp

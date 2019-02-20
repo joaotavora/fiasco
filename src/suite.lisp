@@ -214,7 +214,7 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
            (retval-v-list (multiple-value-list
                            (run-test-body-in-handlers test function)))
            (failures (failures-of *context*))
-           (skipped (skipped *context*)))
+           (skipped (skipped-p *context*)))
       (unless (suite-p)
         (format *pretty-log-stream* "~v@{~C~:*~}"
                 (max 1 (- *test-progress-print-right-margin*

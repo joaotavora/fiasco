@@ -106,10 +106,10 @@ returning (values)~@:>" (name-of test)))
                                   :parent-context parent-context)))
                           (handler-bind
                               ((test-skipped
-                                 (lambda (thing)
-                                   (declare (ignore thing))
-                                   (setf (skipped *context*) t)
-                                   (return-from ,name)))
+                                 (lambda (condition)
+                                   (setf (skipped-p *context*) t)
+                                   (muffle-warning)
+                                   (continue condition)))
                                (test-assertion
                                  (lambda (a)
                                    (push a (slot-value *context* 'self-assertions))

@@ -130,12 +130,12 @@ missing (in-root-suite)?"
                           :initarg :actual-test-arguments
                           :initform (check-required 'actual-test-arguments))
    ;; recording
-   ;; 
+   ;;
    (self-failures :initform nil)
    (self-assertions :initform nil)
-   (self-skipped :initform nil :accessor skipped)
+   (self-skipped :initform nil :accessor skipped-p)
    ;; tree structure
-   ;; 
+   ;;
    (parent-context
     :initarg :parent-context :initform nil :accessor parent-context-of)
    (children-contexts
@@ -153,8 +153,7 @@ missing (in-root-suite)?"
 
 (defgeneric skips-of (context)
   (:method ((context context))
-    (count t (mapcar (alexandria:rcurry #'slot-value 'self-skipped)
-                     (all-test-runs-of context)))))
+    (count t (mapcar #'skipped-p (all-test-runs-of context)))))
 
 (defmethod initialize-instance :after ((obj context) &key parent-context &allow-other-keys)
   (setf (parent-context-of obj) parent-context))
