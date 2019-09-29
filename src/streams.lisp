@@ -14,6 +14,11 @@
       (setf (output-column s) (- (length seq) newline-pos 1))))
   (write-sequence seq (slot-value s 'understream) :start start :end end))
 
+(defmethod trivial-gray-streams:stream-line-column
+    ((s column-counting-output-stream))
+  "Tell column number that stream S is currently at."
+  (output-column s))
+
 (defmethod trivial-gray-streams:stream-start-line-p
     ((s column-counting-output-stream))
   "Tell if stream S is already at start of fresh new line."

@@ -139,6 +139,14 @@
       ))
   (values))
 
+(deftest slightly-verbose-test ()
+  (format *error-output* "~&Watch out for me")
+  (is t))
+
+(deftest slightly-verbose-test-2 ()
+  (format *error-output* "...And me")
+  (is t))
+
 (deftest lambda-list-processing ()
   (is (equal (lambda-list-to-value-list-expression '(p1 p2 &optional o1 (o2 "o2") &key k1 (k2 "k2") &allow-other-keys))
              '(list (cons 'p1 p1) (cons 'p2 p2) (cons 'o1 o1) (cons 'o2 o2) (cons 'k1 k1)
