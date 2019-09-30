@@ -230,10 +230,7 @@ missing (in-root-suite)?"
              :accessor expected-p)))
 
 (define-condition failed-assertion (failure)
-  ((form :accessor form-of :initarg :form)
-   (format-control :accessor format-control-of :initarg :format-control)
-   (format-arguments :initform nil :accessor format-arguments-of
-                     :initarg :format-arguments))
+  ((form :accessor form-of :initarg :form))
   (:report (lambda (c stream)
              (if (context-of c)
                  (format stream "Test assertion failed when running ~a:~%~%"
@@ -248,8 +245,11 @@ missing (in-root-suite)?"
     ;;         (mapcar (compose #'name-of #'test-of)
     ;;                 (loop for context = (context-of self) then (parent-context-of context)
     ;;                       while context collect context)))
-    (apply #'format stream (format-control-of self)
-           (format-arguments-of self))))
+    (handler-case (apply #'format stream (simple-condition-format-control self)
+                         (simple-condition-format-arguments self))
+      (error ()
+        (format stream "Can't format custom message for ~a form ~a"
+                'failed-assertion (form-of self))))))
 
 (define-condition missing-condition (failure)
   ((expected-condition-type :initarg :expected-condition-type
