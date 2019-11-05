@@ -221,7 +221,7 @@ missing (in-root-suite)?"
                                       simple-warning)
   ())
 
-(define-condition failure ()
+(define-condition failure (simple-condition)
   ((context :initform *context* :accessor context-of
             :documentation "Might perfectly well be NIL") 
    (progress-char :initform #\X :accessor progress-char-of
