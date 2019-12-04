@@ -158,7 +158,7 @@
   (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is ~
-there a superfulous quote at ~S?)" condition-type))
+there a superfluous quote at ~S?)" condition-type))
     `(progn
       (warn 'signals-assertion :expected-condition-type ',what)
       (block test-block
@@ -177,7 +177,7 @@ there a superfulous quote at ~S?)" condition-type))
   (let* ((condition-type what))
     (unless (symbolp condition-type)
       (error "SIGNALS expects a symbol as condition-type! (Is ~
-there a superfulous quote at ~S?)" condition-type))
+there a superfluous quote at ~S?)" condition-type))
     `(progn
        (warn 'not-signals-assertion :expected-condition-type ',what)
        (block test-block
