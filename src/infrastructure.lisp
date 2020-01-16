@@ -655,26 +655,6 @@ continue by returning (values)~@:>"))
           (&whole (process-&whole))
           (t      (process-required)))))))
 
-(defun lambda-list-to-funcall-list (args)
-  (multiple-value-bind (requireds optionals rest keywords)
-      (parse-ordinary-lambda-list args)
-    (values (append requireds
-                    (loop
-                      :for entry :in optionals
-                      :collect (first entry))
-                    (loop
-                      :for entry :in keywords
-                      :appending (list (first (first entry))
-                                       (second (first entry)))))
-            rest)))
-
-(defun lambda-list-to-funcall-expression (function args)
-  (multiple-value-bind (arg-list rest-variable)
-      (lambda-list-to-funcall-list args)
-    (if rest-variable
-        `(apply ,function ,@arg-list ,rest-variable)
-        `(funcall ,function ,@arg-list))))
-
 (defun lambda-list-to-value-list-expression (args)
   ;; TODO use alexandria:parse-ordinary-lambda-list
   ;; JT@15/08/14: Seconded
@@ -687,33 +667,6 @@ continue by returning (values)~@:>"))
                                     (&allow-other-keys)
                                     (t (push `(cons ',name ,name) result)))))
              (nreverse result))))
-
-(defun lambda-list-to-variable-name-list (args &key macro include-specials)
-  ;; TODO use alexandria:parse-ordinary-lambda-list
-  (let ((result (list))
-        (rest-variable-name nil)
-        (whole-variable-name nil)
-        (env-variable-name nil))
-    (parse-lambda-list args
-                       (lambda (kind name entry &optional external-name default)
-                         (declare (ignore entry external-name default))
-                         (case kind
-                           (&allow-other-keys )
-                           (&environment      (setf env-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
-                           (&whole            (setf whole-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
-                           ((&rest &body)     (setf rest-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
-                           (t                 (push name result))))
-                       :macro macro)
-    (values (nreverse result)
-            rest-variable-name
-            whole-variable-name
-            env-variable-name)))
 
 (defun funcall-test-with-feedback-message (test-function &rest args)
   "Run TEST non-interactively and print results to *STANDARD-OUTPUT*.
