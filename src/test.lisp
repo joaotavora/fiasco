@@ -121,8 +121,7 @@ returning (values)~@:>" (name-of test)))
                  (if parent-context
                      (,body-sym)
                      (with-toplevel-restarts
-                       (let ((*standard-output* (eval *test-run-standard-output*))
-                             (*debug-on-assertion-failure* *debug-on-assertion-failure*)
+                       (let ((*debug-on-assertion-failure* *debug-on-assertion-failure*)
                              (*debug-on-unexpected-error*  *debug-on-unexpected-error*)
                              (*print-test-run-progress*    *print-test-run-progress*)
                              (*progress-char-count*        *progress-char-count*))

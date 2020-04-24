@@ -92,7 +92,7 @@ packages."
 (defun run-tests (testable &key
                              (describe-failures t)
                              verbose
-                             (stream *standard-output*)
+                             (stream *fiasco-output*)
                              interactive)
   "Execute tests designated by TESTABLE.
 
@@ -109,7 +109,7 @@ With optional INTERACTIVE, run tests interactively, i.e. break on
 errors and unexpected assertion failures.
 
 With optional DESCRIBE-FAILURES, T by default, describe failures to
-optional STREAM, which defaults to *STANDARD-OUTPUT*.
+optional STREAM, which defaults to *FIASCO-OUTPUT*.
 
 With optional VERBOSE print more information about each test run, like
 its docstring."
@@ -149,7 +149,7 @@ its docstring."
                                (packages (list *package*) packages-supplied-p)
                                (describe-failures t)
                                verbose
-                               (stream *standard-output*)
+                               (stream *fiasco-output*)
                                interactive)
   "Execute test suite(s) associated with PACKAGE or PACKAGES.
 
