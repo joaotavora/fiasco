@@ -294,7 +294,7 @@ missing (in-root-suite)?"
                           while context collect context))
             (error-of self))))
 
-(define-condition test-skipped (warning)
+(define-condition test-skipped ()
   ()
   (:documentation "Signalled when test is skipped"))
 
@@ -422,7 +422,7 @@ and has no parent")
             (lambda ()
               (setf *debug-on-unexpected-error* nil
                     *debug-on-assertion-failure* nil)
-              (continue))
+              (invoke-restart 'skip-test))
             :report-function (lambda (stream)
                                (format stream "~
 ~@<Turn off debugging for this test session and invoke the first ~
@@ -430,7 +430,7 @@ CONTINUE restart~@:>")))
           (continue-without-debugging-errors
             (lambda ()
               (setf *debug-on-unexpected-error* nil)
-              (continue))
+              (invoke-restart 'skip-test))
             :report-function (lambda (stream)
                                (format stream "~
 ~@<Do not stop at unexpected errors for the rest of this test session ~
@@ -438,7 +438,7 @@ and continue by invoking the first CONTINUE restart~@:>")))
           (continue-without-debugging-assertions
             (lambda ()
               (setf *debug-on-assertion-failure* nil)
-              (continue))
+              (invoke-restart 'skip-test))
             :report-function (lambda (stream)
                                (format stream "~
 ~@<Do not stop at failed assertions for the rest of this test session ~

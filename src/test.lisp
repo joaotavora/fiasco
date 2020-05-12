@@ -31,7 +31,7 @@
          (lambda (c)
            (declare (ignore c))
            (unless *debug-on-assertion-failure*
-             (continue))))
+             (invoke-restart 'skip-test))))
        (serious-condition
          (lambda (c)
            (record-failure 'unexpected-error :error c)
@@ -45,25 +45,25 @@
   (signal 'test-started :test test)
   (labels ((run-test-body ()
              (restart-case
-              (let* ((*package* (package-of test))
-                     (*readtable* (copy-readtable))
-                     (start-time (get-internal-run-time)))
-                (multiple-value-prog1
-                    (funcall function)
-                  (setf (internal-realtime-spent-with-test-of *context*)
-                        (- (get-internal-run-time) start-time))))
-              (continue ()
-                        :report (lambda (stream)
-                                  (format stream "~
+		 (let* ((*package* (package-of test))
+			(*readtable* (copy-readtable))
+			(start-time (get-internal-run-time)))
+                   (multiple-value-prog1
+                       (funcall function)
+                     (setf (internal-realtime-spent-with-test-of *context*)
+                           (- (get-internal-run-time) start-time))))
+               (skip-test ()
+                 :report (lambda (stream)
+                           (format stream "~
 ~@<Skip the rest of the test ~S and continue by ~
 returning (values)~@:>" (name-of test)))
-                        (values))
-              (retest ()
-                      :report (lambda (stream)
-                                (format stream "~@<Rerun the test ~S~@:>"
-                                        (name-of test)))
-                      (reinitialize-instance *context*)
-                      (return-from run-test-body (run-test-body))))))
+                 (values))
+               (retest ()
+                 :report (lambda (stream)
+                           (format stream "~@<Rerun the test ~S~@:>"
+                                   (name-of test)))
+                 (reinitialize-instance *context*)
+                 (return-from run-test-body (run-test-body))))))
     (call-with-test-handlers
      (lambda ()
        (run-test-body)))))
@@ -107,8 +107,9 @@ returning (values)~@:>" (name-of test)))
                           (handler-bind
                               ((test-skipped
                                  (lambda (condition)
+				   (declare (ignore condition))
                                    (setf (skipped-p *context*) t)
-                                   (continue condition)))
+                                   (invoke-restart 'skip-test)))
                                (test-assertion
                                  (lambda (a)
                                    (push a (slot-value *context* 'self-assertions))
