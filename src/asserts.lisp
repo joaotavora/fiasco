@@ -18,15 +18,15 @@
                       (setf negatedp (not negatedp))
                       (process (second form)))
                      (t (setf predicate (first form))
-                        (setf arguments (rest form))))
+                      (setf arguments (rest form))))
                    (setf predicate form))))
       (process input-form)
       (cond ((ignore-errors
-               (macro-function predicate))
+              (macro-function predicate))
              (values '() input-form "Macro expression ~S evaluated to false."
                      (list `(quote ,input-form))))
             ((and (ignore-errors
-                    (fdefinition predicate))
+                   (fdefinition predicate))
                   ;; let's just skip CL:IF and don't change its evaluation
                   ;; semantics while trying to be more informative...
                   (not (eq predicate 'if)))
@@ -97,12 +97,12 @@
 
 (defun write-progress-char (char)
   (when *print-test-run-progress*
-      (when (and (not (zerop *progress-char-count*))
-                 (zerop (mod *progress-char-count*
-                             *test-progress-print-right-margin*)))
-        (terpri *debug-io*))
-      (incf *progress-char-count*)
-      (write-char char *debug-io*)))
+    (when (and (not (zerop *progress-char-count*))
+               (zerop (mod *progress-char-count*
+                           *test-progress-print-right-margin*)))
+      (terpri *debug-io*))
+    (incf *progress-char-count*)
+    (write-char char *debug-io*)))
 
 (defun register-assertion-was-successful ()
   (write-progress-char #\.))
@@ -118,12 +118,12 @@
     (write-progress-char (progress-char-of failure))
     (unless (eq condition-type 'unexpected-error)
       (restart-case
-       (error failure)
-       (continue ()
-                 :report (lambda (stream)
-                           (if *context*
-                               (format stream "~@<Roger, go on testing...~@:>")                               
-                               (format stream "~@<Ignore the failure and continue~@:>"))))))))
+          (error failure)
+        (continue ()
+          :report (lambda (stream)
+                    (if *context*
+                        (format stream "~@<Roger, go on testing...~@:>")
+                        (format stream "~@<Ignore the failure and continue~@:>"))))))))
 
 (defmacro is (&whole whole form
               &optional (message nil message-p) &rest message-args)
@@ -160,17 +160,17 @@
       (error "SIGNALS expects a symbol as condition-type! (Is ~
 there a superfulous quote at ~S?)" condition-type))
     `(progn
-      (warn 'signals-assertion :expected-condition-type ',what)
-      (block test-block
-        (handler-bind ((,condition-type
-                        (lambda (c)
-                          (register-assertion-was-successful)
-                          (return-from test-block c))))
-          ,@body)
-        (record-failure 'missing-condition
-                        :expected-condition-type ',what
-                        :form ',body)
-        (values)))))
+       (warn 'signals-assertion :expected-condition-type ',what)
+       (block test-block
+         (handler-bind ((,condition-type
+                          (lambda (c)
+                            (register-assertion-was-successful)
+                            (return-from test-block c))))
+           ,@body)
+         (record-failure 'missing-condition
+                         :expected-condition-type ',what
+                         :form ',body)
+         (values)))))
 
 (defmacro not-signals (&whole whole what &body body)
   (declare (ignore whole))
@@ -183,12 +183,12 @@ there a superfulous quote at ~S?)" condition-type))
        (block test-block
          (multiple-value-prog1
              (handler-bind ((,condition-type
-                             (lambda (c)
-                               (record-failure 'unwanted-condition
-                                               :expected-condition-type ',what
-                                               :observed-condition c
-                                               :form ',body)
-                               (return-from test-block c))))
+                              (lambda (c)
+                                (record-failure 'unwanted-condition
+                                                :expected-condition-type ',what
+                                                :observed-condition c
+                                                :form ',body)
+                                (return-from test-block c))))
                ,@body)
            (register-assertion-was-successful))))))
 

@@ -36,7 +36,7 @@ the toplevel entry point to any test.")
 (defmacro without-debugging (&body body)
   `(let* ((*debug-on-unexpected-error* nil)
           (*debug-on-assertion-failure* nil))
-    ,@body))
+     ,@body))
 
 
 ;;; Testable class
@@ -101,10 +101,10 @@ missing (in-root-suite)?"
 
 (defgeneric count-tests (testable)
   (:method ((self testable))
-           (+ (hash-table-count (children-of self))
-              (loop
-                :for child :being :the :hash-values :of (children-of self)
-                :summing (count-tests child)))))
+    (+ (hash-table-count (children-of self))
+       (loop
+         :for child :being :the :hash-values :of (children-of self)
+         :summing (count-tests child)))))
 
 
 ;;; The object that represents a particular test run.
@@ -328,7 +328,7 @@ signal error; if a function, call it; else return OTHERWISE."
                 :format-control "redefining test ~A"
                 :format-arguments (list
                                    (let ((*package* #.(find-package "KEYWORD")))
-                                          (format nil "~S" key)))))
+                                     (format nil "~S" key)))))
         (setf (gethash key *tests*) new-value))
       (delete-test key)))
 
@@ -359,7 +359,7 @@ and has no parent")
 (defun all-test-runs-of (context)
   (cons context
         (loop for context in (children-contexts-of context)
-                append (all-test-runs-of context))))
+              append (all-test-runs-of context))))
 
 (defun extract-test-run-statistics (context)
   (let* ((failures (failures-of context))
@@ -409,11 +409,11 @@ and has no parent")
 (defmacro without-test-progress-printing (&body body)
   (with-unique-names (old-state)
     `(let ((,old-state *print-test-run-progress*))
-      (unwind-protect
-           (progn
-             (setf *print-test-run-progress* nil)
-             ,@body)
-        (setf *print-test-run-progress* ,old-state)))))
+       (unwind-protect
+            (progn
+              (setf *print-test-run-progress* nil)
+              ,@body)
+         (setf *print-test-run-progress* ,old-state)))))
 
 (defmacro with-toplevel-restarts (&body body)
   `(block restart-wrapper
@@ -456,9 +456,9 @@ test session~@:>"))))
 environment, which may affect their behaviour!")
   (with-toplevel-restarts
     (loop
-     :for failure in (failures-of test-run)
-     :do (apply (name-of (test-of (context-of failure)))
-                (actual-test-arguments-of (context-of failure))))
+      :for failure in (failures-of test-run)
+      :do (apply (name-of (test-of (context-of failure)))
+                 (actual-test-arguments-of (context-of failure))))
     (when *print-test-run-progress*
       (terpri *debug-io*))))
 
@@ -472,11 +472,11 @@ CONDITION."
        (block ,with-expected-failures-block
          (restart-case
              (handler-bind ((serious-condition
-                             ;; TODO comment on why it's needed here...
-                             (lambda (error)
-                               (record-failure 'unexpected-error :error error)
-                               (return-from ,with-expected-failures-block
-                                 (values)))))
+                              ;; TODO comment on why it's needed here...
+                              (lambda (error)
+                                (record-failure 'unexpected-error :error error)
+                                (return-from ,with-expected-failures-block
+                                  (values)))))
                (multiple-value-prog1
                    (progn ,@body)
                  (unless (< ,starting-failure-count
@@ -700,14 +700,14 @@ continue by returning (values)~@:>"))
                          (case kind
                            (&allow-other-keys )
                            (&environment      (setf env-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
+                            (when include-specials
+                              (push name result)))
                            (&whole            (setf whole-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
+                            (when include-specials
+                              (push name result)))
                            ((&rest &body)     (setf rest-variable-name name)
-                                              (when include-specials
-                                                (push name result)))
+                            (when include-specials
+                              (push name result)))
                            (t                 (push name result))))
                        :macro macro)
     (values (nreverse result)
@@ -722,7 +722,7 @@ This function is ideal for ASDF:TEST-OP's."
          (result (without-debugging (apply test-function args)))
          (*package* (find-package :common-lisp)))
     (format *standard-output*
-"The result of ~S is:
+            "The result of ~S is:
 
   ~A
 

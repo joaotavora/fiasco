@@ -45,25 +45,25 @@
   (signal 'test-started :test test)
   (labels ((run-test-body ()
              (restart-case
-              (let* ((*package* (package-of test))
-                     (*readtable* (copy-readtable))
-                     (start-time (get-internal-run-time)))
-                (multiple-value-prog1
-                    (funcall function)
-                  (setf (internal-realtime-spent-with-test-of *context*)
-                        (- (get-internal-run-time) start-time))))
-              (continue ()
-                        :report (lambda (stream)
-                                  (format stream "~
+                 (let* ((*package* (package-of test))
+                        (*readtable* (copy-readtable))
+                        (start-time (get-internal-run-time)))
+                   (multiple-value-prog1
+                       (funcall function)
+                     (setf (internal-realtime-spent-with-test-of *context*)
+                           (- (get-internal-run-time) start-time))))
+               (continue ()
+                 :report (lambda (stream)
+                           (format stream "~
 ~@<Skip the rest of the test ~S and continue by ~
 returning (values)~@:>" (name-of test)))
-                        (values))
-              (retest ()
-                      :report (lambda (stream)
-                                (format stream "~@<Rerun the test ~S~@:>"
-                                        (name-of test)))
-                      (reinitialize-instance *context*)
-                      (return-from run-test-body (run-test-body))))))
+                 (values))
+               (retest ()
+                 :report (lambda (stream)
+                           (format stream "~@<Rerun the test ~S~@:>"
+                                   (name-of test)))
+                 (reinitialize-instance *context*)
+                 (return-from run-test-body (run-test-body))))))
     (call-with-test-handlers
      (lambda ()
        (run-test-body)))))
@@ -74,7 +74,7 @@ returning (values)~@:>" (name-of test)))
   (multiple-value-bind (remaining-forms declarations documentation)
       (parse-body body :documentation t :whole whole)
     (destructuring-bind (name &rest test-args &key (in nil in-provided?)
-                                                   timeout &allow-other-keys)
+                                                timeout &allow-other-keys)
         (ensure-list name)
       (remove-from-plistf test-args :in)
       (with-unique-names (body-sym)
@@ -100,10 +100,10 @@ returning (values)~@:>" (name-of test)))
                           (setq *context*
                                 (progn
                                   (make-instance
-                                    'context
-                                  :test *current-test*
-                                  :actual-test-arguments ,(lambda-list-to-value-list-expression args)
-                                  :parent-context parent-context)))
+                                   'context
+                                   :test *current-test*
+                                   :actual-test-arguments ,(lambda-list-to-value-list-expression args)
+                                   :parent-context parent-context)))
                           (handler-bind
                               ((test-skipped
                                  (lambda (condition)

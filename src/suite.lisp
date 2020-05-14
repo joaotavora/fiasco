@@ -146,11 +146,11 @@ its docstring."
                            results))))
 
 (defun run-package-tests (&key (package *package* package-supplied-p)
-                               (packages (list *package*) packages-supplied-p)
-                               (describe-failures t)
-                               verbose
-                               (stream *standard-output*)
-                               interactive)
+                            (packages (list *package*) packages-supplied-p)
+                            (describe-failures t)
+                            verbose
+                            (stream *standard-output*)
+                            interactive)
   "Execute test suite(s) associated with PACKAGE or PACKAGES.
 
 PACKAGE defaults to the current package. Don't supply both both
@@ -245,7 +245,7 @@ See RUN-TESTS for the meaning of the remaining keyword arguments."
               do (format stream "~A~A~%" line-prefix line))))))
 
 (defun describe-failed-tests (&key (result *last-test-result* result-provided-p)
-                                   (stream t))
+                                (stream t))
   "Prints out a report for RESULT in STREAM.
 
 RESULT defaults to `*last-test-result*' and STREAM defaults to t"

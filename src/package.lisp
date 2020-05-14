@@ -8,7 +8,7 @@
 
 (defpackage :fiasco
   (:use :alexandria
-        :common-lisp)
+   :common-lisp)
 
   (:export #:find-test
            #:deftest
