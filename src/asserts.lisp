@@ -218,7 +218,7 @@ there a superfulous quote at ~S?)" condition-type))
                            :format-arguments ,whole))))))
 
 (defun skip ()
-  (warn 'test-skipped))
+  (signal 'test-skipped))
 
 (defmacro skip-unless (condition)
   `(unless ,condition (skip)))
