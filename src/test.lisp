@@ -45,16 +45,16 @@
   (signal 'test-started :test test)
   (labels ((run-test-body ()
              (restart-case
-                 (let* ((*package* (package-of test))
-                        (*readtable* (copy-readtable))
-                        (start-time (get-internal-run-time)))
-                   (multiple-value-prog1
-                       (funcall function)
-                     (setf (internal-realtime-spent-with-test-of *context*)
-                           (- (get-internal-run-time) start-time))))
-               (continue ()
-                 :report (lambda (stream)
-                           (format stream "~
+              (let* ((*package* (package-of test))
+                     (*readtable* (copy-readtable))
+                     (start-time (get-internal-real-time)))
+                (multiple-value-prog1
+                    (funcall function)
+                  (setf (internal-realtime-spent-with-test-of *context*)
+                        (- (get-internal-real-time) start-time))))
+              (continue ()
+                        :report (lambda (stream)
+                                  (format stream "~
 ~@<Skip the rest of the test ~S and continue by ~
 returning (values)~@:>" (name-of test)))
                  (values))
