@@ -28,6 +28,9 @@
                 #:lambda-list-to-variable-name-list))
 (in-package #:fiasco-basic-self-tests)
 
+(deftest fiasco-define-test-package ()
+  (is (not (null (package-use-list ':fiasco-basic-self-tests)))))
+
 (deftest lifecycle ()
   (let* ((original-test-count (count-tests *suite*))
          (suite-name (gensym "TEMP-SUITE"))
