@@ -76,8 +76,6 @@ processing PACKAGE-OPTIONS, automatically USES the :FIASCO and :CL
 packages."
   (destructuring-bind (name &key (in 'fiasco-suites::all-tests))
       (alexandria:ensure-list name-or-name-with-args)
-    (unless (find-package name)
-      (make-package name :use nil))
     (let ((suite-sym (intern (string name) :fiasco-suites)))
       `(progn
 	 (defpackage ,name
