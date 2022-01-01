@@ -11,6 +11,7 @@
   (:import-from #:fiasco #:*suite*
                 #:name-of
                 #:parent-of
+                #:children-of
                 #:delete-test
                 #:count-tests
 
@@ -88,55 +89,68 @@
   t)
 
 (deftest assertions (&key (test-name (gensym "TEMP-TEST")))
-  (unwind-protect
-       (eval `(deftest ,test-name ()
-                (is (= 42 42))
-                (is (= 1 42))                                ; fails
-                (is (not (= 42 42)))                         ; fails
-                (is (true-macro))
-                (is (true-macro) "Oh yes, glad that it's ~a" "true")
-                (is (not (false-macro)))
+  (let* ((this-suite (find-test 'fiasco-suites::fiasco-basic-self-tests))
+         (old-children (children-of this-suite)))
+    (unwind-protect
+         (progn
+           ;; The DEFTEST form will modify the (CHILDREN-OF THIS-SUITE), but we
+           ;; might currently be iterating over that HASH-TABLE, e.g. if this
+           ;; test was invoked via FIASCO:ALL-TESTS or similar. According to the
+           ;; spec, the consequences are undefined if you add a new element to a
+           ;; HASH-TABLE while traversing it, so make a copy here and restore
+           ;; the old value below.
+           (setf (children-of this-suite) (alexandria:copy-hash-table old-children))
+           (eval `(deftest ,test-name ()
+                    (is (= 42 42))
+                    (is (= 1 42))                              ; fails
+                    (is (not (= 42 42)))                       ; fails
+                    (is (true-macro))
+                    (is (true-macro) "Oh yes, glad that it's ~a" "true")
+                    (is (not (false-macro)))
 
-                (signals serious-condition (error "foo"))
-                (signals serious-condition 'not)             ; fails
+                    (signals serious-condition (error "foo"))
+                    (signals serious-condition 'not)           ; fails
 
-                (not-signals warning (warn "foo"))           ; fails
-                (not-signals warning 'not)
+                    (not-signals warning (warn "foo"))         ; fails
+                    (not-signals warning 'not)
                 
-                (with-expected-failures
-                  (ignore-errors
-                    (finishes (error "expected failure"))))  ; fails
-                (finishes 42)
-                (ignore-errors                               ; fails
-                  (finishes (error "foo")))))
-    (progn
-      ;; this uglyness here is due to testing the test framework which is inherently
-      ;; not nestable, so we need to backup and restore some state
-      (let* ((context *context*)
-             (old-assertion-count (length (assertions-of context)))
-             (old-failure-description-count (length (failures-of context))))
-        (unwind-protect
-             (progn
-               (let ((*debug-on-unexpected-error* nil)
-                     (*debug-on-assertion-failure* nil)
-                     (*print-test-run-progress* nil))
-                 (funcall test-name))))
-        (is (= (length (assertions-of context))
-               (+ old-assertion-count 14))) ; also includes the current assertion
-        (is (= (length (failures-of context))
-               (+ old-failure-description-count 6)))
-        (is (= 1 (count-if 'expected-p (failures-of context))))
-        (is (= 1 (length (children-contexts-of context))))
-        ;; drop the subtest by the test-test
-        ;; 
-        (setf (parent-context-of (first (children-contexts-of context))) nil)
-        (is (= 0 (length (children-contexts-of context)))))
-      ;; Take this occasion to test some deleting, too
-      ;;
-      (delete-test test-name :otherwise nil)
-      (signals error (delete-test test-name :otherwise :error))
-      (is (not (find-test test-name :otherwise nil)))
-      ))
+                    (with-expected-failures
+                      (ignore-errors
+                       (finishes (error "expected failure")))) ; fails
+                    (finishes 42)
+                    (ignore-errors                             ; fails
+                     (finishes (error "foo"))))))
+      (progn
+        ;; this uglyness here is due to testing the test framework which is inherently
+        ;; not nestable, so we need to backup and restore some state
+        (let* ((context *context*)
+               (old-assertion-count (length (assertions-of context)))
+               (old-failure-description-count (length (failures-of context))))
+          (unwind-protect
+               (progn
+                 (let ((*debug-on-unexpected-error* nil)
+                       (*debug-on-assertion-failure* nil)
+                       (*print-test-run-progress* nil))
+                   (funcall test-name))))
+          (is (= (length (assertions-of context))
+                 (+ old-assertion-count 14))) ; also includes the current assertion
+          (is (= (length (failures-of context))
+                 (+ old-failure-description-count 6)))
+          (is (= 1 (count-if 'expected-p (failures-of context))))
+          (is (= 1 (length (children-contexts-of context))))
+          ;; drop the subtest by the test-test
+          ;; 
+          (setf (parent-context-of (first (children-contexts-of context))) nil)
+          (is (= 0 (length (children-contexts-of context)))))
+        ;; Take this occasion to test some deleting, too
+        ;;
+        (delete-test test-name :otherwise nil)
+        (signals error (delete-test test-name :otherwise :error))
+        (is (not (find-test test-name :otherwise nil)))
+        ;; Restore children
+        ;;
+        (setf (children-of this-suite) old-children)
+        )))
   (values))
 
 (deftest slightly-verbose-test ()
