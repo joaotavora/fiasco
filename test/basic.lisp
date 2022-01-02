@@ -23,13 +23,20 @@
 
                 #:*context*
 
+                #:find-suite-for-package
+
                 #:lambda-list-to-value-list-expression
                 #:lambda-list-to-funcall-expression
                 #:lambda-list-to-variable-name-list))
 (in-package #:fiasco-basic-self-tests)
 
 (deftest fiasco-define-test-package ()
-  (is (not (null (package-use-list *package*)))))
+  (is (not (null (package-use-list *package*))))
+  (multiple-value-bind (suite foundp)
+      (find-suite-for-package *package*)
+    (is (not (null foundp)))
+    (is (eq 'fiasco-suites::fiasco-basic-self-tests
+            (name-of suite)))))
 
 (deftest lifecycle ()
   (let* ((original-test-count (count-tests *suite*))
