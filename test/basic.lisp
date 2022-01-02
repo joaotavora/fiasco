@@ -29,7 +29,7 @@
 (in-package #:fiasco-basic-self-tests)
 
 (deftest fiasco-define-test-package ()
-  (is (not (null (package-use-list ':fiasco-basic-self-tests)))))
+  (is (not (null (package-use-list *package*)))))
 
 (deftest lifecycle ()
   (let* ((original-test-count (count-tests *suite*))
